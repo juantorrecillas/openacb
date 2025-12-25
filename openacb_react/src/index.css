@@ -1,0 +1,60 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom properties for our color scheme */
+:root {
+  --color-positive: #059669;
+  --color-negative: #dc2626;
+  --color-highlight: #f97316;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background-color: #f8fafc;
+  color: #1e293b;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Utility classes using CSS variables */
+.text-positive { color: var(--color-positive); }
+.text-negative { color: var(--color-negative); }
+.text-highlight { color: var(--color-highlight); }
+.bg-positive { background-color: var(--color-positive); }
+.bg-negative { background-color: var(--color-negative); }
+
+/* Shot chart specific */
+.shot-made {
+  fill: var(--color-positive);
+  opacity: 0.75;
+}
+
+.shot-missed {
+  fill: var(--color-negative);
+  opacity: 0.5;
+}
+
+.court-paint {
+  fill: #f8fafc;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}

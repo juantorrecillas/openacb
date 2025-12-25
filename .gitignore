@@ -1,0 +1,48 @@
+# ============================================================================
+# R / RStudio - ETL Pipeline
+# ============================================================================
+.Rhistory
+.Rapp.history
+.RData
+.RDataTmp
+.Ruserdata
+.Rproj.user/
+*.Rproj
+.Renviron
+.Rprofile
+
+# ============================================================================
+# React Frontend (openacb_react)
+# ============================================================================
+openacb_react/node_modules/
+openacb_react/dist/
+openacb_react/build/
+openacb_react/.env
+openacb_react/.env.local
+openacb_react/.env.*.local
+openacb_react/npm-debug.log
+openacb_react/yarn-error.log
+openacb_react/.pnpm-debug.log
+
+# ============================================================================
+# Data Files (Large / Not for version control)
+# ============================================================================
+# Raw API data and processed files
+openacb_api/data/raw/
+openacb_api/data/processed/
+
+# Generated JSON/CSV exports for React
+# openacb_react/public/data/*.json
+openacb_react/public/data/*.csv
+
+# ============================================================================
+# System Files
+# ============================================================================
+.DS_Store
+Thumbs.db
+._*
+.AppleDouble
+.LSOverride
+nul
+.claude/
+_old_scripts/
