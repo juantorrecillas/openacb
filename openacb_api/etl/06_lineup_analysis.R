@@ -221,16 +221,53 @@ calculate_stats_for_subset <- function(subset_dt, team_name) {
   der <- if (opp_stats$pos > 0) opp_stats$puntos / opp_stats$pos else 0
   ner <- oer - der
 
-  # Additional stats
+  # === FOUR FACTORS CALCULATIONS ===
+
+  # True Shooting %
   ts <- if ((team_stats$T2I + team_stats$T3I + 0.44 * team_stats$T1I) > 0) {
     team_stats$puntos / (2 * (team_stats$T2I + team_stats$T3I + 0.44 * team_stats$T1I))
   } else 0
 
+  # Effective Field Goal % (Offensive)
   efg <- if ((team_stats$T2I + team_stats$T3I) > 0) {
     (team_stats$T2A + 1.5 * team_stats$T3A) / (team_stats$T2I + team_stats$T3I)
   } else 0
 
+  # Opponent Effective Field Goal % (Defensive)
+  opp_efg <- if ((opp_stats$T2I + opp_stats$T3I) > 0) {
+    (opp_stats$T2A + 1.5 * opp_stats$T3A) / (opp_stats$T2I + opp_stats$T3I)
+  } else 0
+
+  # Turnover Rate (Offensive - lower is better)
   tov_rate <- if (team_stats$pos > 0) team_stats$perdida / team_stats$pos else 0
+
+  # Opponent Turnover Rate (Defensive - higher is better = forced turnovers)
+  opp_tov_rate <- if (opp_stats$pos > 0) opp_stats$perdida / opp_stats$pos else 0
+
+  # Offensive Rebound % = ORB / (ORB + Opp_DRB)
+  orb_pct <- if ((team_stats$reb_of + opp_stats$reb_def) > 0) {
+    team_stats$reb_of / (team_stats$reb_of + opp_stats$reb_def)
+  } else 0
+
+  # Defensive Rebound % = DRB / (DRB + Opp_ORB)
+  drb_pct <- if ((team_stats$reb_def + opp_stats$reb_of) > 0) {
+    team_stats$reb_def / (team_stats$reb_def + opp_stats$reb_of)
+  } else 0
+
+  # Free Throw Rate (Offensive) = FTA / FGA
+  ft_rate <- if ((team_stats$T2I + team_stats$T3I) > 0) {
+    team_stats$T1I / (team_stats$T2I + team_stats$T3I)
+  } else 0
+
+  # Opponent Free Throw Rate (Defensive)
+  opp_ft_rate <- if ((opp_stats$T2I + opp_stats$T3I) > 0) {
+    opp_stats$T1I / (opp_stats$T2I + opp_stats$T3I)
+  } else 0
+
+  # Assist Rate = Assists / FGM
+  ast_rate <- if ((team_stats$T2A + team_stats$T3A) > 0) {
+    team_stats$asistencias / (team_stats$T2A + team_stats$T3A)
+  } else 0
 
   list(
     pos = team_stats$pos,
@@ -241,7 +278,14 @@ calculate_stats_for_subset <- function(subset_dt, team_name) {
     pts_allowed = opp_stats$puntos,
     ts = ts,
     efg = efg,
-    tov_rate = tov_rate
+    opp_efg = opp_efg,
+    tov_rate = tov_rate,
+    opp_tov_rate = opp_tov_rate,
+    orb_pct = orb_pct,
+    drb_pct = drb_pct,
+    ft_rate = ft_rate,
+    opp_ft_rate = opp_ft_rate,
+    ast_rate = ast_rate
   )
 }
 
@@ -274,6 +318,7 @@ calculate_individual_stats_optimized <- function(team_data, team_name, players, 
         player = player,
         playerId = player_id,
         displayName = display_name,
+        # Ratings
         onORtg = round(on_stats$oer * 100, 1),
         offORtg = round(off_stats$oer * 100, 1),
         onDRtg = round(on_stats$der * 100, 1),
@@ -283,8 +328,30 @@ calculate_individual_stats_optimized <- function(team_data, team_name, players, 
         netDiff = round((on_stats$ner - off_stats$ner) * 100, 1),
         onPoss = round(on_stats$pos),
         offPoss = round(off_stats$pos),
+        # Shooting efficiency
         onTS = round(on_stats$ts * 100, 1),
-        onEFG = round(on_stats$efg * 100, 1)
+        offTS = round(off_stats$ts * 100, 1),
+        onEFG = round(on_stats$efg * 100, 1),
+        offEFG = round(off_stats$efg * 100, 1),
+        # Defensive shooting (opponent eFG%)
+        onOppEFG = round(on_stats$opp_efg * 100, 1),
+        offOppEFG = round(off_stats$opp_efg * 100, 1),
+        # Turnovers
+        onTOV = round(on_stats$tov_rate * 100, 1),
+        offTOV = round(off_stats$tov_rate * 100, 1),
+        onOppTOV = round(on_stats$opp_tov_rate * 100, 1),
+        offOppTOV = round(off_stats$opp_tov_rate * 100, 1),
+        # Rebounding
+        onORB = round(on_stats$orb_pct * 100, 1),
+        offORB = round(off_stats$orb_pct * 100, 1),
+        onDRB = round(on_stats$drb_pct * 100, 1),
+        offDRB = round(off_stats$drb_pct * 100, 1),
+        # Free throws
+        onFTr = round(on_stats$ft_rate * 100, 1),
+        offFTr = round(off_stats$ft_rate * 100, 1),
+        # Assists
+        onAST = round(on_stats$ast_rate * 100, 1),
+        offAST = round(off_stats$ast_rate * 100, 1)
       )
     }
   }
@@ -336,7 +403,13 @@ calculate_pair_stats_optimized <- function(team_data, team_name, players, player
         onDRtg = round(on_stats$der * 100, 1),
         onNetRtg = round(on_stats$ner * 100, 1),
         onPoss = round(on_stats$pos),
-        onTS = round(on_stats$ts * 100, 1)
+        # Four Factors
+        onTS = round(on_stats$ts * 100, 1),
+        onEFG = round(on_stats$efg * 100, 1),
+        onOppEFG = round(on_stats$opp_efg * 100, 1),
+        onTOV = round(on_stats$tov_rate * 100, 1),
+        onDRB = round(on_stats$drb_pct * 100, 1),
+        onAST = round(on_stats$ast_rate * 100, 1)
       )
     }
   }
@@ -389,7 +462,13 @@ calculate_trio_stats_optimized <- function(team_data, team_name, players, player
         onDRtg = round(on_stats$der * 100, 1),
         onNetRtg = round(on_stats$ner * 100, 1),
         onPoss = round(on_stats$pos),
-        onTS = round(on_stats$ts * 100, 1)
+        # Four Factors
+        onTS = round(on_stats$ts * 100, 1),
+        onEFG = round(on_stats$efg * 100, 1),
+        onOppEFG = round(on_stats$opp_efg * 100, 1),
+        onTOV = round(on_stats$tov_rate * 100, 1),
+        onDRB = round(on_stats$drb_pct * 100, 1),
+        onAST = round(on_stats$ast_rate * 100, 1)
       )
     }
   }
@@ -473,9 +552,16 @@ calculate_lineup_stats_optimized <- function(team_data, team_name, players, play
         onPoss = round(stats$pos),
         pts = stats$pts,
         ptsAllowed = stats$pts_allowed,
+        # Four Factors
         onTS = round(stats$ts * 100, 1),
         onEFG = round(stats$efg * 100, 1),
-        tovRate = round(stats$tov_rate * 100, 1)
+        onOppEFG = round(stats$opp_efg * 100, 1),
+        onTOV = round(stats$tov_rate * 100, 1),
+        onOppTOV = round(stats$opp_tov_rate * 100, 1),
+        onORB = round(stats$orb_pct * 100, 1),
+        onDRB = round(stats$drb_pct * 100, 1),
+        onFTr = round(stats$ft_rate * 100, 1),
+        onAST = round(stats$ast_rate * 100, 1)
       )
     }
   }

@@ -214,6 +214,7 @@ transform_individual_stats <- function(individual_data) {
       id = p$playerId,
       name = p$displayName,
       nickname = p$player,
+      # Ratings
       onORtg = p$onORtg,
       offORtg = p$offORtg,
       onDRtg = p$onDRtg,
@@ -223,8 +224,28 @@ transform_individual_stats <- function(individual_data) {
       netDiff = p$netDiff,
       onPoss = p$onPoss,
       offPoss = p$offPoss,
+      # Shooting
       onTS = p$onTS,
-      onEFG = p$onEFG
+      offTS = p$offTS,
+      onEFG = p$onEFG,
+      offEFG = p$offEFG,
+      onOppEFG = p$onOppEFG,
+      offOppEFG = p$offOppEFG,
+      # Turnovers
+      onTOV = p$onTOV,
+      offTOV = p$offTOV,
+      onOppTOV = p$onOppTOV,
+      offOppTOV = p$offOppTOV,
+      # Rebounding
+      onORB = p$onORB,
+      offORB = p$offORB,
+      onDRB = p$onDRB,
+      offDRB = p$offDRB,
+      # Free throws & Assists
+      onFTr = p$onFTr,
+      offFTr = p$offFTr,
+      onAST = p$onAST,
+      offAST = p$offAST
     )
   })
 }
@@ -246,7 +267,13 @@ transform_pair_stats <- function(pair_data) {
       onDRtg = p$onDRtg,
       onNetRtg = p$onNetRtg,
       onPoss = p$onPoss,
-      onTS = p$onTS
+      # Four Factors
+      onTS = p$onTS,
+      onEFG = p$onEFG,
+      onOppEFG = p$onOppEFG,
+      onTOV = p$onTOV,
+      onDRB = p$onDRB,
+      onAST = p$onAST
     )
   })
 }
@@ -266,7 +293,13 @@ transform_trio_stats <- function(trio_data) {
       onDRtg = t$onDRtg,
       onNetRtg = t$onNetRtg,
       onPoss = t$onPoss,
-      onTS = t$onTS
+      # Four Factors
+      onTS = t$onTS,
+      onEFG = t$onEFG,
+      onOppEFG = t$onOppEFG,
+      onTOV = t$onTOV,
+      onDRB = t$onDRB,
+      onAST = t$onAST
     )
   })
 }
@@ -288,9 +321,16 @@ transform_lineup_stats <- function(lineup_data) {
       onPoss = l$onPoss,
       pts = l$pts,
       ptsAllowed = l$ptsAllowed,
+      # Four Factors
       onTS = l$onTS,
       onEFG = l$onEFG,
-      tovRate = l$tovRate
+      onOppEFG = l$onOppEFG,
+      onTOV = l$onTOV,
+      onOppTOV = l$onOppTOV,
+      onORB = l$onORB,
+      onDRB = l$onDRB,
+      onFTr = l$onFTr,
+      onAST = l$onAST
     )
   })
 }

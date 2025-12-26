@@ -208,18 +208,34 @@ export_player_data <- function() {
         # Basic totals
         points = safe_val(p$points, 0),
         rebounds = safe_val(p$rebounds, 0),
+        oreb = safe_val(p$oreb, 0),
+        dreb = safe_val(p$dreb, 0),
         assists = safe_val(p$assists, 0),
         steals = safe_val(p$steals, 0),
         blocks = safe_val(p$blocks, 0),
         turnovers = safe_val(p$turnovers, 0),
+        fouls = safe_val(p$fouls, 0),
+
+        # Shooting totals
+        fgm = safe_val(p$fgm, 0),
+        fga = safe_val(p$fga, 0),
+        fgm2 = safe_val(p$fgm2, 0),
+        fga2 = safe_val(p$fga2, 0),
+        fgm3 = safe_val(p$fgm3, 0),
+        fga3 = safe_val(p$fga3, 0),
+        ftm = safe_val(p$ftm, 0),
+        fta = safe_val(p$fta, 0),
 
         # Per game stats
         ppg = safe_val(p$ppg, 1),
         rpg = safe_val(p$rpg, 1),
+        orebpg = safe_val(p$orebpg, 1),
+        drebpg = safe_val(p$drebpg, 1),
         apg = safe_val(p$apg, 1),
         spg = safe_val(p$spg, 1),
         bpg = safe_val(p$bpg, 1),
         topg = safe_val(p$topg, 1),
+        fpg = safe_val(p$fpg, 1),
 
         # Shooting percentages
         fgPct = safe_val(p$fg_pct, 1),

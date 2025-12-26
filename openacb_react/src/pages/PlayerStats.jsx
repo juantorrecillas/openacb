@@ -1,36 +1,39 @@
 import { useState, useMemo } from 'react'
 import { Search, ArrowUp, ArrowDown, Filter } from 'lucide-react'
 
-// Basic boxscore stats columns
+// Basic boxscore stats columns - with percentile key for inline display
 const basicColumns = [
   { key: 'player', label: 'Player', align: 'left', sortable: true },
   { key: 'team', label: 'Team', align: 'left', sortable: true },
   { key: 'games', label: 'GP', align: 'right', sortable: true },
-  { key: 'mpg', label: 'MPG', align: 'right', sortable: true },
-  { key: 'ppg', label: 'PPG', align: 'right', sortable: true, highlight: true },
-  { key: 'rpg', label: 'RPG', align: 'right', sortable: true },
-  { key: 'apg', label: 'APG', align: 'right', sortable: true },
-  { key: 'spg', label: 'SPG', align: 'right', sortable: true },
-  { key: 'bpg', label: 'BPG', align: 'right', sortable: true },
-  { key: 'topg', label: 'TOPG', align: 'right', sortable: true, inverse: true },
+  { key: 'mpg', label: 'MPG', align: 'right', sortable: true, pctKey: 'mpgPct' },
+  { key: 'ppg', label: 'PPG', align: 'right', sortable: true, highlight: true, pctKey: 'ppgPct' },
+  { key: 'rpg', label: 'RPG', align: 'right', sortable: true, pctKey: 'rpgPct' },
+  { key: 'orebpg', label: 'OREB', align: 'right', sortable: true },
+  { key: 'drebpg', label: 'DREB', align: 'right', sortable: true },
+  { key: 'apg', label: 'APG', align: 'right', sortable: true, pctKey: 'apgPct' },
+  { key: 'spg', label: 'SPG', align: 'right', sortable: true, pctKey: 'spgPct' },
+  { key: 'bpg', label: 'BPG', align: 'right', sortable: true, pctKey: 'bpgPct' },
+  { key: 'topg', label: 'TOPG', align: 'right', sortable: true, inverse: true, pctKey: 'topgPct' },
+  { key: 'fpg', label: 'FPG', align: 'right', sortable: true, inverse: true },
 ]
 
-// Shooting and efficiency stats
+// Shooting and efficiency stats - with percentile key for inline display
 const advancedColumns = [
   { key: 'player', label: 'Player', align: 'left', sortable: true },
   { key: 'team', label: 'Team', align: 'left', sortable: true },
   { key: 'games', label: 'GP', align: 'right', sortable: true },
-  { key: 'fgPct', label: 'FG%', align: 'right', sortable: true },
+  { key: 'fgPct', label: 'FG%', align: 'right', sortable: true, pctKey: 'fgPctPct' },
   { key: 'fg2Pct', label: '2P%', align: 'right', sortable: true },
-  { key: 'fg3Pct', label: '3P%', align: 'right', sortable: true },
-  { key: 'ftPct', label: 'FT%', align: 'right', sortable: true },
-  { key: 'efg', label: 'eFG%', align: 'right', sortable: true, highlight: true },
-  { key: 'ts', label: 'TS%', align: 'right', sortable: true },
-  { key: 'threeRate', label: '3PAr', align: 'right', sortable: true },
-  { key: 'possPg', label: 'POSS', align: 'right', sortable: true },
+  { key: 'fg3Pct', label: '3P%', align: 'right', sortable: true, pctKey: 'fg3PctPct' },
+  { key: 'ftPct', label: 'FT%', align: 'right', sortable: true, pctKey: 'ftPctPct' },
+  { key: 'efg', label: 'eFG%', align: 'right', sortable: true, highlight: true, pctKey: 'efgPct' },
+  { key: 'ts', label: 'TS%', align: 'right', sortable: true, pctKey: 'tsPct' },
+  { key: 'threeRate', label: '3PAr', align: 'right', sortable: true, pctKey: 'threeRatePct' },
+  { key: 'possPg', label: 'POSS', align: 'right', sortable: true, pctKey: 'possPgPct' },
 ]
 
-// Percentile rankings
+// Percentile rankings - standalone view
 const percentileColumns = [
   { key: 'player', label: 'Player', align: 'left', sortable: true },
   { key: 'team', label: 'Team', align: 'left', sortable: true },
@@ -143,12 +146,21 @@ export default function PlayerStats({ players }) {
     if (!avgStats[key]) return ''
     const col = columns.find(c => c.key === key)
     if (!col?.highlight && !col?.inverse) return ''
-    
+
     const diff = value - avgStats[key]
     const isGood = col.inverse ? diff < 0 : diff > 0
-    
+
     if (Math.abs(diff) < avgStats[key] * 0.1) return 'text-acb-700'
     return isGood ? 'text-positive font-medium' : 'text-negative'
+  }
+
+  // Get percentile badge color based on percentile value (0-100)
+  const getPercentileBadgeColor = (percentile) => {
+    if (percentile == null || isNaN(percentile)) return 'bg-acb-100 text-acb-600'
+    if (percentile >= 75) return 'bg-green-100 text-green-700'   // Top 25%
+    if (percentile >= 50) return 'bg-blue-100 text-blue-700'    // Top 50%
+    if (percentile >= 25) return 'bg-orange-100 text-orange-700' // Top 75%
+    return 'bg-red-100 text-red-700'                            // Bottom 25%
   }
 
   return (
@@ -282,25 +294,42 @@ export default function PlayerStats({ players }) {
             </thead>
             <tbody>
               {filteredPlayers.slice(0, 100).map((player, i) => (
-                <tr 
+                <tr
                   key={`${player.player}-${player.team}`}
                   className="border-b border-acb-100 hover:bg-acb-50 transition-colors"
                 >
                   <td className="px-4 py-3 text-sm text-acb-400 font-mono">
                     {i + 1}
                   </td>
-                  {columns.map(col => (
-                    <td
-                      key={col.key}
-                      className={`px-4 py-3 text-sm whitespace-nowrap
-                        ${col.align === 'right' ? 'text-right font-mono' : ''}
-                        ${col.key === 'player' ? 'font-medium text-acb-900' : ''}
-                        ${col.key === 'team' ? 'text-acb-600' : ''}
-                        ${col.align === 'right' ? getPercentileColor(player[col.key], col.key) : 'text-acb-700'}`}
-                    >
-                      {formatValue(player[col.key], col.key)}
-                    </td>
-                  ))}
+                  {columns.map(col => {
+                    const hasPercentile = col.pctKey && player[col.pctKey] != null && viewMode !== 'percentiles'
+                    const percentileValue = hasPercentile ? player[col.pctKey] : null
+
+                    return (
+                      <td
+                        key={col.key}
+                        className={`px-4 py-3 text-sm whitespace-nowrap
+                          ${col.align === 'right' ? 'text-right' : ''}
+                          ${col.key === 'player' ? 'font-medium text-acb-900' : ''}
+                          ${col.key === 'team' ? 'text-acb-600' : ''}`}
+                      >
+                        {hasPercentile ? (
+                          <div className="flex flex-col items-end gap-1">
+                            <span className={`font-mono ${getPercentileColor(player[col.key], col.key)}`}>
+                              {formatValue(player[col.key], col.key)}
+                            </span>
+                            <span className={`text-xs px-1.5 py-0.5 rounded ${getPercentileBadgeColor(percentileValue)}`}>
+                              {Math.round(percentileValue)}%
+                            </span>
+                          </div>
+                        ) : (
+                          <span className={`${col.align === 'right' ? 'font-mono' : ''} ${col.align === 'right' ? getPercentileColor(player[col.key], col.key) : 'text-acb-700'}`}>
+                            {formatValue(player[col.key], col.key)}
+                          </span>
+                        )}
+                      </td>
+                    )
+                  })}
                 </tr>
               ))}
             </tbody>

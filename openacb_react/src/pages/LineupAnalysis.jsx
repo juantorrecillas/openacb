@@ -321,6 +321,7 @@ export default function LineupAnalysis({ teams, players }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-acb-100">
+                {/* Ratings */}
                 <StatRow
                   label="Offensive Rating"
                   onValue={currentLineupData.onORtg}
@@ -343,6 +344,39 @@ export default function LineupAnalysis({ teams, players }) {
                   unit="pts/100"
                   goodThreshold={0}
                   highlight
+                />
+                {/* Four Factors - Shooting */}
+                <StatRow
+                  label="eFG%"
+                  onValue={currentLineupData.onEFG}
+                  offValue={currentLineupData.offEFG}
+                  unit="%"
+                  goodThreshold={50}
+                />
+                {/* Four Factors - Turnovers */}
+                <StatRow
+                  label="TOV%"
+                  onValue={currentLineupData.onTOV}
+                  offValue={currentLineupData.offTOV}
+                  unit="%"
+                  goodThreshold={15}
+                  inverse
+                />
+                {/* Four Factors - Rebounding */}
+                <StatRow
+                  label="DRB%"
+                  onValue={currentLineupData.onDRB}
+                  offValue={currentLineupData.offDRB}
+                  unit="%"
+                  goodThreshold={70}
+                />
+                {/* Assist Rate */}
+                <StatRow
+                  label="AST%"
+                  onValue={currentLineupData.onAST}
+                  offValue={currentLineupData.offAST}
+                  unit="%"
+                  goodThreshold={50}
                 />
               </tbody>
             </table>
@@ -380,6 +414,7 @@ export default function LineupAnalysis({ teams, players }) {
             </p>
           </div>
 
+          {/* Main Ratings */}
           <div className="grid grid-cols-3 divide-x divide-acb-200">
             <div className="p-4 text-center">
               <div className="text-xs text-acb-500 uppercase tracking-wider mb-1">Offensive Rtg</div>
@@ -403,6 +438,34 @@ export default function LineupAnalysis({ teams, players }) {
               </div>
               <div className="text-lg mt-1">
                 {getPerformanceIndicator(currentLineupData.onNetRtg).emoji}
+              </div>
+            </div>
+          </div>
+
+          {/* Four Factors */}
+          <div className="grid grid-cols-4 divide-x divide-acb-200 border-t border-acb-200 bg-acb-50">
+            <div className="p-3 text-center">
+              <div className="text-xs text-acb-500 uppercase tracking-wider mb-1">eFG%</div>
+              <div className="text-lg font-semibold font-mono text-acb-700">
+                {currentLineupData.onEFG?.toFixed(1)}%
+              </div>
+            </div>
+            <div className="p-3 text-center">
+              <div className="text-xs text-acb-500 uppercase tracking-wider mb-1">TOV%</div>
+              <div className="text-lg font-semibold font-mono text-acb-700">
+                {currentLineupData.onTOV?.toFixed(1)}%
+              </div>
+            </div>
+            <div className="p-3 text-center">
+              <div className="text-xs text-acb-500 uppercase tracking-wider mb-1">DRB%</div>
+              <div className="text-lg font-semibold font-mono text-acb-700">
+                {currentLineupData.onDRB?.toFixed(1)}%
+              </div>
+            </div>
+            <div className="p-3 text-center">
+              <div className="text-xs text-acb-500 uppercase tracking-wider mb-1">AST%</div>
+              <div className="text-lg font-semibold font-mono text-acb-700">
+                {currentLineupData.onAST?.toFixed(1)}%
               </div>
             </div>
           </div>
@@ -450,6 +513,10 @@ export default function LineupAnalysis({ teams, players }) {
                   <SortableHeader label="Net On" sortKey="onNetRtg" current={sortConfig} onSort={handleSort} />
                   <SortableHeader label="Net Off" sortKey="offNetRtg" current={sortConfig} onSort={handleSort} />
                   <SortableHeader label="Impact" sortKey="netDiff" current={sortConfig} onSort={handleSort} highlight />
+                  <SortableHeader label="eFG%" sortKey="onEFG" current={sortConfig} onSort={handleSort} />
+                  <SortableHeader label="TOV%" sortKey="onTOV" current={sortConfig} onSort={handleSort} />
+                  <SortableHeader label="DRB%" sortKey="onDRB" current={sortConfig} onSort={handleSort} />
+                  <SortableHeader label="AST%" sortKey="onAST" current={sortConfig} onSort={handleSort} />
                   <th className="px-4 py-3 font-semibold text-center">Poss</th>
                 </tr>
               </thead>
@@ -497,6 +564,18 @@ export default function LineupAnalysis({ teams, players }) {
                     }`}>
                       <span className="mr-1">{getPerformanceIndicator(player.netDiff).emoji}</span>
                       {player.netDiff > 0 ? '+' : ''}{player.netDiff?.toFixed(1)}
+                    </td>
+                    <td className="px-4 py-2 text-center font-mono text-acb-600">
+                      {player.onEFG?.toFixed(1)}
+                    </td>
+                    <td className="px-4 py-2 text-center font-mono text-acb-600">
+                      {player.onTOV?.toFixed(1)}
+                    </td>
+                    <td className="px-4 py-2 text-center font-mono text-acb-600">
+                      {player.onDRB?.toFixed(1)}
+                    </td>
+                    <td className="px-4 py-2 text-center font-mono text-acb-600">
+                      {player.onAST?.toFixed(1)}
                     </td>
                     <td className="px-4 py-2 text-center font-mono text-acb-400 text-xs">
                       {player.onPoss}
