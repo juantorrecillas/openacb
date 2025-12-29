@@ -276,7 +276,7 @@ calculate_player_stats <- function(season_id,
       ts = ifelse(fga + ft_trips > 0, points / (2 * (fga + ft_trips)) * 100, 0),
 
       # Possessions (individual contribution)
-      possessions = fga + ft_trips - oreb + turnovers,
+      possessions = fga + ft_trips + turnovers,
 
       # 3PT attempt rate
       three_rate = ifelse(fga > 0, fga3 / fga * 100, 0)

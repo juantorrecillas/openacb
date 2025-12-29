@@ -604,8 +604,12 @@ export default function LineupAnalysis({ teams, players }) {
 const StatRow = ({ label, onValue, offValue, unit, goodThreshold, inverse = false, highlight = false }) => {
   if (onValue == null || offValue == null) return null
 
-  const diff = inverse ? (offValue - onValue) : (onValue - offValue)
-  const isPositive = diff > 0
+  // Always calculate difference as (on - off)
+  const diff = onValue - offValue
+
+  // For inverse stats (TOV%, DRtg), negative diff is good (player reduces the bad stat)
+  // For normal stats (eFG%, ORtg), positive diff is good (player increases the good stat)
+  const isGood = inverse ? diff < 0 : diff > 0
 
   const getIndicator = (val, threshold, inv) => {
     const adjusted = inv ? threshold - val : val - threshold
@@ -616,7 +620,7 @@ const StatRow = ({ label, onValue, offValue, unit, goodThreshold, inverse = fals
     return { emoji: '🔻', color: 'text-red-500' }
   }
 
-  const indicator = getIndicator(diff, 0, false)
+  const indicator = getIndicator(diff, 0, inverse)
 
   return (
     <tr className={highlight ? 'bg-acb-50' : ''}>
@@ -636,8 +640,8 @@ const StatRow = ({ label, onValue, offValue, unit, goodThreshold, inverse = fals
         {offValue?.toFixed(1)}
       </td>
       <td className="px-4 py-3 text-center">
-        <span className={`font-mono font-medium ${isPositive ? 'text-green-600' : 'text-red-500'}`}>
-          {isPositive ? '+' : ''}{diff.toFixed(1)}
+        <span className={`font-mono font-medium ${isGood ? 'text-green-600' : 'text-red-500'}`}>
+          {diff > 0 ? '+' : ''}{diff.toFixed(1)}
         </span>
       </td>
       <td className="px-4 py-3 text-center text-lg">
