@@ -283,6 +283,84 @@ calculate_player_stats <- function(season_id,
     )
 
   # ==========================================================================
+  # CALCULATE TEAM STATS WHILE PLAYER IS ON COURT
+  # ==========================================================================
+
+  cat("→ Calculating team stats while player on court...\n")
+
+  # Get all tracked players
+  tracked_players <- unique(df$license.licenseNick[!is.na(df$license.licenseNick) & df$license.licenseNick != ""])
+
+  # Calculate team and opponent stats while each player is on court
+  team_stats_on_court <- lapply(tracked_players, function(player) {
+    pista_col <- paste0(player, "_pista")
+
+    # Skip if player tracking column doesn't exist
+    if (!pista_col %in% names(df)) {
+      return(NULL)
+    }
+
+    # Get player's team
+    player_team <- df %>%
+      filter(!is.na(license.licenseNick) & license.licenseNick == player) %>%
+      pull(team.team_actual_name) %>%
+      first()
+
+    if (is.na(player_team)) return(NULL)
+
+    # Filter to events where player is on court
+    on_court_df <- df %>% filter(.data[[pista_col]] == 1)
+
+    # Calculate team stats (player's team)
+    team_stats <- on_court_df %>%
+      filter(team.team_actual_name == player_team) %>%
+      summarise(
+        team_fga_on = sum(T2I + T3I, na.rm = TRUE),
+        team_fgm_on = sum(T2A + T3A, na.rm = TRUE),
+        team_fga2_on = sum(T2I, na.rm = TRUE),
+        team_fgm2_on = sum(T2A, na.rm = TRUE),
+        team_fta_on = sum(T1I, na.rm = TRUE),
+        team_ftm_on = sum(T1A, na.rm = TRUE),
+        team_ft_trips_on = sum(FT_trip, na.rm = TRUE),
+        team_turnovers_on = sum(perdida, na.rm = TRUE),
+        team_assists_on = sum(asistencias, na.rm = TRUE),
+        team_oreb_on = sum(reb_of, na.rm = TRUE),
+        team_dreb_on = sum(reb_def, na.rm = TRUE),
+        team_poss_on = sum(T2I + T3I + FT_trip + perdida, na.rm = TRUE),
+        .groups = "drop"
+      )
+
+    # Calculate opponent stats (opponent's team)
+    opp_stats <- on_court_df %>%
+      filter(team.team_actual_name != player_team) %>%
+      summarise(
+        opp_fga_on = sum(T2I + T3I, na.rm = TRUE),
+        opp_fgm_on = sum(T2A + T3A, na.rm = TRUE),
+        opp_fga2_on = sum(T2I, na.rm = TRUE),
+        opp_fta_on = sum(T1I, na.rm = TRUE),
+        opp_ft_trips_on = sum(FT_trip, na.rm = TRUE),
+        opp_turnovers_on = sum(perdida, na.rm = TRUE),
+        opp_oreb_on = sum(reb_of, na.rm = TRUE),
+        opp_dreb_on = sum(reb_def, na.rm = TRUE),
+        opp_poss_on = sum(T2I + T3I + FT_trip + perdida, na.rm = TRUE),
+        .groups = "drop"
+      )
+
+    # Combine team and opponent stats
+    combined_stats <- bind_cols(team_stats, opp_stats) %>%
+      mutate(
+        player = player,
+        team = player_team
+      )
+
+    return(combined_stats)
+  })
+
+  # Combine all team stats
+  team_stats_on_court <- bind_rows(team_stats_on_court) %>%
+    filter(!is.na(player))
+
+  # ==========================================================================
   # MERGE MINUTES WITH STATS
   # ==========================================================================
 
@@ -298,6 +376,107 @@ calculate_player_stats <- function(season_id,
       mpg = coalesce(mpg, 0)
     ) %>%
     select(-games_played)
+
+  # Join team stats (while player on court)
+  player_stats <- player_stats %>%
+    left_join(team_stats_on_court, by = c("player", "team"))
+
+  # ==========================================================================
+  # CALCULATE ADVANCED STATS (USAGE RATE, ETC.)
+  # ==========================================================================
+
+  cat("→ Calculating advanced statistics...\n")
+
+  player_stats <- player_stats %>%
+    mutate(
+      # CTG-style Usage Rate
+      # Player contribution: FGA + TOV + FT trips
+      # BUT: Assisted FGs count as 0.5, and assists also count as 0.5
+      # We need to estimate assisted FGs - using league average ~60% of FGM are assisted
+      # For now, we'll use a simplified version and can refine later
+
+      # Simplified player usage numerator
+      # FGA + turnovers + FT trips - 0.5 * (estimated assisted FGM) + 0.5 * assists
+      # Estimate assisted FGM as: FGM * (team_assists / team_fgm) for approximation
+      # For CTG accuracy, we'd need play-by-play assist tracking, but this is close
+
+      assisted_fgm_est = ifelse(team_fgm_on > 0,
+                                fgm * (team_assists_on / team_fgm_on),
+                                0),
+
+      player_poss_adj = fga + turnovers + ft_trips - 0.5 * assisted_fgm_est + 0.5 * assists,
+
+      # Team possessions (adjusted for assists) while player on court
+      team_assisted_fgm = team_fgm_on,  # All team made FGs while on court
+      team_poss_adj = ifelse(!is.na(team_poss_on),
+                             team_fga_on + team_turnovers_on + team_ft_trips_on -
+                               0.5 * team_assisted_fgm + 0.5 * team_assists_on,
+                             NA),
+
+      # Usage Rate (as percentage)
+      usg = ifelse(!is.na(team_poss_adj) & team_poss_adj > 0,
+                   player_poss_adj / team_poss_adj * 100,
+                   NA),
+
+      # =======================================================================
+      # REBOUND PERCENTAGES
+      # =======================================================================
+
+      # ORB% - Offensive Rebound Percentage
+      # Player's offensive rebounds / Available offensive rebounds while on court
+      # Available ORB = Team ORB + Opponent DRB
+      available_oreb = team_oreb_on + opp_dreb_on,
+      orb_pct = ifelse(!is.na(available_oreb) & available_oreb > 0,
+                       oreb / available_oreb * 100,
+                       NA),
+
+      # DRB% - Defensive Rebound Percentage
+      # Player's defensive rebounds / Available defensive rebounds while on court
+      # Available DRB = Team DRB + Opponent ORB
+      available_dreb = team_dreb_on + opp_oreb_on,
+      drb_pct = ifelse(!is.na(available_dreb) & available_dreb > 0,
+                       dreb / available_dreb * 100,
+                       NA),
+
+      # TRB% - Total Rebound Percentage
+      # Player's total rebounds / Total available rebounds while on court
+      available_treb = available_oreb + available_dreb,
+      trb_pct = ifelse(!is.na(available_treb) & available_treb > 0,
+                       rebounds / available_treb * 100,
+                       NA),
+
+      # =======================================================================
+      # PLAYMAKING & DEFENSIVE PERCENTAGES
+      # =======================================================================
+
+      # AST% - Assist Percentage
+      # Player's assists / Team's made FGs while on court (excluding player's own FGM)
+      # Note: Ideally we'd exclude player's own FGM, but that requires tracking
+      # For now: assists / (team_fgm - player_fgm)
+      team_fgm_teammates = pmax(team_fgm_on - fgm, 0),
+      ast_pct = ifelse(!is.na(team_fgm_teammates) & team_fgm_teammates > 0,
+                       assists / team_fgm_teammates * 100,
+                       NA),
+
+      # STL% - Steal Percentage
+      # Player's steals / Opponent possessions while on court
+      stl_pct = ifelse(!is.na(opp_poss_on) & opp_poss_on > 0,
+                       steals / opp_poss_on * 100,
+                       NA),
+
+      # BLK% - Block Percentage
+      # Player's blocks / Opponent 2-point FGA while on court
+      blk_pct = ifelse(!is.na(opp_fga2_on) & opp_fga2_on > 0,
+                       blocks / opp_fga2_on * 100,
+                       NA),
+
+      # TOV% - Turnover Percentage
+      # Turnovers per 100 plays (plays = FGA + 0.44 * FTA + TOV)
+      plays = fga + 0.44 * fta + turnovers,
+      tov_pct = ifelse(!is.na(plays) & plays > 0,
+                       turnovers / plays * 100,
+                       NA)
+    )
 
   # ==========================================================================
   # CALCULATE PER-GAME STATS
@@ -336,10 +515,11 @@ calculate_player_stats <- function(season_id,
   min_games <- 5
   qualified <- player_stats$games >= min_games
 
-  # Define stats to calculate percentiles for
+  # Define stats to calculate percentiles for (higher is better)
   pct_stats <- c("ppg", "rpg", "orebpg", "drebpg", "apg", "spg", "bpg", "fpg", "mpg",
                  "fg_pct", "fg3_pct", "ft_pct", "efg", "ts",
-                 "three_rate", "poss_pg")
+                 "three_rate", "poss_pg", "usg",
+                 "orb_pct", "drb_pct", "trb_pct", "ast_pct", "stl_pct", "blk_pct")
 
   # Calculate percentiles
   for (stat in pct_stats) {
@@ -353,13 +533,19 @@ calculate_player_stats <- function(season_id,
     })
   }
 
-  # Inverse percentile for turnovers (lower is better)
-  player_stats$topg_pct <- sapply(player_stats$topg, function(x) {
-    if (is.na(x)) return(NA)
-    qualified_values <- player_stats$topg[qualified]
-    ecdf_func <- ecdf(qualified_values)
-    round((1 - ecdf_func(x)) * 100, 1)
-  })
+  # Inverse percentiles for stats where lower is better (turnovers)
+  inverse_stats <- c("topg", "tov_pct")
+  for (stat in inverse_stats) {
+    pct_col <- paste0(stat, "_pct")
+    if (pct_col == "tov_pct_pct") pct_col <- "tov_pct_pctile"  # Avoid naming conflict
+
+    player_stats[[pct_col]] <- sapply(player_stats[[stat]], function(x) {
+      if (is.na(x)) return(NA)
+      qualified_values <- player_stats[[stat]][qualified]
+      ecdf_func <- ecdf(qualified_values)
+      round((1 - ecdf_func(x)) * 100, 1)
+    })
+  }
 
   # ==========================================================================
   # FINALIZE AND SAVE
@@ -380,10 +566,12 @@ calculate_player_stats <- function(season_id,
       ppg, rpg, orebpg, drebpg, apg, spg, bpg, topg, fpg,
       # Percentages
       fg_pct, fg2_pct, fg3_pct, ft_pct, efg, ts, three_rate,
-      # Possessions
-      possessions, poss_pg,
+      # Possessions & Usage
+      possessions, poss_pg, usg,
+      # Advanced Rate Stats
+      orb_pct, drb_pct, trb_pct, ast_pct, stl_pct, blk_pct, tov_pct,
       # Percentiles
-      ends_with("_pct")
+      ends_with("_pct"), ends_with("_pctile")
     ) %>%
     arrange(desc(ppg))
 

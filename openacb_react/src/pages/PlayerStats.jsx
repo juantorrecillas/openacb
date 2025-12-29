@@ -16,40 +16,27 @@ const basicColumns = [
   { key: 'bpg', label: 'BPG', align: 'right', sortable: true, pctKey: 'bpgPct' },
   { key: 'topg', label: 'TOPG', align: 'right', sortable: true, inverse: true, pctKey: 'topgPct' },
   { key: 'fpg', label: 'FPG', align: 'right', sortable: true, inverse: true, pctKey: 'fpgPct' },
+  { key: 'fgPct', label: 'FG%', align: 'right', sortable: true, pctKey: 'fgPctPct' },
+  { key: 'fg3Pct', label: '3P%', align: 'right', sortable: true, pctKey: 'fg3PctPct' },
+  { key: 'ftPct', label: 'FT%', align: 'right', sortable: true, pctKey: 'ftPctPct' },
 ]
 
-// Shooting and efficiency stats - with percentile key for inline display
+// Advanced stats - shooting efficiency and rate statistics
 const advancedColumns = [
   { key: 'player', label: 'Player', align: 'left', sortable: true },
   { key: 'team', label: 'Team', align: 'left', sortable: true },
   { key: 'games', label: 'GP', align: 'right', sortable: true },
-  { key: 'fgPct', label: 'FG%', align: 'right', sortable: true, pctKey: 'fgPctPct' },
-  { key: 'fg2Pct', label: '2P%', align: 'right', sortable: true },
-  { key: 'fg3Pct', label: '3P%', align: 'right', sortable: true, pctKey: 'fg3PctPct' },
-  { key: 'ftPct', label: 'FT%', align: 'right', sortable: true, pctKey: 'ftPctPct' },
-  { key: 'efg', label: 'eFG%', align: 'right', sortable: true, highlight: true, pctKey: 'efgPct' },
+  { key: 'usg', label: 'USG%', align: 'right', sortable: true, highlight: true, pctKey: 'usgPct' },
+  { key: 'efg', label: 'eFG%', align: 'right', sortable: true, pctKey: 'efgPct' },
   { key: 'ts', label: 'TS%', align: 'right', sortable: true, pctKey: 'tsPct' },
   { key: 'threeRate', label: '3PAr', align: 'right', sortable: true, pctKey: 'threeRatePct' },
-  { key: 'possPg', label: 'POSS', align: 'right', sortable: true, pctKey: 'possPgPct' },
-]
-
-// Percentile rankings - standalone view
-const percentileColumns = [
-  { key: 'player', label: 'Player', align: 'left', sortable: true },
-  { key: 'team', label: 'Team', align: 'left', sortable: true },
-  { key: 'ppgPct', label: 'PPG', align: 'right', sortable: true, highlight: true },
-  { key: 'rpgPct', label: 'RPG', align: 'right', sortable: true },
-  { key: 'orebpgPct', label: 'OREB', align: 'right', sortable: true },
-  { key: 'drebpgPct', label: 'DREB', align: 'right', sortable: true },
-  { key: 'apgPct', label: 'APG', align: 'right', sortable: true },
-  { key: 'spgPct', label: 'SPG', align: 'right', sortable: true },
-  { key: 'bpgPct', label: 'BPG', align: 'right', sortable: true },
-  { key: 'fpgPct', label: 'FPG', align: 'right', sortable: true },
-  { key: 'topgPct', label: 'TOV', align: 'right', sortable: true },
-  { key: 'efgPct', label: 'eFG%', align: 'right', sortable: true },
-  { key: 'fg3PctPct', label: '3P%', align: 'right', sortable: true },
-  { key: 'mpgPct', label: 'MPG', align: 'right', sortable: true },
-  { key: 'possPgPct', label: 'POSS', align: 'right', sortable: true },
+  { key: 'orbPct', label: 'ORB%', align: 'right', sortable: true, pctKey: 'orbPctPct' },
+  { key: 'drbPct', label: 'DRB%', align: 'right', sortable: true, pctKey: 'drbPctPct' },
+  { key: 'trbPct', label: 'TRB%', align: 'right', sortable: true, pctKey: 'trbPctPct' },
+  { key: 'astPct', label: 'AST%', align: 'right', sortable: true, pctKey: 'astPctPct' },
+  { key: 'stlPct', label: 'STL%', align: 'right', sortable: true, pctKey: 'stlPctPct' },
+  { key: 'blkPct', label: 'BLK%', align: 'right', sortable: true, pctKey: 'blkPctPct' },
+  { key: 'tovPct', label: 'TOV%', align: 'right', sortable: true, inverse: true, pctKey: 'tovPctPct' },
 ]
 
 export default function PlayerStats({ players }) {
@@ -60,15 +47,13 @@ export default function PlayerStats({ players }) {
   }, [players])
 
   const [selectedSeason, setSelectedSeason] = useState(availableSeasons[0] || 2025)
-  const [viewMode, setViewMode] = useState('basic') // 'basic', 'advanced', or 'percentiles'
+  const [viewMode, setViewMode] = useState('basic') // 'basic' or 'advanced'
   const [search, setSearch] = useState('')
   const [sortKey, setSortKey] = useState('ppg')
   const [sortDir, setSortDir] = useState('desc')
   const [teamFilter, setTeamFilter] = useState('')
 
-  const columns = viewMode === 'basic' ? basicColumns :
-                  viewMode === 'advanced' ? advancedColumns :
-                  percentileColumns
+  const columns = viewMode === 'basic' ? basicColumns : advancedColumns
 
   // Filter players by season
   const seasonFilteredPlayers = useMemo(() => {
@@ -80,7 +65,7 @@ export default function PlayerStats({ players }) {
     [...new Set(seasonFilteredPlayers.map(p => p.team))].sort(),
     [seasonFilteredPlayers]
   )
-  
+
   const filteredPlayers = useMemo(() => {
     return seasonFilteredPlayers
       .filter(p => {
@@ -102,7 +87,7 @@ export default function PlayerStats({ players }) {
         return sortDir === 'desc' ? bVal - aVal : aVal - bVal
       })
   }, [seasonFilteredPlayers, search, sortKey, sortDir, teamFilter])
-  
+
   const handleSort = (key) => {
     if (sortKey === key) {
       setSortDir(sortDir === 'desc' ? 'asc' : 'desc')
@@ -111,7 +96,7 @@ export default function PlayerStats({ players }) {
       setSortDir('desc')
     }
   }
-  
+
   const formatValue = (value, key) => {
     if (value === undefined || value === null) return '-'
     if (key === 'player' || key === 'team') return value
@@ -119,21 +104,27 @@ export default function PlayerStats({ players }) {
     // Integer values
     if (key === 'games') return value
 
-    // Percentile columns (end with Pct suffix in percentile view)
-    if (key.endsWith('Pct') && viewMode === 'percentiles') {
-      return `${Math.round(value)}`
+    // Shooting percentages (contain Pct in name)
+    if (key === 'fgPct' || key === 'fg2Pct' || key === 'fg3Pct' || key === 'ftPct' ||
+        key === 'efg' || key === 'ts') {
+      return `${value.toFixed(1)}%`
     }
 
-    // Shooting percentages (contain Pct in name but not percentile view)
-    if (key === 'fgPct' || key === 'fg2Pct' || key === 'fg3Pct' || key === 'ftPct' ||
-        key === 'efg' || key === 'ts' || key === 'threeRate') {
+    // Rate stats (end with Pct but are percentages)
+    if (key === 'orbPct' || key === 'drbPct' || key === 'trbPct' ||
+        key === 'astPct' || key === 'stlPct' || key === 'blkPct' || key === 'tovPct') {
+      return `${value.toFixed(1)}%`
+    }
+
+    // Usage and 3PAr
+    if (key === 'usg' || key === 'threeRate') {
       return `${value.toFixed(1)}%`
     }
 
     // Per-game stats
     return value.toFixed(1)
   }
-  
+
   // Calculate league averages for percentile coloring
   const avgStats = useMemo(() => {
     const numericKeys = columns.filter(c => c.align === 'right' && c.key !== 'games').map(c => c.key)
@@ -143,8 +134,8 @@ export default function PlayerStats({ players }) {
       avgs[key] = values.reduce((sum, v) => sum + v, 0) / values.length
     })
     return avgs
-  }, [filteredPlayers])
-  
+  }, [filteredPlayers, columns])
+
   const getPercentileColor = (value, key) => {
     if (!avgStats[key]) return ''
     const col = columns.find(c => c.key === key)
@@ -172,10 +163,10 @@ export default function PlayerStats({ players }) {
       <div>
         <h2 className="text-2xl font-semibold text-acb-900">Player Statistics</h2>
         <p className="text-acb-500 text-sm mt-1">
-          Individual player performance metrics - Switch between basic, advanced, and percentile views
+          Individual player performance metrics - Switch between basic and advanced views
         </p>
       </div>
-      
+
       {/* Filters */}
       <div className="bg-white rounded-lg border border-acb-200 p-4">
         <div className="flex flex-wrap items-center gap-4 mb-4">
@@ -211,26 +202,14 @@ export default function PlayerStats({ players }) {
             <button
               onClick={() => {
                 setViewMode('advanced')
-                setSortKey('efg')
+                setSortKey('usg')
               }}
               className={`px-3 py-1.5 text-sm font-medium rounded transition-colors
                 ${viewMode === 'advanced'
                   ? 'bg-white text-acb-900 shadow-sm'
                   : 'text-acb-600 hover:text-acb-900'}`}
             >
-              Shooting
-            </button>
-            <button
-              onClick={() => {
-                setViewMode('percentiles')
-                setSortKey('ppgPct')
-              }}
-              className={`px-3 py-1.5 text-sm font-medium rounded transition-colors
-                ${viewMode === 'percentiles'
-                  ? 'bg-white text-acb-900 shadow-sm'
-                  : 'text-acb-600 hover:text-acb-900'}`}
-            >
-              Percentiles
+              Advanced
             </button>
           </div>
 
@@ -267,7 +246,7 @@ export default function PlayerStats({ players }) {
       <div className="text-sm text-acb-500">
         Showing {filteredPlayers.length} of {seasonFilteredPlayers.length} players
       </div>
-      
+
       {/* Table */}
       <div className="bg-white rounded-lg border border-acb-200 overflow-hidden">
         <div className="overflow-x-auto">
@@ -305,7 +284,7 @@ export default function PlayerStats({ players }) {
                     {i + 1}
                   </td>
                   {columns.map(col => {
-                    const hasPercentile = col.pctKey && player[col.pctKey] != null && viewMode !== 'percentiles'
+                    const hasPercentile = col.pctKey && player[col.pctKey] != null
                     const percentileValue = hasPercentile ? player[col.pctKey] : null
 
                     return (
@@ -338,7 +317,7 @@ export default function PlayerStats({ players }) {
             </tbody>
           </table>
         </div>
-        
+
         {filteredPlayers.length > 100 && (
           <div className="px-4 py-3 bg-acb-50 border-t border-acb-200 text-sm text-acb-500 text-center">
             Showing first 100 players. Use filters to narrow results.

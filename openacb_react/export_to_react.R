@@ -252,6 +252,18 @@ export_player_data <- function() {
         possessions = safe_val(p$possessions, 0),
         possPg = safe_val(p$poss_pg, 1),
 
+        # Usage
+        usg = safe_val(p$usg, 1),
+
+        # Advanced Rate Stats
+        orbPct = safe_val(p$orb_pct, 1),
+        drbPct = safe_val(p$drb_pct, 1),
+        trbPct = safe_val(p$trb_pct, 1),
+        astPct = safe_val(p$ast_pct, 1),
+        stlPct = safe_val(p$stl_pct, 1),
+        blkPct = safe_val(p$blk_pct, 1),
+        tovPct = safe_val(p$tov_pct, 1),
+
         # Percentiles (all stats ending with _pct that are percentiles)
         ppgPct = safe_val(p$ppg_pct, 1),
         rpgPct = safe_val(p$rpg_pct, 1),
@@ -269,7 +281,17 @@ export_player_data <- function() {
         efgPct = safe_val(p$efg_pct, 1),
         tsPct = safe_val(p$ts_pct, 1),
         threeRatePct = safe_val(p$three_rate_pct, 1),
-        possPgPct = safe_val(p$poss_pg_pct, 1)
+        possPgPct = safe_val(p$poss_pg_pct, 1),
+        usgPct = safe_val(p$usg_pct, 1),
+
+        # Advanced Rate Percentiles
+        orbPctPct = safe_val(p$orb_pct_pct, 1),
+        drbPctPct = safe_val(p$drb_pct_pct, 1),
+        trbPctPct = safe_val(p$trb_pct_pct, 1),
+        astPctPct = safe_val(p$ast_pct_pct, 1),
+        stlPctPct = safe_val(p$stl_pct_pct, 1),
+        blkPctPct = safe_val(p$blk_pct_pct, 1),
+        tovPctPct = safe_val(p$tov_pct_pctile, 1)  # Note: uses pctile suffix for inverse
       )
     })
 
