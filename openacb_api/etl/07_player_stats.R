@@ -377,7 +377,7 @@ calculate_player_stats <- function(season_id,
       # Shooting totals
       fgm, fga, fgm2, fga2, fgm3, fga3, ftm, fta,
       # Per game
-      ppg, rpg, apg, spg, bpg, topg, fpg,
+      ppg, rpg, orebpg, drebpg, apg, spg, bpg, topg, fpg,
       # Percentages
       fg_pct, fg2_pct, fg3_pct, ft_pct, efg, ts, three_rate,
       # Possessions
