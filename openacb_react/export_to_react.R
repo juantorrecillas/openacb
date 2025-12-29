@@ -255,9 +255,12 @@ export_player_data <- function() {
         # Percentiles (all stats ending with _pct that are percentiles)
         ppgPct = safe_val(p$ppg_pct, 1),
         rpgPct = safe_val(p$rpg_pct, 1),
+        orebpgPct = safe_val(p$orebpg_pct, 1),
+        drebpgPct = safe_val(p$drebpg_pct, 1),
         apgPct = safe_val(p$apg_pct, 1),
         spgPct = safe_val(p$spg_pct, 1),
         bpgPct = safe_val(p$bpg_pct, 1),
+        fpgPct = safe_val(p$fpg_pct, 1),
         topgPct = safe_val(p$topg_pct, 1),
         mpgPct = safe_val(p$mpg_pct, 1),
         fgPctPct = safe_val(p$fg_pct_pct, 1),

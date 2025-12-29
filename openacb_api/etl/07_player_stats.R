@@ -337,7 +337,7 @@ calculate_player_stats <- function(season_id,
   qualified <- player_stats$games >= min_games
 
   # Define stats to calculate percentiles for
-  pct_stats <- c("ppg", "rpg", "apg", "spg", "bpg", "mpg",
+  pct_stats <- c("ppg", "rpg", "orebpg", "drebpg", "apg", "spg", "bpg", "fpg", "mpg",
                  "fg_pct", "fg3_pct", "ft_pct", "efg", "ts",
                  "three_rate", "poss_pg")
 
