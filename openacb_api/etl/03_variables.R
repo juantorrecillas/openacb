@@ -48,22 +48,29 @@ create_pbp_variables <- function(season_id,
   
   # Get starting lineups (Cinco Inicial)
   cat("→ Identifying starting lineups...\n")
-  quinteto <- df[df$type.description == "Cinco Inicial", c("license.licenseNick", "id_match")]
-  
-  # Get unique players and matches
-  jugadores <- unique(df$license.licenseNick)
-  jugadores <- jugadores[!is.na(jugadores)]
-  
+  quinteto <- df[df$type.description == "Cinco Inicial", c("license.id", "license.licenseNick", "id_match")]
+
+  # Get unique players using license.id (to handle players with same short name)
+  # Create a unique player list with both license.id and short name
+  jugadores_df <- df %>%
+    filter(!is.na(license.licenseNick) & !is.na(license.id)) %>%
+    select(license.id, license.licenseNick) %>%
+    distinct()
+
   partidos <- unique(df$id_match)
   partidos <- partidos[!is.na(partidos)]
-  
-  cat("  Players:", length(jugadores), "\n")
+
+  cat("  Players:", nrow(jugadores_df), "\n")
   cat("  Matches:", length(partidos), "\n")
-  
-  # Initialize player columns
+
+  # Initialize player columns using license.id for uniqueness
+  # Column names: {short_name}_{license_id}_pista
   cat("→ Initializing player tracking columns...\n")
-  for (p in jugadores) {
-    df[[paste0(p, "_pista")]] <- 0L
+  for (i in seq_len(nrow(jugadores_df))) {
+    player_id <- jugadores_df$license.id[i]
+    player_nick <- jugadores_df$license.licenseNick[i]
+    col_name <- paste0(player_nick, "_", player_id, "_pista")
+    df[[col_name]] <- 0L
   }
   
   # Process each match
@@ -77,24 +84,34 @@ create_pbp_variables <- function(season_id,
     
     # Get data for this match
     container <- df[df$id_match == m, ]
-    
-    # Set starting lineup
-    starters <- quinteto[quinteto$id_match == m, "license.licenseNick"]
-    for (p in starters) {
-      if (!is.na(p) && paste0(p, "_pista") %in% names(container)) {
-        container[[paste0(p, "_pista")]] <- 1L
+
+    # Set starting lineup (using license.id for unique matching)
+    starters <- quinteto[quinteto$id_match == m, c("license.id", "license.licenseNick")]
+    for (s_idx in seq_len(nrow(starters))) {
+      if (nrow(starters) == 0) break
+      player_id <- starters$license.id[s_idx]
+      player_nick <- starters$license.licenseNick[s_idx]
+      if (is.na(player_id) || is.na(player_nick)) next
+
+      col_name <- paste0(player_nick, "_", player_id, "_pista")
+      if (col_name %in% names(container)) {
+        container[[col_name]] <- 1L
       }
     }
-    
-    # Track substitutions for each player
-    for (p in jugadores) {
-      col_name <- paste0(p, "_pista")
+
+    # Track substitutions for each player (using license.id)
+    for (j_idx in seq_len(nrow(jugadores_df))) {
+      player_id <- jugadores_df$license.id[j_idx]
+      player_nick <- jugadores_df$license.licenseNick[j_idx]
+      col_name <- paste0(player_nick, "_", player_id, "_pista")
+
       if (!col_name %in% names(container)) next
-      
+
       for (i in seq_len(nrow(container))) {
-        if (is.na(container$license.licenseNick[i])) next
-        
-        if (container$license.licenseNick[i] == p) {
+        if (is.na(container$license.id[i])) next
+
+        # Match by license.id instead of short name
+        if (container$license.id[i] == player_id) {
           if (container$type.description[i] == "Sale Pista") {
             # Player leaves court
             container[[col_name]][i:nrow(container)] <- 0L

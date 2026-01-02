@@ -118,16 +118,43 @@ export_team_data <- function() {
   }
   
   if (nrow(all_teams) > 0) {
+    # Helper function for safe value extraction
+    safe_val <- function(x, digits = 1, default = 0) {
+      if (is.null(x) || is.na(x)) return(default)
+      round(as.numeric(x), digits)
+    }
+
     teams_export <- lapply(seq_len(nrow(all_teams)), function(i) {
       t <- all_teams[i, ]
       list(
         team = t$team.team_actual_name,
         season = t$season,
         games = t$ngames,
-        ortg = round(t$oer, 1),
-        drtg = round(t$der, 1),
-        netRtg = round(t$oer - t$der, 1),
-        # Keep values as decimals (0-1 range) for consistency
+
+        # Team boxscore per-game stats
+        ppg = safe_val(t$ppg, 1),
+        rpg = safe_val(t$rpg, 1),
+        orebpg = safe_val(t$orebpg, 1),
+        drebpg = safe_val(t$drebpg, 1),
+        apg = safe_val(t$apg, 1),
+        spg = safe_val(t$spg, 1),
+        bpg = safe_val(t$bpg, 1),
+        topg = safe_val(t$topg, 1),
+        fpg = safe_val(t$fpg, 1),
+        fgmPg = safe_val(t$fgm_pg, 1),
+        fgaPg = safe_val(t$fga_pg, 1),
+        fg3mPg = safe_val(t$fg3m_pg, 1),
+        fg3aPg = safe_val(t$fg3a_pg, 1),
+        ftmPg = safe_val(t$ftm_pg, 1),
+        ftaPg = safe_val(t$fta_pg, 1),
+        fgPct = safe_val(t$fg_pct, 1),
+        ftPct = safe_val(t$ft_pct, 1),
+        pace = safe_val(t$pace, 1),
+
+        # Team advanced stats
+        ortg = safe_val(t$oer, 1),
+        drtg = safe_val(t$der, 1),
+        netRtg = safe_val(t$oer - t$der, 1),
         efg = t$efg,
         ts = t$ts,
         threePct = t$threefg,
@@ -137,13 +164,42 @@ export_team_data <- function() {
         orbPct = t$S_OffReb,
         drbPct = t$S_DefReb,
         ftRate = t$FT_rate,
-        # Opponent stats (also as decimals)
-        opp_efg = t$efg_opponent,
-        opp_tovRate = t$S_Tov_opponent,
-        opp_ftRate = t$FT_rate_opponent,
-        # Other defensive stats
         stlRate = t$S_steal,
-        blkRate = t$S_blocks
+        blkRate = t$S_blocks,
+
+        # Opponent boxscore per-game stats
+        opp_ppg = safe_val(t$opp_ppg, 1),
+        opp_rpg = safe_val(t$opp_rpg, 1),
+        opp_orebpg = safe_val(t$opp_orebpg, 1),
+        opp_drebpg = safe_val(t$opp_drebpg, 1),
+        opp_apg = safe_val(t$opp_apg, 1),
+        opp_spg = safe_val(t$opp_spg, 1),
+        opp_bpg = safe_val(t$opp_bpg, 1),
+        opp_topg = safe_val(t$opp_topg, 1),
+        opp_fpg = safe_val(t$opp_fpg, 1),
+        opp_fgmPg = safe_val(t$opp_fgm_pg, 1),
+        opp_fgaPg = safe_val(t$opp_fga_pg, 1),
+        opp_fg3mPg = safe_val(t$opp_fg3m_pg, 1),
+        opp_fg3aPg = safe_val(t$opp_fg3a_pg, 1),
+        opp_ftmPg = safe_val(t$opp_ftm_pg, 1),
+        opp_ftaPg = safe_val(t$opp_fta_pg, 1),
+        opp_fgPct = safe_val(t$opp_fg_pct, 1),
+        opp_ftPct = safe_val(t$opp_ft_pct, 1),
+
+        # Opponent advanced stats
+        opp_ortg = safe_val(t$oer_opponent, 1),
+        opp_drtg = safe_val(t$der_opponent, 1),
+        opp_efg = t$efg_opponent,
+        opp_ts = t$ts_opponent,
+        opp_threePct = t$threefg_opponent,
+        opp_threeRate = t$threeatt_rate_opponent,
+        opp_astRate = t$S_assist_opponent,
+        opp_tovRate = t$S_Tov_opponent,
+        opp_orbPct = t$S_OffReb_opponent,
+        opp_drbPct = t$S_DefReb_opponent,
+        opp_ftRate = t$FT_rate_opponent,
+        opp_stlRate = t$S_steal_opponent,
+        opp_blkRate = t$S_blocks_opponent
       )
     })
     
@@ -196,7 +252,10 @@ export_player_data <- function() {
       }
 
       list(
+        playerId = p$player_id,
+        licenseId = p$license_id,
         player = p$player,
+        playerFull = p$player_full,
         season = p$season,
         team = p$team,
         games = safe_val(p$games, 0),
@@ -204,6 +263,9 @@ export_player_data <- function() {
         # Minutes
         totalMinutes = safe_val(p$total_minutes, 1),
         mpg = safe_val(p$mpg, 1),
+
+        # Qualified flag (meets games/minutes threshold for percentile calculation)
+        qualified = ifelse(is.null(p$qualified) || is.na(p$qualified), TRUE, as.logical(p$qualified)),
 
         # Basic totals
         points = safe_val(p$points, 0),
@@ -252,6 +314,9 @@ export_player_data <- function() {
         possessions = safe_val(p$possessions, 0),
         possPg = safe_val(p$poss_pg, 1),
 
+        # Offensive Rating
+        ortg = safe_val(p$ortg, 1),
+
         # Usage
         usg = safe_val(p$usg, 1),
 
@@ -280,6 +345,7 @@ export_player_data <- function() {
         ftPctPct = safe_val(p$ft_pct_pct, 1),
         efgPct = safe_val(p$efg_pct, 1),
         tsPct = safe_val(p$ts_pct, 1),
+        ortgPct = safe_val(p$ortg_pct, 1),
         threeRatePct = safe_val(p$three_rate_pct, 1),
         possPgPct = safe_val(p$poss_pg_pct, 1),
         usgPct = safe_val(p$usg_pct, 1),
@@ -291,7 +357,62 @@ export_player_data <- function() {
         astPctPct = safe_val(p$ast_pct_pct, 1),
         stlPctPct = safe_val(p$stl_pct_pct, 1),
         blkPctPct = safe_val(p$blk_pct_pct, 1),
-        tovPctPct = safe_val(p$tov_pct_pctile, 1)  # Note: uses pctile suffix for inverse
+        tovPctPct = safe_val(p$tov_pct_pctile, 1),  # Note: uses pctile suffix for inverse
+
+        # Zone Shooting Frequency (% of shots from each zone)
+        freqRim = safe_val(p$freq_rim, 1),
+        freqShortMid = safe_val(p$freq_short_mid, 1),
+        freqLongMid = safe_val(p$freq_long_mid, 1),
+        freqAllMid = safe_val(p$freq_all_mid, 1),
+        freqCornerThree = safe_val(p$freq_corner_three, 1),
+        freqNcThree = safe_val(p$freq_nc_three, 1),
+        freqAllThree = safe_val(p$freq_all_three, 1),
+
+        # Zone Shooting Accuracy (FG% per zone)
+        fgpctRim = safe_val(p$fgpct_rim, 1),
+        fgpctShortMid = safe_val(p$fgpct_short_mid, 1),
+        fgpctLongMid = safe_val(p$fgpct_long_mid, 1),
+        fgpctAllMid = safe_val(p$fgpct_all_mid, 1),
+        fgpctCornerThree = safe_val(p$fgpct_corner_three, 1),
+        fgpctNcThree = safe_val(p$fgpct_nc_three, 1),
+        fgpctAllThree = safe_val(p$fgpct_all_three, 1),
+
+        # Zone Attempts (for display as # in table)
+        fgaRim = safe_val(p$fga_rim, 0),
+        fgaShortMid = safe_val(p$fga_short_mid, 0),
+        fgaLongMid = safe_val(p$fga_long_mid, 0),
+        fgaAllMid = safe_val(p$fga_all_mid, 0),
+        fgaCornerThree = safe_val(p$fga_corner_three, 0),
+        fgaNcThree = safe_val(p$fga_nc_three, 0),
+        fgaAllThree = safe_val(p$fga_all_three, 0),
+
+        # Opponent Zone Shooting (Defensive Impact)
+        # FG% allowed when player is ON court
+        oppOnFgpctRim = safe_val(p$opp_on_fgpct_rim, 1),
+        oppOnFgpctShortMid = safe_val(p$opp_on_fgpct_short_mid, 1),
+        oppOnFgpctLongMid = safe_val(p$opp_on_fgpct_long_mid, 1),
+        oppOnFgpctAllMid = safe_val(p$opp_on_fgpct_all_mid, 1),
+        oppOnFgpctCornerThree = safe_val(p$opp_on_fgpct_corner_three, 1),
+        oppOnFgpctNcThree = safe_val(p$opp_on_fgpct_nc_three, 1),
+        oppOnFgpctAllThree = safe_val(p$opp_on_fgpct_all_three, 1),
+
+        # Differential (ON - OFF, negative is good defense)
+        oppDiffRim = safe_val(p$opp_diff_rim, 1),
+        oppDiffShortMid = safe_val(p$opp_diff_short_mid, 1),
+        oppDiffLongMid = safe_val(p$opp_diff_long_mid, 1),
+        oppDiffAllMid = safe_val(p$opp_diff_all_mid, 1),
+        oppDiffCornerThree = safe_val(p$opp_diff_corner_three, 1),
+        oppDiffNcThree = safe_val(p$opp_diff_nc_three, 1),
+        oppDiffAllThree = safe_val(p$opp_diff_all_three, 1),
+
+        # Opponent attempts when player ON court
+        oppFgaRim = safe_val(p$opp_fga_rim, 0),
+        oppFgaShortMid = safe_val(p$opp_fga_short_mid, 0),
+        oppFgaLongMid = safe_val(p$opp_fga_long_mid, 0),
+        oppFgaAllMid = safe_val(p$opp_fga_all_mid, 0),
+        oppFgaCornerThree = safe_val(p$opp_fga_corner_three, 0),
+        oppFgaNcThree = safe_val(p$opp_fga_nc_three, 0),
+        oppFgaAllThree = safe_val(p$opp_fga_all_three, 0)
       )
     })
 

@@ -4,10 +4,12 @@
 # Calculates on/off court statistics for individual players, pairs, trios,
 # and full 5-man lineups. Optimized to process by team-season to avoid
 # computing combinations across players who never played together.
+# Now includes minutes calculation alongside possessions.
 # =============================================================================
 
 library(data.table)
 library(jsonlite)
+library(dplyr)
 
 # =============================================================================
 # Configuration
@@ -21,6 +23,54 @@ BOXSCORE_COLUMNS <- c("puntos", "T1A", "T1I", "T2A", "T2I", "T3A", "T3I",
 
 # Minimum possessions required for lineup stats (filters noise)
 MIN_POSSESSIONS <- 10
+
+# Minimum minutes required (alternative filter)
+MIN_MINUTES <- 2
+
+# =============================================================================
+# Time Difference Calculation (for minutes tracking)
+# =============================================================================
+
+#' Prepare time differences for minutes calculation
+#'
+#' Calculates the time elapsed between consecutive events within each match.
+#' This is used to calculate how long each lineup was on court.
+#'
+#' @param df_pbp Play-by-play data as data.table
+#' @return data.table with time_diff column added
+#'
+prepare_time_diff <- function(df_pbp) {
+  cat("→ Calculating time differences for minutes tracking...\n")
+
+  # Ensure time columns are numeric
+  df_pbp[, minute := as.numeric(minute)]
+  df_pbp[, second := as.numeric(second)]
+  df_pbp[, period := as.numeric(period)]
+
+  # Calculate time differences within each match
+  # Sort: Period ascending, Time descending (10:00 -> 00:00)
+  setorder(df_pbp, id_match, period, -minute, -second)
+
+  df_pbp[, `:=`(
+    current_seconds = minute * 60 + second,
+    prev_seconds = shift(minute * 60 + second, type = "lag"),
+    prev_period = shift(period, type = "lag")
+  ), by = id_match]
+
+  # Calculate time difference
+  df_pbp[, time_diff := prev_seconds - current_seconds]
+
+  # Cleanup:
+  # 1. If period changed, time_diff is 0 (don't calc time across quarters)
+  df_pbp[period != prev_period | is.na(prev_period), time_diff := 0]
+  # 2. Sanity check: remove negative times or huge gaps (>5 mins = 300 sec)
+  df_pbp[time_diff < 0 | time_diff > 300 | is.na(time_diff), time_diff := 0]
+
+  total_minutes <- sum(df_pbp$time_diff, na.rm = TRUE) / 60
+  cat(sprintf("  Total game time found: %.1f minutes\n", total_minutes))
+
+  return(df_pbp)
+}
 
 # =============================================================================
 # Main Function: Calculate Lineup Analysis for a Season
@@ -60,6 +110,9 @@ calculate_lineup_analysis <- function(season_id,
   cat("Loading PBP data from:", input_file, "\n")
   df_pbp <- as.data.table(readRDS(input_file))
   cat("  Rows:", format(nrow(df_pbp), big.mark = ","), "\n")
+
+  # Calculate time differences for minutes tracking
+  df_pbp <- prepare_time_diff(df_pbp)
 
   # Get player tracking columns
   pista_cols <- grep("_pista$", names(df_pbp), value = TRUE)
@@ -189,9 +242,14 @@ build_player_info <- function(df_pbp) {
 # =============================================================================
 
 #' Calculate team and opponent stats for filtered data
+#' Now includes minutes calculation from time_diff column
 #'
 calculate_stats_for_subset <- function(subset_dt, team_name) {
   if (nrow(subset_dt) == 0) return(NULL)
+
+  # Calculate total minutes from time_diff (in seconds, convert to minutes)
+  total_seconds <- sum(subset_dt$time_diff, na.rm = TRUE)
+  minutes <- total_seconds / 60
 
   # Team statistics (offensive)
   team_stats <- subset_dt[team.team_actual_name == team_name,
@@ -213,8 +271,8 @@ calculate_stats_for_subset <- function(subset_dt, team_name) {
 
   opp_stats[, pos := T2I + T3I + 0.44 * T1I - reb_of + perdida]
 
-  # Skip if not enough possessions
-  if (team_stats$pos < MIN_POSSESSIONS) return(NULL)
+  # Skip if not enough minutes (use MIN_MINUTES threshold)
+  if (minutes < MIN_MINUTES) return(NULL)
 
   # Calculate ratings
   oer <- if (team_stats$pos > 0) team_stats$puntos / team_stats$pos else 0
@@ -270,6 +328,7 @@ calculate_stats_for_subset <- function(subset_dt, team_name) {
   } else 0
 
   list(
+    minutes = minutes,
     pos = team_stats$pos,
     oer = oer,
     der = der,
@@ -318,6 +377,9 @@ calculate_individual_stats_optimized <- function(team_data, team_name, players, 
         player = player,
         playerId = player_id,
         displayName = display_name,
+        # Minutes (primary metric now)
+        onMin = round(on_stats$minutes, 1),
+        offMin = round(off_stats$minutes, 1),
         # Ratings
         onORtg = round(on_stats$oer * 100, 1),
         offORtg = round(off_stats$oer * 100, 1),
@@ -399,6 +461,7 @@ calculate_pair_stats_optimized <- function(team_data, team_name, players, player
         player2 = player2,
         player1Id = if (nrow(p1info) > 0) p1info$playerId[1] else NA,
         player2Id = if (nrow(p2info) > 0) p2info$playerId[1] else NA,
+        onMin = round(on_stats$minutes, 1),
         onORtg = round(on_stats$oer * 100, 1),
         onDRtg = round(on_stats$der * 100, 1),
         onNetRtg = round(on_stats$ner * 100, 1),
@@ -458,6 +521,7 @@ calculate_trio_stats_optimized <- function(team_data, team_name, players, player
         players = paste(display_names, collapse = " & "),
         playerList = trio,
         playerIds = as.list(player_ids),
+        onMin = round(on_stats$minutes, 1),
         onORtg = round(on_stats$oer * 100, 1),
         onDRtg = round(on_stats$der * 100, 1),
         onNetRtg = round(on_stats$ner * 100, 1),
@@ -546,6 +610,7 @@ calculate_lineup_stats_optimized <- function(team_data, team_name, players, play
         players = paste(display_names, collapse = " | "),
         playerList = lineup_players,
         playerIds = as.list(player_ids),
+        onMin = round(stats$minutes, 1),
         onORtg = round(stats$oer * 100, 1),
         onDRtg = round(stats$der * 100, 1),
         onNetRtg = round(stats$ner * 100, 1),

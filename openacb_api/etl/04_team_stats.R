@@ -124,17 +124,71 @@ calculate_team_stats <- function(season_id,
       year = season_id
     )
   
+  # Calculate per-game boxscore stats
+  # Note: PBP data counts events for both teams, so we divide by 2 to get per-team values
+  stats <- stats %>%
+    mutate(
+      # Pace = possessions per game (divide by 2 due to PBP double-counting)
+      pace = pos / ngames / 2,
+
+      # Per-game boxscore stats (team) - derived from efficiency and pace
+      ppg = oer * pace / 100,  # Points = ORtg * possessions / 100
+      rpg = (reb_def + reb_of) / ngames / 2,  # Divide by 2 to fix PBP double-counting
+      orebpg = reb_of / ngames / 2,
+      drebpg = reb_def / ngames / 2,
+      apg = asistencias / ngames / 2,
+      spg = recuperacion / ngames / 2,
+      bpg = tapon / ngames / 2,
+      topg = perdida / ngames / 2,
+      fpg = falta / ngames / 2,
+      fgm_pg = (T2A + T3A) / ngames / 2,
+      fga_pg = (T2I + T3I) / ngames / 2,
+      fg3m_pg = T3A / ngames / 2,
+      fg3a_pg = T3I / ngames / 2,
+      ftm_pg = T1A / ngames / 2,
+      fta_pg = T1I / ngames / 2,
+      fg_pct = (T2A + T3A) / (T2I + T3I) * 100,  # Percentages don't need adjustment
+      ft_pct = T1A / T1I * 100,
+
+      # Per-game boxscore stats (opponent) - derived from efficiency
+      opp_ppg = der * pace / 100,  # Opponent points = DRtg * possessions / 100
+      opp_rpg = (reb_def_opponent + reb_of_opponent) / ngames / 2,
+      opp_orebpg = reb_of_opponent / ngames / 2,
+      opp_drebpg = reb_def_opponent / ngames / 2,
+      opp_apg = asistencias_opponent / ngames / 2,
+      opp_spg = recuperacion_opponent / ngames / 2,
+      opp_bpg = tapon_opponent / ngames / 2,
+      opp_topg = perdida_opponent / ngames / 2,
+      opp_fpg = falta_opponent / ngames / 2,
+      opp_fgm_pg = (T2A_opponent + T3A_opponent) / ngames / 2,
+      opp_fga_pg = (T2I_opponent + T3I_opponent) / ngames / 2,
+      opp_fg3m_pg = T3A_opponent / ngames / 2,
+      opp_fg3a_pg = T3I_opponent / ngames / 2,
+      opp_ftm_pg = T1A_opponent / ngames / 2,
+      opp_fta_pg = T1I_opponent / ngames / 2,
+      opp_fg_pct = (T2A_opponent + T3A_opponent) / (T2I_opponent + T3I_opponent) * 100,
+      opp_ft_pct = T1A_opponent / T1I_opponent * 100
+    )
+
   # Select final columns
   final_stats <- stats %>%
     select(
       team.team_actual_name, ngames, year,
-      # Team stats
-      threefg, tci, threeatt_rate, oer, der,
+      # Team boxscore per-game stats
+      ppg, rpg, orebpg, drebpg, apg, spg, bpg, topg, fpg,
+      fgm_pg, fga_pg, fg3m_pg, fg3a_pg, ftm_pg, fta_pg,
+      fg_pct, ft_pct, pace,
+      # Team advanced stats
+      threefg, threeatt_rate, oer, der,
       S_DefReb, S_OffReb, S_assist, S_blocks, ts, efg,
       S_Tov, S_steal, FT_rate, tecnica, altercado, revision,
       salto_ganado, salto_perdido,
-      # Opponent stats
-      threefg_opponent, tci_opponent, threeatt_rate_opponent,
+      # Opponent boxscore per-game stats
+      opp_ppg, opp_rpg, opp_orebpg, opp_drebpg, opp_apg, opp_spg, opp_bpg, opp_topg, opp_fpg,
+      opp_fgm_pg, opp_fga_pg, opp_fg3m_pg, opp_fg3a_pg, opp_ftm_pg, opp_fta_pg,
+      opp_fg_pct, opp_ft_pct,
+      # Opponent advanced stats
+      threefg_opponent, threeatt_rate_opponent,
       oer_opponent, der_opponent, S_DefReb_opponent, S_OffReb_opponent,
       S_assist_opponent, ts_opponent, efg_opponent, S_Tov_opponent,
       S_steal_opponent, S_blocks_opponent, FT_rate_opponent, tecnica_opponent
