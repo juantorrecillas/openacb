@@ -6,7 +6,7 @@
 # - Minutes played (calculated from PBP on-court tracking)
 # - Possessions
 # - Percentile rankings
-# Usage: calculate_player_stats(2025) or calculate_all_player_stats()
+# Usage: calculate_player_stats(2025) or calculate_all_player_stats()º
 # =============================================================================
 
 library(dplyr)
@@ -44,19 +44,20 @@ calculate_minutes <- function(df, player_nicks) {
       # Calculate seconds from the clock
       current_seconds = minute * 60 + second,
       
-      # Get time of the PREVIOUS event (which happened 'earlier' in game time, i.e., higher clock value)
-      prev_seconds = lag(current_seconds),
-      prev_period = lag(period),
+      # Get time of the NEXT event (which happens 'later' in game time, i.e., lower clock value)
+      next_seconds = lead(current_seconds),
+      next_period = lead(period),
       
-      # Calculate duration
-      time_diff = prev_seconds - current_seconds
+      # Calculate duration: Current (Start) - Next (End)
+      # This attributes the time interval [Current -> Next] to the Current row (the lineup ON court)
+      time_diff = current_seconds - next_seconds
     ) %>%
     ungroup() %>%
     mutate(
       # CLEANUP:
       # 1. If period changed, time_diff is 0 (don't calc time across quarters)
-      time_diff = ifelse(period != prev_period, 0, time_diff),
-      # 2. If first row of match, time_diff is 0
+      time_diff = ifelse(period != next_period, 0, time_diff),
+      # 2. If last row of match/period (lead is NA), time_diff is 0
       time_diff = ifelse(is.na(time_diff), 0, time_diff),
       # 3. Sanity check: remove negative times or huge gaps (>5 mins)
       time_diff = ifelse(time_diff < 0 | time_diff > 300, 0, time_diff)
@@ -67,7 +68,7 @@ calculate_minutes <- function(df, player_nicks) {
   cat(sprintf("  DEBUG: Total game time found in dataset: %.1f minutes\n", total_time_found / 60))
   if(total_time_found == 0) warning("  WARNING: No time differences calculated. Check 'minute'/'second' columns.")
   
-  # 3. Calculate Player Minutes (Matrix Method)
+  # 3. Calculate Player Minutes
   # Identify the player tracking columns that actually exist in data
   valid_player_cols <- paste0(player_nicks, "_pista")
   valid_player_cols <- valid_player_cols[valid_player_cols %in% names(df_calc)]
@@ -97,10 +98,7 @@ calculate_minutes <- function(df, player_nicks) {
     ) %>%
     filter(minutes > 0) %>%
     select(player, minutes)
-  
-  # Add id_match breakdown if needed (The original function returned id_match)
-  # If you need minutes PER GAME, we must group by id_match first.
-  # Re-running the summation grouped by match for compatibility:
+
   
   results_list <- list()
   
@@ -114,10 +112,10 @@ calculate_minutes <- function(df, player_nicks) {
   for(i in seq_along(unique_matches)) {
     m <- unique_matches[i]
     match_data <- df_calc[df_calc$id_match == m, ]
-    
+
     # Get Time vector
     t_vec <- match_data$time_diff
-    
+
     # Get Player matrix for this match
     p_cols <- valid_player_cols # check all potential players
     p_mat <- as.matrix(match_data[, p_cols])
@@ -293,6 +291,22 @@ calculate_player_stats <- function(season_id,
 
       # Count games
       games = n_distinct(id_match),
+      
+      # Assisted fg
+      assisted_fgm2 = sum(assisted_fgm2),
+      assisted_fgm3 = sum(assisted_fgm3),
+      assisted_fgm = sum(assisted_fgm),
+      unassisted_fgm = sum(unassisted_fgm),
+      
+      # Off turnover
+      transition_fgm = sum(transition_fgm),
+      transition_fgm2 = sum(transition_fgm2),
+      transition_fgm3 = sum(transition_fgm3),
+      
+      # 2nd Chance
+      second_chance_fgm = sum(second_chance_fgm),
+      second_chance_fgm2 = sum(second_chance_fgm2),
+      second_chance_fgm3 = sum(second_chance_fgm3),
 
       .groups = "drop"
     ) %>%
@@ -326,7 +340,22 @@ calculate_player_stats <- function(season_id,
       ortg = ifelse(possessions > 0, (points / possessions) * 100, 0),
 
       # 3PT attempt rate
-      three_rate = ifelse(fga > 0, fga3 / fga * 100, 0)
+      three_rate = ifelse(fga > 0, fga3 / fga * 100, 0),
+
+      # Assist to Turnover ratio
+      ast_to_ratio = ifelse(turnovers > 0, assists / turnovers, NA),
+      
+      # Points off TO
+      off_to = ifelse(fga > 0, ((2*transition_fgm2) + (3*transition_fgm3)) / points, 0),
+      
+      # Points off rebound
+      second_chance = ifelse(fga > 0, ((2*second_chance_fgm2) + (3*second_chance_fgm3)) / points, 0),
+      
+      # Assisted shots
+      S_assisted_fgm = ifelse(fga > 0, ((2*assisted_fgm2) + (3*assisted_fgm3)) / points, 0),
+      S_assisted_fgm2 = ifelse(fga > 0, ((assisted_fgm2)) / (fgm2), 0),
+      S_assisted_fgm3 = ifelse(fga > 0, ((assisted_fgm3)) / (fgm3), 0)
+      
     )
 
   # ==========================================================================
@@ -378,6 +407,8 @@ calculate_player_stats <- function(season_id,
         team_oreb_on = sum(reb_of, na.rm = TRUE),
         team_dreb_on = sum(reb_def, na.rm = TRUE),
         team_poss_on = sum(T2I + T3I + FT_trip + perdida, na.rm = TRUE),
+        team_points = sum(2*T2A + 3*T3A + T1A),
+        team_ortg = team_points / team_poss_on,
         .groups = "drop"
       )
 
@@ -394,6 +425,8 @@ calculate_player_stats <- function(season_id,
         opp_oreb_on = sum(reb_of, na.rm = TRUE),
         opp_dreb_on = sum(reb_def, na.rm = TRUE),
         opp_poss_on = sum(T2I + T3I + FT_trip + perdida, na.rm = TRUE),
+        opp_points = sum(2*T2A + 3*T3A + T1A),
+        opp_ortg = opp_points / opp_poss_on,
         .groups = "drop"
       )
 
@@ -432,32 +465,26 @@ calculate_player_stats <- function(season_id,
   # Join team stats (while player on court) - using license_id for proper matching
   player_stats <- player_stats %>%
     left_join(team_stats_on_court, by = c("license_id", "player", "team"))
+  
+  
 
   # ==========================================================================
   # CALCULATE ADVANCED STATS (USAGE RATE, ETC.)
   # ==========================================================================
 
   cat("→ Calculating advanced statistics...\n")
+  
+  
+  
+  
 
   player_stats <- player_stats %>%
     mutate(
       # CTG-style Usage Rate
       # Player contribution: FGA + TOV + FT trips
       # BUT: Assisted FGs count as 0.5, and assists also count as 0.5
-      # We need to estimate assisted FGs - using league average ~60% of FGM are assisted
-      # For now, we'll use a simplified version and can refine later
 
-      # Simplified player usage numerator
-      # FGA + turnovers + FT trips - 0.5 * (estimated assisted FGM) + 0.5 * assists
-      # Estimate assisted FGM as: FGM * (team_assists / team_fgm) for approximation
-      # For CTG accuracy, we'd need play-by-play assist tracking, but this is close
-
-      assisted_fgm_est = ifelse(team_fgm_on > 0,
-                                fgm * (team_assists_on / team_fgm_on),
-                                0),
-
-      player_poss_adj = fga + turnovers + ft_trips - 0.5 * assisted_fgm_est + 0.5 * assists,
-
+      player_poss_adj = fga + turnovers + ft_trips - (0.5 * assisted_fgm) + (0.5 * assists),
       # Team possessions (adjusted for assists) while player on court
       team_assisted_fgm = team_fgm_on,  # All team made FGs while on court
       team_poss_adj = ifelse(!is.na(team_poss_on),
@@ -1007,7 +1034,9 @@ calculate_player_stats <- function(season_id,
       # Possessions & Usage
       possessions, poss_pg, ortg, usg,
       # Advanced Rate Stats
-      orb_pct, drb_pct, trb_pct, ast_pct, stl_pct, blk_pct, tov_pct,
+      orb_pct, drb_pct, trb_pct, ast_pct, stl_pct, blk_pct, tov_pct, ast_to_ratio,
+      # Context Stats
+      off_to, second_chance, S_assisted_fgm, S_assisted_fgm2, S_assisted_fgm3,
       # Zone Shooting Stats
       any_of(zone_cols),
       # Percentiles (explicitly named to avoid conflicts)

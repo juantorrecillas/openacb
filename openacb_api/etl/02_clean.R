@@ -94,13 +94,60 @@ add_boxscore_columns <- function(df) {
       puntos = T1A + 2 * T2A + 3 * T3A,
       asistencias = asis_t2 + asis_t3
     )
+  
+  # =========================================================================
+  # CALCULATE ASSISTED FIELD GOALS 
+  #==========================================================================
+  
+  df <- df %>%
+    group_by(id_match, team.team_actual_name) %>%
+    arrange(period, desc(minute), desc(second), .by_group = TRUE) %>%
+    mutate(
+      # Check if next event was an assist
+      prev_was_assist = lead(asistencias, default = 0) > 0,
+      # Mark assisted made FGs (2pt or 3pt makes that follow an assist)
+      assisted_fgm2 = as.integer(T2A > 0 & prev_was_assist),
+      assisted_fgm3 = as.integer(T3A > 0 & prev_was_assist),
+      assisted_fgm = assisted_fgm2 + assisted_fgm3,
+      # Unassisted makes
+      unassisted_fgm = (T2A + T3A) - assisted_fgm
+    ) %>%
+    ungroup()
+  
+  #=======================================================================
+  # CALCULATE POINTS OFF TURNOVER
+  # ======================================================================
+  df <- df %>%
+    group_by(id_match) %>%
+    arrange(period, desc(minute), desc(second), .by_group = TRUE) %>%
+    mutate(
+      # Get previous event's team
+      prev_team = lag(team.team_actual_name),
+      
+      # Opponent turnover (previous event was turnover by different team)
+      prev_was_opp_turnover = lag(recuperacion, default = 0) > 0 & prev_team != team.team_actual_name,
+      
+      # Our offensive rebound (previous event was our own OREB)
+      prev_was_oreb = lag(reb_of, default = 0) > 0 & prev_team == team.team_actual_name,
+      
+      # Transition FGM (after opponent turnover)
+      transition_fgm2 = as.integer(T2A > 0 & prev_was_opp_turnover),
+      transition_fgm3 = as.integer(T3A > 0 & prev_was_opp_turnover),
+      transition_fgm = transition_fgm2 + transition_fgm3,
+      
+      # 2nd chance FGM (after offensive rebound)
+      second_chance_fgm2 = as.integer(T2A > 0 & prev_was_oreb),
+      second_chance_fgm3 = as.integer(T3A > 0 & prev_was_oreb),
+      second_chance_fgm = second_chance_fgm2 + second_chance_fgm3
+    ) %>%
+    ungroup()
 
   # Calculate FT_trip based on consecutive FT attempts
   # A trip is the start of a sequence of 1+ free throws
   # EXCLUDING and-one situations (FT after made basket)
   df <- df %>%
     group_by(id_match, team.team_actual_name) %>%
-    arrange(order, .by_group = TRUE) %>%
+    arrange(period, desc(minute), desc(second), .by_group = TRUE) %>%
     mutate(
       # Check if current row is a FT attempt
       is_ft = T1I > 0,
@@ -113,8 +160,9 @@ add_boxscore_columns <- function(df) {
       FT_trip = as.integer(is_ft & !prev_is_ft & !prev_made_fg)
     ) %>%
     ungroup() %>%
-    select(-is_ft, -prev_is_ft, -prev_made_fg)
-
+    select(-is_ft, -prev_is_ft, -prev_made_fg)  
+  
+  df <- df %>% arrange(id_match, order)
   return(df)
 }
 

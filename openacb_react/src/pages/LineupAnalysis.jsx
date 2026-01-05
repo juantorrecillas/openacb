@@ -23,7 +23,15 @@ export default function LineupAnalysis({ teams, players }) {
   }, [teams])
 
   const [selectedSeason, setSelectedSeason] = useState(availableSeasons[0] || 2025)
-  const [selectedTeam, setSelectedTeam] = useState(teams[0]?.team || '')
+  const [selectedTeam, setSelectedTeam] = useState('')
+
+  // Ensure selectedTeam is valid for the selected season
+  useEffect(() => {
+    const seasonTeams = teams.filter(t => t.season === selectedSeason)
+    if (seasonTeams.length > 0 && !seasonTeams.find(t => t.team === selectedTeam)) {
+      setSelectedTeam(seasonTeams[0].team)
+    }
+  }, [selectedSeason, teams, selectedTeam])
 
   // Player selection state
   const [selectedPlayers, setSelectedPlayers] = useState([])
@@ -304,7 +312,7 @@ export default function LineupAnalysis({ teams, players }) {
               {currentLineupData.name || selectedPlayers[0]}
             </h3>
             <p className="text-acb-200 text-sm">
-              {currentLineupData.onPoss} possessions on court • {currentLineupData.offPoss} off court
+              {currentLineupData.onMin?.toFixed(1)} minutes on court • {currentLineupData.offMin?.toFixed(1)} minutes off court
             </p>
           </div>
 
@@ -410,7 +418,7 @@ export default function LineupAnalysis({ teams, players }) {
               {selectedPlayers.length === 2 ? 'Duo' : 'Trio'} Analysis
             </h3>
             <p className="text-acb-200 text-sm">
-              {selectedPlayers.join(' + ')} • {currentLineupData.onPoss} possessions together
+              {selectedPlayers.join(' + ')} • {currentLineupData.onMin?.toFixed(1)} minutes together
             </p>
           </div>
 
@@ -517,7 +525,7 @@ export default function LineupAnalysis({ teams, players }) {
                   <SortableHeader label="TOV%" sortKey="onTOV" current={sortConfig} onSort={handleSort} />
                   <SortableHeader label="DRB%" sortKey="onDRB" current={sortConfig} onSort={handleSort} />
                   <SortableHeader label="AST%" sortKey="onAST" current={sortConfig} onSort={handleSort} />
-                  <th className="px-4 py-3 font-semibold text-center">Poss</th>
+                  <SortableHeader label="Min" sortKey="onMin" current={sortConfig} onSort={handleSort} />
                 </tr>
               </thead>
               <tbody className="divide-y divide-acb-100">
@@ -578,7 +586,7 @@ export default function LineupAnalysis({ teams, players }) {
                       {player.onAST?.toFixed(1)}
                     </td>
                     <td className="px-4 py-2 text-center font-mono text-acb-400 text-xs">
-                      {player.onPoss}
+                      {player.onMin?.toFixed(0)}
                     </td>
                   </tr>
                 ))}

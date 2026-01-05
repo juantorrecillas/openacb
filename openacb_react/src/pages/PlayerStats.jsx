@@ -8,17 +8,17 @@ const basicColumns = [
   { key: 'games', label: 'GP', align: 'right', sortable: true },
   { key: 'mpg', label: 'MPG', align: 'right', sortable: true, pctKey: 'mpgPct' },
   { key: 'ppg', label: 'PPG', align: 'right', sortable: true, highlight: true, pctKey: 'ppgPct' },
-  { key: 'rpg', label: 'RPG', align: 'right', sortable: true, pctKey: 'rpgPct' },
-  { key: 'orebpg', label: 'OREB', align: 'right', sortable: true, pctKey: 'orebpgPct' },
-  { key: 'drebpg', label: 'DREB', align: 'right', sortable: true, pctKey: 'drebpgPct' },
-  { key: 'apg', label: 'APG', align: 'right', sortable: true, pctKey: 'apgPct' },
-  { key: 'spg', label: 'SPG', align: 'right', sortable: true, pctKey: 'spgPct' },
-  { key: 'bpg', label: 'BPG', align: 'right', sortable: true, pctKey: 'bpgPct' },
-  { key: 'topg', label: 'TOPG', align: 'right', sortable: true, inverse: true, pctKey: 'topgPct' },
   { key: 'fpg', label: 'FPG', align: 'right', sortable: true, inverse: true, pctKey: 'fpgPct' },
   { key: 'fgPct', label: 'FG%', align: 'right', sortable: true, pctKey: 'fgPctPct' },
   { key: 'fg3Pct', label: '3P%', align: 'right', sortable: true, pctKey: 'fg3PctPct' },
   { key: 'ftPct', label: 'FT%', align: 'right', sortable: true, pctKey: 'ftPctPct' },
+  { key: 'rpg', label: 'RPG', align: 'right', sortable: true, pctKey: 'rpgPct' },
+  { key: 'drebpg', label: 'DREB', align: 'right', sortable: true, pctKey: 'drebpgPct' },
+  { key: 'orebpg', label: 'OREB', align: 'right', sortable: true, pctKey: 'orebpgPct' },
+  { key: 'apg', label: 'APG', align: 'right', sortable: true, pctKey: 'apgPct' },
+  { key: 'spg', label: 'SPG', align: 'right', sortable: true, pctKey: 'spgPct' },
+  { key: 'bpg', label: 'BPG', align: 'right', sortable: true, pctKey: 'bpgPct' },
+  { key: 'topg', label: 'TOPG', align: 'right', sortable: true, inverse: true, pctKey: 'topgPct' },
 ]
 
 // Advanced stats - shooting efficiency and rate statistics
@@ -38,6 +38,20 @@ const advancedColumns = [
   { key: 'stlPct', label: 'STL%', align: 'right', sortable: true, pctKey: 'stlPctPct' },
   { key: 'blkPct', label: 'BLK%', align: 'right', sortable: true, pctKey: 'blkPctPct' },
   { key: 'tovPct', label: 'TOV%', align: 'right', sortable: true, inverse: true, pctKey: 'tovPctPct' },
+]
+
+// Miscellaneous stats - contextual variables and play type percentages
+const miscColumns = [
+  { key: 'playerFull', label: 'Player', align: 'left', sortable: true },
+  { key: 'team', label: 'Team', align: 'left', sortable: true },
+  { key: 'games', label: 'GP', align: 'right', sortable: true },
+  { key: 'mpg', label: 'MPG', align: 'right', sortable: true, pctKey: 'mpgPct' },
+  { key: 'ppg', label: 'PPG', align: 'right', sortable: true, pctKey: 'ppgPct' },
+  { key: 'offTo', label: 'Pts off TO%', align: 'right', sortable: true, pctKey: 'offToPct' },
+  { key: 'secondChance', label: '2nd Ch Pts%', align: 'right', sortable: true, pctKey: 'secondChancePct' },
+  { key: 'assistedFgm', label: 'Ast Pts%', align: 'right', sortable: true, pctKey: 'assistedFgmPct' },
+  { key: 'assistedFgm2', label: 'Ast 2PT%', align: 'right', sortable: true, pctKey: 'assistedFgm2Pct' },
+  { key: 'assistedFgm3', label: 'Ast 3PT%', align: 'right', sortable: true, pctKey: 'assistedFgm3Pct' },
 ]
 
 // Zone shooting frequency columns (% of shots from each zone)
@@ -96,7 +110,7 @@ export default function PlayerStats({ players }) {
   }, [players])
 
   const [selectedSeason, setSelectedSeason] = useState(availableSeasons[0] || 2025)
-  const [viewMode, setViewMode] = useState('basic') // 'basic', 'advanced', 'frequency', 'accuracy', 'defense'
+  const [viewMode, setViewMode] = useState('basic') // 'basic', 'advanced', 'misc', 'frequency', 'accuracy', 'defense'
   const [search, setSearch] = useState('')
   const [sortKey, setSortKey] = useState('playerFull')
   const [sortDir, setSortDir] = useState('asc')
@@ -124,6 +138,7 @@ export default function PlayerStats({ players }) {
 
   const columns = viewMode === 'basic' ? basicColumns
     : viewMode === 'advanced' ? advancedColumns
+    : viewMode === 'misc' ? miscColumns
     : viewMode === 'frequency' ? frequencyColumns
     : viewMode === 'accuracy' ? accuracyColumns
     : defenseColumns
@@ -204,6 +219,13 @@ export default function PlayerStats({ players }) {
     // Usage and 3PAr
     if (key === 'usg' || key === 'threeRate') {
       return `${value.toFixed(1)}%`
+    }
+
+    // Contextual variables - points from different play types
+    // These are stored as decimals (0-1) and need to be multiplied by 100
+    if (key === 'offTo' || key === 'secondChance' || key === 'assistedFgm' ||
+        key === 'assistedFgm2' || key === 'assistedFgm3') {
+      return `${(value * 100).toFixed(1)}%`
     }
 
     // Zone frequency stats (% of shots from zone)
@@ -312,13 +334,22 @@ export default function PlayerStats({ players }) {
               Advanced
             </button>
             <button
+              onClick={() => setViewMode('misc')}
+              className={`px-3 py-1.5 text-sm font-medium rounded transition-colors
+                ${viewMode === 'misc'
+                  ? 'bg-white text-acb-900 shadow-sm'
+                  : 'text-acb-600 hover:text-acb-900'}`}
+            >
+              Misc
+            </button>
+            <button
               onClick={() => setViewMode('frequency')}
               className={`px-3 py-1.5 text-sm font-medium rounded transition-colors
                 ${viewMode === 'frequency'
                   ? 'bg-white text-acb-900 shadow-sm'
                   : 'text-acb-600 hover:text-acb-900'}`}
             >
-              Frequency
+              Shooting: Frequency
             </button>
             <button
               onClick={() => setViewMode('accuracy')}
@@ -327,7 +358,7 @@ export default function PlayerStats({ players }) {
                   ? 'bg-white text-acb-900 shadow-sm'
                   : 'text-acb-600 hover:text-acb-900'}`}
             >
-              Accuracy
+              Shooting: Accuracy
             </button>
             <button
               onClick={() => setViewMode('defense')}

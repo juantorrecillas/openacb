@@ -128,8 +128,12 @@ BOXSCORE_COLUMNS <- c(
   "contr2A", "contr3A", "mateA", "mateI",
   "reb_def", "reb_of", "recuperacion", "FT_trip", "asistencias",
   "tapon", "tapon_rec", "perdida", "falta", "falta_rec", 
-  "tecnica", "altercado", "revision", "salto_ganado", "salto_perdido"
-)
+  "tecnica", "altercado", "revision", "salto_ganado", "salto_perdido",
+  #Context specific variables
+  "transition_fgm2", "transition_fgm3", 
+  "second_chance_fgm2", "second_chance_fgm3",
+  "assisted_fgm2", "assisted_fgm3"
+  )
 
 # Columns to remove from PBP data (reduces file size significantly)
 PBP_COLUMNS_TO_DELETE <- c(

@@ -16,13 +16,12 @@ library(dplyr)
 #' @param season_id Integer year (e.g., 2025 for 2024-2025 season)
 #' @param data_dir Base directory for data (default: "./data")
 #' @param config_path Path to seasons.R config file
-#' @param parallel Use parallel processing (default: FALSE)
 #' @return Invisibly returns the processed data frame
 #' 
 create_pbp_variables <- function(season_id,
                                   data_dir = "./data",
-                                  config_path = "./config/seasons.R",
-                                  parallel = FALSE) {
+                                  config_path = "./config/seasons.R"
+                                 ) {
   
   # Load configuration
   source(config_path)
@@ -84,6 +83,12 @@ create_pbp_variables <- function(season_id,
     
     # Get data for this match
     container <- df[df$id_match == m, ]
+
+    # IMPORTANT: Sort chronologically to match how minutes are calculated
+    # Time goes 10:00 -> 00:00, so desc(minute) is chronological
+    container <- container %>%
+      arrange(period, desc(minute), desc(second))
+
 
     # Set starting lineup (using license.id for unique matching)
     starters <- quinteto[quinteto$id_match == m, c("license.id", "license.licenseNick")]

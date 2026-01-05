@@ -53,6 +53,12 @@ const statOptions = [
   { value: 'ftRate', label: 'FT Rate', format: 'decimal' },
   { value: 'stlRate', label: 'Steal Rate', format: 'pct' },
   { value: 'blkRate', label: 'Block Rate', format: 'pct' },
+  { value: 'astToRatio', label: 'AST/TO Ratio', format: 'decimal' },
+  { value: 'offTo', label: 'Pts off TO %', format: 'pct' },
+  { value: 'secondChance', label: '2nd Chance Pts %', format: 'pct' },
+  { value: 'assistedFgm', label: 'Assisted Pts %', format: 'pct' },
+  { value: 'assistedFgm2', label: 'Assisted 2PT %', format: 'pct' },
+  { value: 'assistedFgm3', label: 'Assisted 3PT %', format: 'pct' },
   // Opponent boxscore stats
   { value: 'opp_ppg', label: 'Opp PPG', format: 'decimal' },
   { value: 'opp_rpg', label: 'Opp RPG', format: 'decimal' },
@@ -72,6 +78,12 @@ const statOptions = [
   { value: 'opp_ftRate', label: 'Opp FT Rate', format: 'decimal' },
   { value: 'opp_stlRate', label: 'Opp Steal Rate', format: 'pct' },
   { value: 'opp_blkRate', label: 'Opp Block Rate', format: 'pct' },
+  { value: 'opp_astToRatio', label: 'Opp AST/TO Ratio', format: 'decimal' },
+  { value: 'opp_offTo', label: 'Opp Pts off TO %', format: 'pct' },
+  { value: 'opp_secondChance', label: 'Opp 2nd Chance %', format: 'pct' },
+  { value: 'opp_assistedFgm', label: 'Opp Assisted Pts %', format: 'pct' },
+  { value: 'opp_assistedFgm2', label: 'Opp Assisted 2PT %', format: 'pct' },
+  { value: 'opp_assistedFgm3', label: 'Opp Assisted 3PT %', format: 'pct' },
 ]
 
 // Basic team stats columns - Boxscore stats like player stats
@@ -105,6 +117,12 @@ const advancedColumns = [
   { key: 'tovRate', label: 'TOV%', align: 'right', inverse: true },
   { key: 'orbPct', label: 'ORB%', align: 'right' },
   { key: 'drbPct', label: 'DRB%', align: 'right' },
+  { key: 'stlRate', label: 'STL%', align: 'right' },
+  { key: 'blkRate', label: 'BLK%', align: 'right' },
+  { key: 'astToRatio', label: 'AST/TO', align: 'right' },
+  { key: 'offTo', label: 'Pts off TO%', align: 'right' },
+  { key: 'secondChance', label: '2nd Ch%', align: 'right' },
+  { key: 'assistedFgm', label: 'Ast Pts%', align: 'right' },
 ]
 
 // Opponent basic stats columns - Boxscore stats allowed
@@ -137,6 +155,12 @@ const oppAdvancedColumns = [
   { key: 'opp_tovRate', label: 'TOV%', align: 'right' },
   { key: 'opp_orbPct', label: 'ORB%', align: 'right', inverse: true },
   { key: 'opp_drbPct', label: 'DRB%', align: 'right', inverse: true },
+  { key: 'opp_stlRate', label: 'STL%', align: 'right', inverse: true },
+  { key: 'opp_blkRate', label: 'BLK%', align: 'right', inverse: true },
+  { key: 'opp_astToRatio', label: 'AST/TO', align: 'right', inverse: true },
+  { key: 'opp_offTo', label: 'Pts off TO%', align: 'right', inverse: true },
+  { key: 'opp_secondChance', label: '2nd Ch%', align: 'right', inverse: true },
+  { key: 'opp_assistedFgm', label: 'Ast Pts%', align: 'right', inverse: true },
 ]
 
 export default function TeamStats({ teams }) {

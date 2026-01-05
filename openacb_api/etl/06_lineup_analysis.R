@@ -19,7 +19,11 @@ library(dplyr)
 BOXSCORE_COLUMNS <- c("puntos", "T1A", "T1I", "T2A", "T2I", "T3A", "T3I",
                       "contr2A", "contr3A", "mateA", "mateI",
                       "reb_def", "reb_of", "recuperacion", "FT_trip", "asistencias",
-                      "tapon", "tapon_rec", "perdida", "falta", "falta_rec", "tecnica")
+                      "tapon", "tapon_rec", "perdida", "falta", "falta_rec", "tecnica", "altercado", "revision", "salto_ganado", "salto_perdido",
+                      #Context specific variables
+                      "transition_fgm2", "transition_fgm3", 
+                      "second_chance_fgm2", "second_chance_fgm3",
+                      "assisted_fgm2", "assisted_fgm3")
 
 # Minimum possessions required for lineup stats (filters noise)
 MIN_POSSESSIONS <- 10
@@ -118,7 +122,7 @@ calculate_lineup_analysis <- function(season_id,
   pista_cols <- grep("_pista$", names(df_pbp), value = TRUE)
   cat("  Total player tracking columns:", length(pista_cols), "\n")
 
-  # Build team-player mapping (only players who actually played for each team)
+  # Build team-player mapping
   team_players <- build_team_player_mapping(df_pbp, pista_cols)
   teams <- names(team_players)
   cat("  Teams found:", length(teams), "\n")
@@ -193,8 +197,8 @@ calculate_lineup_analysis <- function(season_id,
 # =============================================================================
 
 #' Identifies which players actually played for each team
-#' Uses license.licenseNick from actual events (not _pista columns which include opponents)
-#'
+#' Uses license.licenseNick and license.id from actual events
+#' 
 build_team_player_mapping <- function(df_pbp, pista_cols) {
   cat("Building team-player mapping...\n")
 
@@ -205,18 +209,23 @@ build_team_player_mapping <- function(df_pbp, pista_cols) {
   for (team_name in teams) {
     # Get players who actually made actions FOR this team
     team_rows <- df_pbp[team.team_actual_name == team_name]
-    roster <- unique(team_rows$license.licenseNick)
-    roster <- roster[!is.na(roster) & roster != ""]
+    roster_df <- unique(team_rows[, .(license.licenseNick, license.id)])
+    roster_df <- roster_df[!is.na(license.licenseNick) & license.licenseNick != "" & !is.na(license.id)]
+
+    # Build column names in the new format: {nick}_{id}_pista
+    roster_df[, pista_col := paste0(license.licenseNick, "_", license.id, "_pista")]
 
     # Only keep players that have _pista columns
-    roster <- roster[paste0(roster, "_pista") %in% pista_cols]
+    roster_df <- roster_df[pista_col %in% pista_cols]
 
-    team_players[[team_name]] <- roster
+    # Return the pista column names (without _pista suffix) for consistency
+    # These will be used to filter data later
+    team_players[[team_name]] <- roster_df$pista_col
   }
 
   # Summary
   total_unique <- length(unique(unlist(team_players)))
-  cat("  Mapped", total_unique, "unique players across", length(teams), "teams\n")
+  cat("  Mapped", total_unique, "unique player columns across", length(teams), "teams\n")
 
   return(team_players)
 }
@@ -238,12 +247,12 @@ build_player_info <- function(df_pbp) {
 }
 
 # =============================================================================
-# Core Aggregation Function (Reusable)
+# Core Aggregation Function
 # =============================================================================
 
 #' Calculate team and opponent stats for filtered data
 #' Now includes minutes calculation from time_diff column
-#'
+
 calculate_stats_for_subset <- function(subset_dt, team_name) {
   if (nrow(subset_dt) == 0) return(NULL)
 
@@ -259,7 +268,7 @@ calculate_stats_for_subset <- function(subset_dt, team_name) {
 
   if (nrow(team_stats) == 0) return(NULL)
 
-  team_stats[, pos := T2I + T3I + 0.44 * T1I - reb_of + perdida]
+  team_stats[, pos := T2I + T3I + FT_trip - reb_of + perdida]
 
   # Opponent statistics (defensive)
   opp_stats <- subset_dt[opponent == team_name,
@@ -269,7 +278,7 @@ calculate_stats_for_subset <- function(subset_dt, team_name) {
 
   if (nrow(opp_stats) == 0) return(NULL)
 
-  opp_stats[, pos := T2I + T3I + 0.44 * T1I - reb_of + perdida]
+  opp_stats[, pos := T2I + T3I + FT_trip - reb_of + perdida]
 
   # Skip if not enough minutes (use MIN_MINUTES threshold)
   if (minutes < MIN_MINUTES) return(NULL)
@@ -282,8 +291,8 @@ calculate_stats_for_subset <- function(subset_dt, team_name) {
   # === FOUR FACTORS CALCULATIONS ===
 
   # True Shooting %
-  ts <- if ((team_stats$T2I + team_stats$T3I + 0.44 * team_stats$T1I) > 0) {
-    team_stats$puntos / (2 * (team_stats$T2I + team_stats$T3I + 0.44 * team_stats$T1I))
+  ts <- if ((team_stats$T2I + team_stats$T3I + team_stats$FT_trip) > 0) {
+    team_stats$puntos / (2 * (team_stats$T2I + team_stats$T3I + team_stats$FT_trip))
   } else 0
 
   # Effective Field Goal % (Offensive)
@@ -352,12 +361,15 @@ calculate_stats_for_subset <- function(subset_dt, team_name) {
 # Individual Player Statistics (Optimized)
 # =============================================================================
 
-calculate_individual_stats_optimized <- function(team_data, team_name, players, player_info) {
+calculate_individual_stats_optimized <- function(team_data, team_name, player_cols, player_info) {
   results <- list()
 
-  for (player in players) {
-    pista_col <- paste0(player, "_pista")
+  # player_cols are now full column names like "García_20210685_pista"
+  for (pista_col in player_cols) {
     if (!pista_col %in% names(team_data)) next
+
+    # Extract player nick from column name (everything before the last _NUMBER_pista)
+    player <- sub("_[0-9]+_pista$", "", pista_col)
 
     # On court stats
     on_subset <- team_data[team_data[[pista_col]] == 1]
@@ -425,23 +437,24 @@ calculate_individual_stats_optimized <- function(team_data, team_name, players, 
 # Player Pair Statistics (Optimized)
 # =============================================================================
 
-calculate_pair_stats_optimized <- function(team_data, team_name, players, player_info) {
+calculate_pair_stats_optimized <- function(team_data, team_name, player_cols, player_info) {
   results <- list()
 
   # Only generate combinations if we have enough players
-  if (length(players) < 2) return(results)
+  if (length(player_cols) < 2) return(results)
 
   # Generate pairs (now only for team's actual players!)
-  pairs <- combn(players, 2, simplify = FALSE)
+  pairs <- combn(player_cols, 2, simplify = FALSE)
 
   for (pair in pairs) {
-    player1 <- pair[1]
-    player2 <- pair[2]
-
-    pista_col1 <- paste0(player1, "_pista")
-    pista_col2 <- paste0(player2, "_pista")
+    pista_col1 <- pair[1]
+    pista_col2 <- pair[2]
 
     if (!pista_col1 %in% names(team_data) || !pista_col2 %in% names(team_data)) next
+
+    # Extract player nicks from column names
+    player1 <- sub("_[0-9]+_pista$", "", pista_col1)
+    player2 <- sub("_[0-9]+_pista$", "", pista_col2)
 
     # Both players on court
     on_subset <- team_data[team_data[[pista_col1]] == 1 & team_data[[pista_col2]] == 1]
@@ -484,24 +497,25 @@ calculate_pair_stats_optimized <- function(team_data, team_name, players, player
 # Player Trio Statistics (Optimized)
 # =============================================================================
 
-calculate_trio_stats_optimized <- function(team_data, team_name, players, player_info) {
+calculate_trio_stats_optimized <- function(team_data, team_name, player_cols, player_info) {
   results <- list()
 
-  if (length(players) < 3) return(results)
+  if (length(player_cols) < 3) return(results)
 
   # Generate trios (now only for team's actual players!)
-  trios <- combn(players, 3, simplify = FALSE)
+  trios <- combn(player_cols, 3, simplify = FALSE)
 
-  for (trio in trios) {
-    pista_cols <- paste0(trio, "_pista")
+  for (trio_cols in trios) {
+    if (!all(trio_cols %in% names(team_data))) next
 
-    if (!all(pista_cols %in% names(team_data))) next
+    # Extract player nicks from column names
+    trio <- sapply(trio_cols, function(col) sub("_[0-9]+_pista$", "", col))
 
     # All three players on court
     on_subset <- team_data[
-      team_data[[pista_cols[1]]] == 1 &
-      team_data[[pista_cols[2]]] == 1 &
-      team_data[[pista_cols[3]]] == 1
+      team_data[[trio_cols[1]]] == 1 &
+      team_data[[trio_cols[2]]] == 1 &
+      team_data[[trio_cols[3]]] == 1
     ]
     on_stats <- calculate_stats_for_subset(on_subset, team_name)
 
@@ -544,14 +558,13 @@ calculate_trio_stats_optimized <- function(team_data, team_name, players, player
 # Full 5-Man Lineup Statistics (New Feature)
 # =============================================================================
 
-calculate_lineup_stats_optimized <- function(team_data, team_name, players, player_info) {
+calculate_lineup_stats_optimized <- function(team_data, team_name, player_cols, player_info) {
   results <- list()
 
-  if (length(players) < 5) return(results)
+  if (length(player_cols) < 5) return(results)
 
-  # Get all _pista columns for this team's players
-  pista_cols <- paste0(players, "_pista")
-  pista_cols <- pista_cols[pista_cols %in% names(team_data)]
+  # player_cols are already full column names like "García_20210685_pista"
+  pista_cols <- player_cols[player_cols %in% names(team_data)]
 
   if (length(pista_cols) < 5) return(results)
 
@@ -563,7 +576,8 @@ calculate_lineup_stats_optimized <- function(team_data, team_name, players, play
   lineup_ids <- apply(team_rows[, ..pista_cols], 1, function(row) {
     on_court <- names(row)[row == 1]
     if (length(on_court) == 5) {
-      players_on <- gsub("_pista$", "", on_court)
+      # Extract player nicks (remove _id_pista suffix)
+      players_on <- sapply(on_court, function(col) sub("_[0-9]+_pista$", "", col))
       paste(sort(players_on), collapse = "|")
     } else {
       NA_character_
@@ -579,10 +593,18 @@ calculate_lineup_stats_optimized <- function(team_data, team_name, players, play
 
   cat("    Found", length(valid_lineups), "5-man lineups with sufficient data\n")
 
+  # Build a mapping from player nick to full column name
+  nick_to_col <- setNames(pista_cols, sapply(pista_cols, function(col) sub("_[0-9]+_pista$", "", col)))
+
   # Calculate stats for each lineup
   for (lineup_id in valid_lineups) {
     lineup_players <- strsplit(lineup_id, "\\|")[[1]]
-    pista_cols_lineup <- paste0(lineup_players, "_pista")
+
+    # Get the full column names for these players
+    pista_cols_lineup <- nick_to_col[lineup_players]
+
+    # Skip if we can't find all columns
+    if (any(is.na(pista_cols_lineup)) || !all(pista_cols_lineup %in% names(team_data))) next
 
     # Filter to rows where this exact lineup is on court
     lineup_subset <- team_data[
@@ -647,17 +669,28 @@ calculate_lineup_stats_optimized <- function(team_data, team_name, players, play
 export_lineup_json <- function(lineup_data, output_file, pretty = TRUE) {
   cat("\nExporting lineup data to JSON...\n")
 
-  # Convert to JSON-friendly format
-  json_data <- lapply(lineup_data, function(team_data) {
-    list(
+  # Convert to JSON-friendly format expected by React component
+  # Format: { data: { "SEASON_TEAMNAME": { team, season, players, pairs, trios, lineups } } }
+  json_data_inner <- list()
+
+  for (team_name in names(lineup_data)) {
+    team_data <- lineup_data[[team_name]]
+    # Create key in format "SEASON_TEAMNAME"
+    key <- paste(team_data$season, team_name, sep = "_")
+
+    json_data_inner[[key]] <- list(
       team = team_data$team,
       season = team_data$season,
-      individual = if (length(team_data$individual) > 0) team_data$individual else list(),
+      # React expects "players" not "individual"
+      players = if (length(team_data$individual) > 0) team_data$individual else list(),
       pairs = if (length(team_data$pairs) > 0) team_data$pairs else list(),
       trios = if (length(team_data$trios) > 0) team_data$trios else list(),
       lineups = if (length(team_data$lineups) > 0) team_data$lineups else list()
     )
-  })
+  }
+
+  # Wrap in "data" object as React expects
+  json_data <- list(data = json_data_inner)
 
   # Ensure output directory exists
   dir.create(dirname(output_file), showWarnings = FALSE, recursive = TRUE)
