@@ -460,12 +460,23 @@ calculate_pair_stats_optimized <- function(team_data, team_name, player_cols, pl
     on_subset <- team_data[team_data[[pista_col1]] == 1 & team_data[[pista_col2]] == 1]
     on_stats <- calculate_stats_for_subset(on_subset, team_name)
 
+    # At least one player off court (NOT both together)
+    off_subset <- team_data[!(team_data[[pista_col1]] == 1 & team_data[[pista_col2]] == 1)]
+    off_stats <- calculate_stats_for_subset(off_subset, team_name)
+
     if (!is.null(on_stats)) {
       # Get display names
       p1info <- player_info[licenseNick == player1]
       p2info <- player_info[licenseNick == player2]
       display1 <- if (nrow(p1info) > 0) p1info$displayName[1] else player1
       display2 <- if (nrow(p2info) > 0) p2info$displayName[1] else player2
+
+      # Calculate impact (net rating difference)
+      net_diff <- if (!is.null(off_stats)) {
+        round((on_stats$ner - off_stats$ner) * 100, 1)
+      } else {
+        NA
+      }
 
       pair_key <- paste(sort(c(player1, player2)), collapse = "_")
       results[[pair_key]] <- list(
@@ -475,10 +486,16 @@ calculate_pair_stats_optimized <- function(team_data, team_name, player_cols, pl
         player1Id = if (nrow(p1info) > 0) p1info$playerId[1] else NA,
         player2Id = if (nrow(p2info) > 0) p2info$playerId[1] else NA,
         onMin = round(on_stats$minutes, 1),
+        offMin = if (!is.null(off_stats)) round(off_stats$minutes, 1) else NA,
         onORtg = round(on_stats$oer * 100, 1),
+        offORtg = if (!is.null(off_stats)) round(off_stats$oer * 100, 1) else NA,
         onDRtg = round(on_stats$der * 100, 1),
+        offDRtg = if (!is.null(off_stats)) round(off_stats$der * 100, 1) else NA,
         onNetRtg = round(on_stats$ner * 100, 1),
+        offNetRtg = if (!is.null(off_stats)) round(off_stats$ner * 100, 1) else NA,
+        netDiff = net_diff,
         onPoss = round(on_stats$pos),
+        offPoss = if (!is.null(off_stats)) round(off_stats$pos) else NA,
         # Four Factors
         onTS = round(on_stats$ts * 100, 1),
         onEFG = round(on_stats$efg * 100, 1),
@@ -519,6 +536,14 @@ calculate_trio_stats_optimized <- function(team_data, team_name, player_cols, pl
     ]
     on_stats <- calculate_stats_for_subset(on_subset, team_name)
 
+    # At least one player off court (NOT all three together)
+    off_subset <- team_data[!(
+      team_data[[trio_cols[1]]] == 1 &
+      team_data[[trio_cols[2]]] == 1 &
+      team_data[[trio_cols[3]]] == 1
+    )]
+    off_stats <- calculate_stats_for_subset(off_subset, team_name)
+
     if (!is.null(on_stats)) {
       # Get display names and IDs
       display_names <- sapply(trio, function(p) {
@@ -530,16 +555,29 @@ calculate_trio_stats_optimized <- function(team_data, team_name, player_cols, pl
         if (nrow(pinfo) > 0) pinfo$playerId[1] else NA
       })
 
+      # Calculate impact (net rating difference)
+      net_diff <- if (!is.null(off_stats)) {
+        round((on_stats$ner - off_stats$ner) * 100, 1)
+      } else {
+        NA
+      }
+
       trio_key <- paste(sort(trio), collapse = "_")
       results[[trio_key]] <- list(
         players = paste(display_names, collapse = " & "),
         playerList = trio,
         playerIds = as.list(player_ids),
         onMin = round(on_stats$minutes, 1),
+        offMin = if (!is.null(off_stats)) round(off_stats$minutes, 1) else NA,
         onORtg = round(on_stats$oer * 100, 1),
+        offORtg = if (!is.null(off_stats)) round(off_stats$oer * 100, 1) else NA,
         onDRtg = round(on_stats$der * 100, 1),
+        offDRtg = if (!is.null(off_stats)) round(off_stats$der * 100, 1) else NA,
         onNetRtg = round(on_stats$ner * 100, 1),
+        offNetRtg = if (!is.null(off_stats)) round(off_stats$ner * 100, 1) else NA,
+        netDiff = net_diff,
         onPoss = round(on_stats$pos),
+        offPoss = if (!is.null(off_stats)) round(off_stats$pos) else NA,
         # Four Factors
         onTS = round(on_stats$ts * 100, 1),
         onEFG = round(on_stats$efg * 100, 1),

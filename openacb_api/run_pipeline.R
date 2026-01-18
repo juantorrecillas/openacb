@@ -210,7 +210,7 @@ if (interactive()) {
 
 #Quick update
 {
-  #create_all_pbp_variables()
+  create_all_pbp_variables()
   clean_all_pbp()
   calculate_all_team_stats()
   process_all_shot_charts()

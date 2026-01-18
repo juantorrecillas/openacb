@@ -149,9 +149,9 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-semibold text-acb-900">Shot Charts</h2>
+          <h2 className="text-2xl font-semibold text-acb-900">Carta de Tiro</h2>
           <p className="text-acb-500 text-sm mt-1">
-            Visualize shooting patterns and efficiency by zone {isLoadingSeasonShots && <span className="text-blue-600">- Loading season data...</span>}
+            Visualiza patrones de tiro y eficiencia por zona {isLoadingSeasonShots && <span className="text-blue-600">- Cargando datos...</span>}
           </p>
         </div>
       </div>
@@ -160,13 +160,13 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
       <div className="bg-white rounded-lg border border-acb-200 p-4">
         <div className="flex items-center gap-2 mb-4">
           <Filter className="w-4 h-4 text-acb-500" />
-          <span className="text-sm font-medium text-acb-700">Filters</span>
+          <span className="text-sm font-medium text-acb-700">Filtros</span>
         </div>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
           {/* Season Filter */}
           <div>
-            <label className="block text-xs font-medium text-acb-600 mb-1">Season</label>
+            <label className="block text-xs font-medium text-acb-600 mb-1">Temporada</label>
             <select
               value={selectedSeason}
               onChange={(e) => setSelectedSeason(parseInt(e.target.value))}
@@ -180,21 +180,21 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
 
           {/* Display Mode */}
           <div>
-            <label className="block text-xs font-medium text-acb-600 mb-1">Display</label>
+            <label className="block text-xs font-medium text-acb-600 mb-1">Mostrar</label>
             <select
               value={displayMode}
               onChange={(e) => setDisplayMode(e.target.value)}
               className="w-full px-3 py-2 border border-acb-200 rounded-md text-sm bg-white"
             >
-              <option value="shots">Individual Shots</option>
-              <option value="heatmap">Density Heatmap</option>
-              <option value="zones">Zone Statistics</option>
+              <option value="shots">Tiros Individuales</option>
+              <option value="heatmap">Mapa de Calor</option>
+              <option value="zones">Estadísticas por Zona</option>
             </select>
           </div>
 
           {/* Filter Type */}
           <div>
-            <label className="block text-xs font-medium text-acb-600 mb-1">View</label>
+            <label className="block text-xs font-medium text-acb-600 mb-1">Vista</label>
             <select
               value={filterType}
               onChange={(e) => {
@@ -204,15 +204,15 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
               }}
               className="w-full px-3 py-2 border border-acb-200 rounded-md text-sm bg-white"
             >
-              <option value="team">By Team</option>
-              <option value="player">By Player</option>
+              <option value="team">Por Equipo</option>
+              <option value="player">Por Jugador</option>
             </select>
           </div>
           
           {/* Team Select */}
           {(filterType === 'team' || filterType === 'player') && (
             <div>
-              <label className="block text-xs font-medium text-acb-600 mb-1">Team</label>
+              <label className="block text-xs font-medium text-acb-600 mb-1">Equipo</label>
               <select
                 value={selectedTeam}
                 onChange={(e) => {
@@ -221,7 +221,7 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
                 }}
                 className="w-full px-3 py-2 border border-acb-200 rounded-md text-sm bg-white"
               >
-                <option value="">Select team...</option>
+                <option value="">Selecciona equipo...</option>
                 {teamList.map(team => (
                   <option key={team} value={team}>{team}</option>
                 ))}
@@ -233,14 +233,14 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
           {filterType === 'player' && (
             <div className="space-y-2">
               <label className="block text-xs font-medium text-acb-600">
-                Player {filteredPlayerList.length > 0 && `(${filteredPlayerList.length})`}
+                Jugador {filteredPlayerList.length > 0 && `(${filteredPlayerList.length})`}
               </label>
               {/* Search input */}
               <input
                 type="text"
                 value={playerSearch}
                 onChange={(e) => setPlayerSearch(e.target.value)}
-                placeholder="Search player..."
+                placeholder="Buscar jugador..."
                 className="w-full px-3 py-2 border border-acb-200 rounded-md text-sm bg-white"
               />
               {/* Dropdown */}
@@ -250,7 +250,7 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
                 className="w-full px-3 py-2 border border-acb-200 rounded-md text-sm bg-white"
                 size="4"
               >
-                <option value="">Select player...</option>
+                <option value="">Selecciona jugador...</option>
                 {filteredPlayerList.map(player => (
                   <option key={player} value={player}>{player}</option>
                 ))}
@@ -260,15 +260,15 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
           
           {/* Shot Result */}
           <div>
-            <label className="block text-xs font-medium text-acb-600 mb-1">Result</label>
+            <label className="block text-xs font-medium text-acb-600 mb-1">Resultado</label>
             <select
               value={shotFilter}
               onChange={(e) => setShotFilter(e.target.value)}
               className="w-full px-3 py-2 border border-acb-200 rounded-md text-sm bg-white"
             >
-              <option value="all">All Shots</option>
-              <option value="made">Made Only</option>
-              <option value="missed">Missed Only</option>
+              <option value="all">Todos</option>
+              <option value="made">Solo Anotados</option>
+              <option value="missed">Solo Fallados</option>
             </select>
           </div>
         </div>
@@ -284,24 +284,24 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
                 ? selectedPlayer 
                 : filterType === 'team' && selectedTeam 
                   ? selectedTeam 
-                  : 'All Players'}
+                  : 'Todos los Jugadores'}
             </h3>
             <div className="flex items-center gap-4 text-xs text-acb-500">
               {displayMode === 'shots' && (
                 <>
                   <span className="flex items-center gap-1">
-                    <Circle className="w-3 h-3 fill-positive text-positive" /> Made
+                    <Circle className="w-3 h-3 fill-positive text-positive" /> Anotado
                   </span>
                   <span className="flex items-center gap-1">
-                    <X className="w-3 h-3 text-negative" /> Missed
+                    <X className="w-3 h-3 text-negative" /> Fallado
                   </span>
                 </>
               )}
               {displayMode === 'heatmap' && (
-                <span>Density Heatmap</span>
+                <span>Mapa de Calor</span>
               )}
               {displayMode === 'zones' && (
-                <span>Zone Statistics</span>
+                <span>Estadísticas por Zona</span>
               )}
             </div>
           </div>
@@ -330,7 +330,7 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
           )}
 
           <p className="text-xs text-acb-400 text-center mt-2">
-            Showing all {filteredShots.length} shots
+            Mostrando {filteredShots.length} tiros
           </p>
         </div>
         
@@ -338,7 +338,7 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
         <div className="space-y-4">
           {/* Summary Stats */}
           <div className="bg-white rounded-lg border border-acb-200 p-4">
-            <h3 className="text-sm font-medium text-acb-700 mb-3">Summary</h3>
+            <h3 className="text-sm font-medium text-acb-700 mb-3">Resumen</h3>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <div className="text-2xl font-semibold font-mono text-acb-900">
@@ -356,13 +356,13 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
                 <div className="text-2xl font-semibold font-mono text-acb-900">
                   {stats.pps}
                 </div>
-                <div className="text-xs text-acb-500">PPS</div>
+                <div className="text-xs text-acb-500">PPT</div>
               </div>
               <div>
                 <div className="text-2xl font-semibold font-mono text-acb-900">
                   {stats.made}/{stats.total}
                 </div>
-                <div className="text-xs text-acb-500">Made/Att</div>
+                <div className="text-xs text-acb-500">Anot/Int</div>
               </div>
               <div>
                 <div className="text-2xl font-semibold font-mono text-acb-900">
@@ -381,7 +381,7 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
           
           {/* Zone Breakdown */}
           <div className="bg-white rounded-lg border border-acb-200 p-4">
-            <h3 className="text-sm font-medium text-acb-700 mb-3">By Zone</h3>
+            <h3 className="text-sm font-medium text-acb-700 mb-3">Por Zona</h3>
             <div className="space-y-2">
               {zoneStats.map(zone => (
                 <div key={zone.zone} className="flex items-center justify-between py-1.5 border-b border-acb-100 last:border-0">
@@ -396,7 +396,7 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
                       {zone.pct}%
                     </div>
                     <div className="text-xs text-acb-500 font-mono">
-                      {zone.pps} PPS
+                      {zone.pps} PPT
                     </div>
                   </div>
                 </div>

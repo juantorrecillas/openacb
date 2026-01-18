@@ -18,8 +18,8 @@ PBP_DATA_DIR <- "./data/processed"
 # Where the React app is located
 REACT_APP_DIR <- "../openacb_react"
 
-# Output file path (single file for all data)
-OUTPUT_FILE <- file.path(REACT_APP_DIR, "public/data/lineups.json")
+# Output directory for per-season files
+OUTPUT_DIR <- file.path(REACT_APP_DIR, "public/data")
 
 # Which seasons to include
 SEASONS <- c(2021, 2022, 2023, 2024, 2025, 2026)
@@ -38,15 +38,14 @@ export_lineup_data_to_react <- function(seasons = SEASONS) {
   source("./etl/06_lineup_analysis.R")
 
   # Ensure output directory exists
-  dir.create(dirname(OUTPUT_FILE), showWarnings = FALSE, recursive = TRUE)
+  dir.create(OUTPUT_DIR, showWarnings = FALSE, recursive = TRUE)
 
   # Calculate lineup analysis for each season
   cat("Calculating lineup analysis data...\n")
 
-  all_lineup_data <- list()
-
   # Ensure seasons is a proper vector
   seasons_vec <- unlist(seasons)
+  exported_seasons <- c()
 
   for (i in seq_along(seasons_vec)) {
     season_id <- seasons_vec[i]
@@ -73,7 +72,10 @@ export_lineup_data_to_react <- function(seasons = SEASONS) {
       })
 
       if (!is.null(lineup_data)) {
-        all_lineup_data[[as.character(season_id)]] <- lineup_data
+        # Export to per-season file: lineups-YYYY.json
+        output_file <- file.path(OUTPUT_DIR, paste0("lineups-", season_id, ".json"))
+        export_season_lineup_json(lineup_data, season_id, output_file)
+        exported_seasons <- c(exported_seasons, season_id)
         cat("  Completed lineup analysis for", season_id, "\n")
       }
     } else {
@@ -81,16 +83,10 @@ export_lineup_data_to_react <- function(seasons = SEASONS) {
     }
   }
 
-  # Export to single lineups.json file
-  if (length(all_lineup_data) > 0) {
-    export_combined_lineup_data(all_lineup_data, OUTPUT_FILE)
-  } else {
-    cat("\nWarning: No lineup data to export\n")
-  }
-
   cat("\n========================================\n")
   cat("Lineup data export complete!\n")
-  cat("Output file:", OUTPUT_FILE, "\n")
+  cat("Exported", length(exported_seasons), "season files to:", OUTPUT_DIR, "\n")
+  cat("Seasons:", paste(exported_seasons, collapse = ", "), "\n")
   cat("========================================\n")
 }
 
@@ -98,8 +94,9 @@ export_lineup_data_to_react <- function(seasons = SEASONS) {
 # Export Functions
 # ============================================================================
 
-#' Export single season lineup data
-export_season_lineup_data <- function(lineup_data, season_id, output_file) {
+#' Export single season lineup data to per-season JSON file
+#' Format: lineups-YYYY.json with structure { season, generatedAt, data: { "TeamName": {...} } }
+export_season_lineup_json <- function(lineup_data, season_id, output_file) {
   # Transform to React-friendly format
   teams_data <- list()
 
@@ -108,7 +105,7 @@ export_season_lineup_data <- function(lineup_data, season_id, output_file) {
 
     teams_data[[team_name]] <- list(
       team = team_info$team,
-      season = season_id,
+      season = as.integer(season_id),
       players = transform_individual_stats(team_info$individual),
       pairs = transform_pair_stats(team_info$pairs),
       trios = transform_trio_stats(team_info$trios),
@@ -117,13 +114,16 @@ export_season_lineup_data <- function(lineup_data, season_id, output_file) {
   }
 
   json_output <- list(
-    season = season_id,
+    season = as.integer(season_id),
     generatedAt = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ"),
-    teams = teams_data
+    totalTeams = length(teams_data),
+    data = teams_data
   )
 
-  write_json(json_output, output_file, pretty = TRUE, auto_unbox = TRUE)
-  cat("  Exported:", output_file, "\n")
+  write_json(json_output, output_file, pretty = FALSE, auto_unbox = TRUE)
+
+  file_size <- file.info(output_file)$size
+  cat("  Exported:", output_file, "(", format(file_size, units = "auto"), ")\n")
 }
 
 #' Export combined lineup data for all seasons
@@ -214,6 +214,9 @@ transform_individual_stats <- function(individual_data) {
       id = p$playerId,
       name = p$displayName,
       nickname = p$player,
+      # Minutes
+      onMin = p$onMin,
+      offMin = p$offMin,
       # Ratings
       onORtg = p$onORtg,
       offORtg = p$offORtg,
@@ -263,10 +266,20 @@ transform_pair_stats <- function(pair_data) {
       player2 = p$player2,
       player1Id = p$player1Id,
       player2Id = p$player2Id,
+      # Minutes
+      onMin = p$onMin,
+      offMin = p$offMin,
+      # Ratings
       onORtg = p$onORtg,
+      offORtg = p$offORtg,
       onDRtg = p$onDRtg,
+      offDRtg = p$offDRtg,
       onNetRtg = p$onNetRtg,
+      offNetRtg = p$offNetRtg,
+      netDiff = p$netDiff,
+      # Possessions
       onPoss = p$onPoss,
+      offPoss = p$offPoss,
       # Four Factors
       onTS = p$onTS,
       onEFG = p$onEFG,
@@ -289,10 +302,20 @@ transform_trio_stats <- function(trio_data) {
       players = t$players,
       playerList = t$playerList,
       playerIds = t$playerIds,
+      # Minutes
+      onMin = t$onMin,
+      offMin = t$offMin,
+      # Ratings
       onORtg = t$onORtg,
+      offORtg = t$offORtg,
       onDRtg = t$onDRtg,
+      offDRtg = t$offDRtg,
       onNetRtg = t$onNetRtg,
+      offNetRtg = t$offNetRtg,
+      netDiff = t$netDiff,
+      # Possessions
       onPoss = t$onPoss,
+      offPoss = t$offPoss,
       # Four Factors
       onTS = t$onTS,
       onEFG = t$onEFG,
@@ -315,6 +338,7 @@ transform_lineup_stats <- function(lineup_data) {
       players = l$players,
       playerList = l$playerList,
       playerIds = l$playerIds,
+      onMin = l$onMin,
       onORtg = l$onORtg,
       onDRtg = l$onDRtg,
       onNetRtg = l$onNetRtg,
@@ -339,7 +363,7 @@ transform_lineup_stats <- function(lineup_data) {
 # Quick Export Function (for single season)
 # ============================================================================
 
-#' Export a single season, merging with existing lineups.json
+#' Export a single season to its own per-season file
 export_single_season <- function(season_id) {
   source("./config/seasons.R")
   source("./etl/06_lineup_analysis.R")
@@ -353,49 +377,14 @@ export_single_season <- function(season_id) {
     include_lineups = TRUE
   )
 
-  # Load existing data if present
-  existing_data <- list()
-  if (file.exists(OUTPUT_FILE)) {
-    cat("Loading existing lineups.json to merge...\n")
-    existing_json <- read_json(OUTPUT_FILE)
-    existing_data <- existing_json$data
-  }
+  # Export to per-season file
+  output_file <- file.path(OUTPUT_DIR, paste0("lineups-", season_id, ".json"))
+  dir.create(OUTPUT_DIR, showWarnings = FALSE, recursive = TRUE)
 
-  # Transform new data
-  new_data <- list()
-  for (team_name in names(lineup_data)) {
-    team_info <- lineup_data[[team_name]]
-    key <- paste(season_id, gsub(" ", "_", team_name), sep = "_")
+  export_season_lineup_json(lineup_data, season_id, output_file)
 
-    new_data[[key]] <- list(
-      team = team_info$team,
-      season = as.integer(season_id),
-      players = transform_individual_stats(team_info$individual),
-      pairs = transform_pair_stats(team_info$pairs),
-      trios = transform_trio_stats(team_info$trios),
-      lineups = transform_lineup_stats(team_info$lineups)
-    )
-  }
-
-  # Merge: new data overwrites existing for same season/team
-  merged_data <- existing_data
-  for (key in names(new_data)) {
-    merged_data[[key]] <- new_data[[key]]
-  }
-
-  # Write merged output
-  dir.create(dirname(OUTPUT_FILE), showWarnings = FALSE, recursive = TRUE)
-
-  json_output <- list(
-    generatedAt = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ"),
-    totalTeamSeasons = length(merged_data),
-    data = merged_data
-  )
-
-  write_json(json_output, OUTPUT_FILE, pretty = TRUE, auto_unbox = TRUE)
-
-  cat("\nExported to:", OUTPUT_FILE, "\n")
-  cat("Total team-seasons in file:", length(merged_data), "\n")
+  cat("\nExported to:", output_file, "\n")
+  cat("Teams in file:", length(lineup_data), "\n")
 
   invisible(lineup_data)
 }

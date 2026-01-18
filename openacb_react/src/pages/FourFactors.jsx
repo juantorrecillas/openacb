@@ -2,15 +2,6 @@ import { useState, useMemo } from 'react'
 import { BarChart3, Target, Users, TrendingUp, Percent, Circle } from 'lucide-react'
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, BarChart, Bar, Legend, Cell } from 'recharts'
 
-/**
- * Four Factors Analysis Page - Dean Oliver's Basketball Success Framework
- * 
- * The Four Factors of Basketball Success:
- * 1. Shooting (40%) - Effective Field Goal Percentage (eFG%)
- * 2. Turnovers (25%) - Turnover Percentage (TOV%)
- * 3. Rebounding (20%) - Offensive/Defensive Rebound Percentage (ORB%/DRB%)
- * 4. Free Throws (15%) - Free Throw Rate (FT/FGA)
- */
 
 export default function FourFactors({ teams }) {
   // Get available seasons and default to most recent
@@ -177,9 +168,8 @@ export default function FourFactors({ teams }) {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-semibold text-acb-900">Análisis de Cuatro Factores</h2>
+        <h2 className="text-2xl font-semibold text-acb-900">Análisis de Four Factors</h2>
         <p className="text-acb-500 text-sm mt-1">
-          Marco de Dean Oliver para el éxito en baloncesto - Tiro (40%), Pérdidas (25%), Rebotes (20%), Tiros Libres (15%)
         </p>
       </div>
 
@@ -704,30 +694,19 @@ export default function FourFactors({ teams }) {
       <div className="bg-acb-50 rounded-lg border border-acb-200 p-4">
         <h3 className="text-sm font-semibold text-acb-900 mb-3 flex items-center gap-2">
           <Circle className="w-4 h-4" />
-          About the Four Factors
+          Sobre los Four Factors
         </h3>
         <div className="text-sm text-acb-600 space-y-3">
           <p>
-            <strong>Los Cuatro Factores de Dean Oliver</strong> proporcionan un marco para entender qué gana los partidos de baloncesto.
-            Cada factor tiene un peso aproximado basado en su importancia:
+            <strong>Los Four Factors de Dean Oliver</strong> proporcionan un marco para entender qué determina que un equipo gane partidos.
+            Creado por Dean Oliver, éste le otorga un peso relativo a cada uno de los cuatro factores que identifica:
           </p>
           <ul className="list-disc list-inside space-y-1">
-            <li><strong>Tiro (40%)</strong>: Porcentaje de Tiro Efectivo (eFG%) que tiene en cuenta el valor extra de los triples</li>
-            <li><strong>Pérdidas (25%)</strong>: Porcentaje de pérdidas más bajo significa mejor protección del balón</li>
-            <li><strong>Rebotes (20%)</strong>: Porcentajes de rebotes ofensivos y defensivos muestran el control del tablero</li>
-            <li><strong>Tiros Libres (15%)</strong>: Ratio de tiros libres mide la capacidad de llegar a la línea y convertir</li>
+            <li><strong>Tiro (40%)</strong>: Medido a través del porcentaje de Tiro Efectivo (Effective Field Goal; eFG%)</li>
+            <li><strong>Pérdidas (25%)</strong>: Medido como el porcentaje de posesiones que acaban en pérdida de balón tanto en ataque como en defensa</li>
+            <li><strong>Rebotes (20%)</strong>: Porcentajes de rebotes ofensivos y defensivos que el equipo es capaz de capturar sobre el total de oportunidades de rebote disponibles</li>
+            <li><strong>Tiros Libres (15%)</strong>: Con qué frecuencia un equipo es capaz de ir a la línea de tiros libres y anotarlos</li>
           </ul>
-          <p>
-            El <strong>Puntuación de Cuatro Factores</strong> ahora incluye tres métricas:
-          </p>
-          <ul className="list-disc list-inside space-y-1">
-            <li><strong>Ofensiva</strong>: Ponderación de los cuatro factores ofensivos usando los pesos de Dean Oliver</li>
-            <li><strong>Defensiva</strong>: Ponderación de los cuatro factores defensivos usando los mismos pesos</li>
-            <li><strong>General</strong>: Promedio de las puntuaciones ofensiva y defensiva para una visión global</li>
-          </ul>
-          <p>
-            Cada puntuación usa la fórmula ponderada: (Tiro × 40%) + (Pérdidas × 25%) + (Rebotes × 20%) + (Tiros Libres × 15%)
-          </p>
         </div>
       </div>
     </div>

@@ -105,11 +105,11 @@ calculate_team_stats <- function(season_id,
       ast_to_ratio = ifelse(perdida > 0, asistencias / perdida, NA),
 
       # Context-specific stats (% of total points)
-      off_to = ifelse(puntos > 0, ((2 * transition_fgm2) + (3 * transition_fgm3)) / puntos, 0),
-      second_chance = ifelse(puntos > 0, ((2 * second_chance_fgm2) + (3 * second_chance_fgm3)) / puntos, 0),
-      S_assisted_fgm = ifelse(puntos > 0, ((2 * assisted_fgm2) + (3 * assisted_fgm3)) / puntos, 0),
-      S_assisted_fgm2 = ifelse(T2A > 0, assisted_fgm2 / T2A, 0),
-      S_assisted_fgm3 = ifelse(T3A > 0, assisted_fgm3 / T3A, 0),
+      off_to = ifelse(puntos > 0, (((2 * transition_fgm2) + (3 * transition_fgm3)) / puntos)*100, 0),
+      second_chance = ifelse(puntos > 0, (((2 * second_chance_fgm2) + (3 * second_chance_fgm3)) / puntos)*100, 0),
+      S_assisted_fgm = ifelse(puntos > 0,( ((2 * assisted_fgm2) + (3 * assisted_fgm3)) / puntos)*100, 0),
+      S_assisted_fgm2 = ifelse(T2A > 0, (assisted_fgm2 / T2A)*100, 0),
+      S_assisted_fgm3 = ifelse(T3A > 0,( assisted_fgm3 / T3A)*100, 0),
 
       # Opponent stats
       threefg_opponent = T3A_opponent / T3I_opponent,
@@ -129,11 +129,11 @@ calculate_team_stats <- function(season_id,
       ast_to_ratio_opponent = ifelse(perdida_opponent > 0, asistencias_opponent / perdida_opponent, NA),
 
       # Opponent context-specific stats
-      off_to_opponent = ifelse(puntos_opponent > 0, ((2 * transition_fgm2_opponent) + (3 * transition_fgm3_opponent)) / puntos_opponent, 0),
-      second_chance_opponent = ifelse(puntos_opponent > 0, ((2 * second_chance_fgm2_opponent) + (3 * second_chance_fgm3_opponent)) / puntos_opponent, 0),
-      S_assisted_fgm_opponent = ifelse(puntos_opponent > 0, ((2 * assisted_fgm2_opponent) + (3 * assisted_fgm3_opponent)) / puntos_opponent, 0),
-      S_assisted_fgm2_opponent = ifelse(T2A_opponent > 0, assisted_fgm2_opponent / T2A_opponent, 0),
-      S_assisted_fgm3_opponent = ifelse(T3A_opponent > 0, assisted_fgm3_opponent / T3A_opponent, 0),
+      off_to_opponent = ifelse(puntos_opponent > 0, (((2 * transition_fgm2_opponent) + (3 * transition_fgm3_opponent)) / puntos_opponent)*100, 0),
+      second_chance_opponent = ifelse(puntos_opponent > 0, (((2 * second_chance_fgm2_opponent) + (3 * second_chance_fgm3_opponent)) / puntos_opponent)*100, 0),
+      S_assisted_fgm_opponent = ifelse(puntos_opponent > 0, (((2 * assisted_fgm2_opponent) + (3 * assisted_fgm3_opponent)) / puntos_opponent)*100, 0),
+      S_assisted_fgm2_opponent = ifelse(T2A_opponent > 0, (assisted_fgm2_opponent / T2A_opponent)*100, 0),
+      S_assisted_fgm3_opponent = ifelse(T3A_opponent > 0, (assisted_fgm3_opponent / T3A_opponent)*100, 0),
 
       tecnica_opponent = tecnica_opponent,
 

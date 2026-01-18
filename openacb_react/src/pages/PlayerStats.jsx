@@ -3,103 +3,103 @@ import { Search, ArrowUp, ArrowDown, Filter } from 'lucide-react'
 
 // Basic boxscore stats columns - with percentile key for inline display
 const basicColumns = [
-  { key: 'playerFull', label: 'Player', align: 'left', sortable: true },
-  { key: 'team', label: 'Team', align: 'left', sortable: true },
-  { key: 'games', label: 'GP', align: 'right', sortable: true },
-  { key: 'mpg', label: 'MPG', align: 'right', sortable: true, pctKey: 'mpgPct' },
-  { key: 'ppg', label: 'PPG', align: 'right', sortable: true, highlight: true, pctKey: 'ppgPct' },
-  { key: 'fpg', label: 'FPG', align: 'right', sortable: true, inverse: true, pctKey: 'fpgPct' },
-  { key: 'fgPct', label: 'FG%', align: 'right', sortable: true, pctKey: 'fgPctPct' },
+  { key: 'playerFull', label: 'Jugador', align: 'left', sortable: true },
+  { key: 'team', label: 'Equipo', align: 'left', sortable: true },
+  { key: 'games', label: 'PJ', align: 'right', sortable: true },
+  { key: 'mpg', label: 'MPP', align: 'right', sortable: true, pctKey: 'mpgPct' },
+  { key: 'ppg', label: 'PPP', align: 'right', sortable: true, highlight: true, pctKey: 'ppgPct' },
+  { key: 'fpg', label: 'FPP', align: 'right', sortable: true, inverse: true, pctKey: 'fpgPct' },
+  { key: 'fgPct', label: 'TC%', align: 'right', sortable: true, pctKey: 'fgPctPct' },
   { key: 'fg3Pct', label: '3P%', align: 'right', sortable: true, pctKey: 'fg3PctPct' },
-  { key: 'ftPct', label: 'FT%', align: 'right', sortable: true, pctKey: 'ftPctPct' },
-  { key: 'rpg', label: 'RPG', align: 'right', sortable: true, pctKey: 'rpgPct' },
-  { key: 'drebpg', label: 'DREB', align: 'right', sortable: true, pctKey: 'drebpgPct' },
-  { key: 'orebpg', label: 'OREB', align: 'right', sortable: true, pctKey: 'orebpgPct' },
-  { key: 'apg', label: 'APG', align: 'right', sortable: true, pctKey: 'apgPct' },
-  { key: 'spg', label: 'SPG', align: 'right', sortable: true, pctKey: 'spgPct' },
-  { key: 'bpg', label: 'BPG', align: 'right', sortable: true, pctKey: 'bpgPct' },
-  { key: 'topg', label: 'TOPG', align: 'right', sortable: true, inverse: true, pctKey: 'topgPct' },
+  { key: 'ftPct', label: 'TL%', align: 'right', sortable: true, pctKey: 'ftPctPct' },
+  { key: 'rpg', label: 'RPP', align: 'right', sortable: true, pctKey: 'rpgPct' },
+  { key: 'drebpg', label: 'RD', align: 'right', sortable: true, pctKey: 'drebpgPct' },
+  { key: 'orebpg', label: 'RO', align: 'right', sortable: true, pctKey: 'orebpgPct' },
+  { key: 'apg', label: 'APP', align: 'right', sortable: true, pctKey: 'apgPct' },
+  { key: 'spg', label: 'RBP', align: 'right', sortable: true, pctKey: 'spgPct' },
+  { key: 'bpg', label: 'TPP', align: 'right', sortable: true, pctKey: 'bpgPct' },
+  { key: 'topg', label: 'PER', align: 'right', sortable: true, inverse: true, pctKey: 'topgPct' },
 ]
 
 // Advanced stats - shooting efficiency and rate statistics
 const advancedColumns = [
-  { key: 'playerFull', label: 'Player', align: 'left', sortable: true },
-  { key: 'team', label: 'Team', align: 'left', sortable: true },
-  { key: 'games', label: 'GP', align: 'right', sortable: true },
+  { key: 'playerFull', label: 'Jugador', align: 'left', sortable: true },
+  { key: 'team', label: 'Equipo', align: 'left', sortable: true },
+  { key: 'games', label: 'PJ', align: 'right', sortable: true },
   { key: 'ortg', label: 'ORtg', align: 'right', sortable: true, highlight: true, pctKey: 'ortgPct' },
   { key: 'usg', label: 'USG%', align: 'right', sortable: true, pctKey: 'usgPct' },
   { key: 'efg', label: 'eFG%', align: 'right', sortable: true, pctKey: 'efgPct' },
   { key: 'ts', label: 'TS%', align: 'right', sortable: true, pctKey: 'tsPct' },
   { key: 'threeRate', label: '3PAr', align: 'right', sortable: true, pctKey: 'threeRatePct' },
-  { key: 'orbPct', label: 'ORB%', align: 'right', sortable: true, pctKey: 'orbPctPct' },
-  { key: 'drbPct', label: 'DRB%', align: 'right', sortable: true, pctKey: 'drbPctPct' },
-  { key: 'trbPct', label: 'TRB%', align: 'right', sortable: true, pctKey: 'trbPctPct' },
+  { key: 'orbPct', label: 'RO%', align: 'right', sortable: true, pctKey: 'orbPctPct' },
+  { key: 'drbPct', label: 'RD%', align: 'right', sortable: true, pctKey: 'drbPctPct' },
+  { key: 'trbPct', label: 'REB%', align: 'right', sortable: true, pctKey: 'trbPctPct' },
   { key: 'astPct', label: 'AST%', align: 'right', sortable: true, pctKey: 'astPctPct' },
-  { key: 'stlPct', label: 'STL%', align: 'right', sortable: true, pctKey: 'stlPctPct' },
-  { key: 'blkPct', label: 'BLK%', align: 'right', sortable: true, pctKey: 'blkPctPct' },
-  { key: 'tovPct', label: 'TOV%', align: 'right', sortable: true, inverse: true, pctKey: 'tovPctPct' },
+  { key: 'stlPct', label: 'ROB%', align: 'right', sortable: true, pctKey: 'stlPctPct' },
+  { key: 'blkPct', label: 'TAP%', align: 'right', sortable: true, pctKey: 'blkPctPct' },
+  { key: 'tovPct', label: 'PER%', align: 'right', sortable: true, inverse: true, pctKey: 'tovPctPct' },
 ]
 
 // Miscellaneous stats - contextual variables and play type percentages
 const miscColumns = [
-  { key: 'playerFull', label: 'Player', align: 'left', sortable: true },
-  { key: 'team', label: 'Team', align: 'left', sortable: true },
-  { key: 'games', label: 'GP', align: 'right', sortable: true },
-  { key: 'mpg', label: 'MPG', align: 'right', sortable: true, pctKey: 'mpgPct' },
-  { key: 'ppg', label: 'PPG', align: 'right', sortable: true, pctKey: 'ppgPct' },
-  { key: 'offTo', label: 'Pts off TO%', align: 'right', sortable: true, pctKey: 'offToPct' },
-  { key: 'secondChance', label: '2nd Ch Pts%', align: 'right', sortable: true, pctKey: 'secondChancePct' },
-  { key: 'assistedFgm', label: 'Ast Pts%', align: 'right', sortable: true, pctKey: 'assistedFgmPct' },
+  { key: 'playerFull', label: 'Jugador', align: 'left', sortable: true },
+  { key: 'team', label: 'Equipo', align: 'left', sortable: true },
+  { key: 'games', label: 'PJ', align: 'right', sortable: true },
+  { key: 'mpg', label: 'MPP', align: 'right', sortable: true, pctKey: 'mpgPct' },
+  { key: 'ppg', label: 'PPP', align: 'right', sortable: true, pctKey: 'ppgPct' },
+  { key: 'offTo', label: 'Pts Robo%', align: 'right', sortable: true, pctKey: 'offToPct' },
+  { key: 'secondChance', label: '2da Op%', align: 'right', sortable: true, pctKey: 'secondChancePct' },
+  { key: 'assistedFgm', label: 'Pts Ast%', align: 'right', sortable: true, pctKey: 'assistedFgmPct' },
   { key: 'assistedFgm2', label: 'Ast 2PT%', align: 'right', sortable: true, pctKey: 'assistedFgm2Pct' },
   { key: 'assistedFgm3', label: 'Ast 3PT%', align: 'right', sortable: true, pctKey: 'assistedFgm3Pct' },
 ]
 
 // Zone shooting frequency columns (% of shots from each zone)
 const frequencyColumns = [
-  { key: 'playerFull', label: 'Player', align: 'left', sortable: true },
-  { key: 'team', label: 'Team', align: 'left', sortable: true },
-  { key: 'games', label: 'GP', align: 'right', sortable: true },
-  { key: 'mpg', label: 'MPG', align: 'right', sortable: true },
+  { key: 'playerFull', label: 'Jugador', align: 'left', sortable: true },
+  { key: 'team', label: 'Equipo', align: 'left', sortable: true },
+  { key: 'games', label: 'PJ', align: 'right', sortable: true },
+  { key: 'mpg', label: 'MPP', align: 'right', sortable: true },
   { key: 'efg', label: 'eFG%', align: 'right', sortable: true },
-  { key: 'freqRim', label: 'Rim', align: 'right', sortable: true, zone: true, fgaKey: 'fgaRim' },
-  { key: 'freqShortMid', label: 'Short Mid', align: 'right', sortable: true, zone: true, fgaKey: 'fgaShortMid' },
-  { key: 'freqLongMid', label: 'Long Mid', align: 'right', sortable: true, zone: true, fgaKey: 'fgaLongMid' },
-  { key: 'freqAllMid', label: 'All Mid', align: 'right', sortable: true, zone: true, fgaKey: 'fgaAllMid' },
-  { key: 'freqCornerThree', label: 'Corner 3', align: 'right', sortable: true, zone: true, fgaKey: 'fgaCornerThree' },
-  { key: 'freqNcThree', label: 'Non-Corner 3', align: 'right', sortable: true, zone: true, fgaKey: 'fgaNcThree' },
-  { key: 'freqAllThree', label: 'All 3', align: 'right', sortable: true, zone: true, fgaKey: 'fgaAllThree' },
+  { key: 'freqRim', label: 'Aro', align: 'right', sortable: true, zone: true, fgaKey: 'fgaRim' },
+  { key: 'freqShortMid', label: 'Med Corta', align: 'right', sortable: true, zone: true, fgaKey: 'fgaShortMid' },
+  { key: 'freqLongMid', label: 'Med Larga', align: 'right', sortable: true, zone: true, fgaKey: 'fgaLongMid' },
+  { key: 'freqAllMid', label: 'Media', align: 'right', sortable: true, zone: true, fgaKey: 'fgaAllMid' },
+  { key: 'freqCornerThree', label: 'Esquina 3', align: 'right', sortable: true, zone: true, fgaKey: 'fgaCornerThree' },
+  { key: 'freqNcThree', label: 'Centro 3', align: 'right', sortable: true, zone: true, fgaKey: 'fgaNcThree' },
+  { key: 'freqAllThree', label: 'Todo 3', align: 'right', sortable: true, zone: true, fgaKey: 'fgaAllThree' },
 ]
 
 // Zone shooting accuracy columns (FG% per zone)
 const accuracyColumns = [
-  { key: 'playerFull', label: 'Player', align: 'left', sortable: true },
-  { key: 'team', label: 'Team', align: 'left', sortable: true },
-  { key: 'games', label: 'GP', align: 'right', sortable: true },
-  { key: 'mpg', label: 'MPG', align: 'right', sortable: true },
+  { key: 'playerFull', label: 'Jugador', align: 'left', sortable: true },
+  { key: 'team', label: 'Equipo', align: 'left', sortable: true },
+  { key: 'games', label: 'PJ', align: 'right', sortable: true },
+  { key: 'mpg', label: 'MPP', align: 'right', sortable: true },
   { key: 'efg', label: 'eFG%', align: 'right', sortable: true },
-  { key: 'fgpctRim', label: 'Rim', align: 'right', sortable: true, zone: true, fgaKey: 'fgaRim' },
-  { key: 'fgpctShortMid', label: 'Short Mid', align: 'right', sortable: true, zone: true, fgaKey: 'fgaShortMid' },
-  { key: 'fgpctLongMid', label: 'Long Mid', align: 'right', sortable: true, zone: true, fgaKey: 'fgaLongMid' },
-  { key: 'fgpctAllMid', label: 'All Mid', align: 'right', sortable: true, zone: true, fgaKey: 'fgaAllMid' },
-  { key: 'fgpctCornerThree', label: 'Corner 3', align: 'right', sortable: true, zone: true, fgaKey: 'fgaCornerThree' },
-  { key: 'fgpctNcThree', label: 'Non-Corner 3', align: 'right', sortable: true, zone: true, fgaKey: 'fgaNcThree' },
-  { key: 'fgpctAllThree', label: 'All 3', align: 'right', sortable: true, zone: true, fgaKey: 'fgaAllThree' },
+  { key: 'fgpctRim', label: 'Aro', align: 'right', sortable: true, zone: true, fgaKey: 'fgaRim' },
+  { key: 'fgpctShortMid', label: 'Med Corta', align: 'right', sortable: true, zone: true, fgaKey: 'fgaShortMid' },
+  { key: 'fgpctLongMid', label: 'Med Larga', align: 'right', sortable: true, zone: true, fgaKey: 'fgaLongMid' },
+  { key: 'fgpctAllMid', label: 'Media', align: 'right', sortable: true, zone: true, fgaKey: 'fgaAllMid' },
+  { key: 'fgpctCornerThree', label: 'Esquina 3', align: 'right', sortable: true, zone: true, fgaKey: 'fgaCornerThree' },
+  { key: 'fgpctNcThree', label: 'Centro 3', align: 'right', sortable: true, zone: true, fgaKey: 'fgaNcThree' },
+  { key: 'fgpctAllThree', label: 'Todo 3', align: 'right', sortable: true, zone: true, fgaKey: 'fgaAllThree' },
 ]
 
 // Opponent zone shooting columns (defensive impact - showing FG% allowed and differential)
 const defenseColumns = [
-  { key: 'playerFull', label: 'Player', align: 'left', sortable: true },
-  { key: 'team', label: 'Team', align: 'left', sortable: true },
-  { key: 'games', label: 'GP', align: 'right', sortable: true },
-  { key: 'mpg', label: 'MPG', align: 'right', sortable: true },
-  { key: 'drbPct', label: 'DRB%', align: 'right', sortable: true },
-  { key: 'oppDiffRim', label: 'Rim', align: 'right', sortable: true, defense: true, fgpctKey: 'oppOnFgpctRim', fgaKey: 'oppFgaRim' },
-  { key: 'oppDiffShortMid', label: 'Short Mid', align: 'right', sortable: true, defense: true, fgpctKey: 'oppOnFgpctShortMid', fgaKey: 'oppFgaShortMid' },
-  { key: 'oppDiffLongMid', label: 'Long Mid', align: 'right', sortable: true, defense: true, fgpctKey: 'oppOnFgpctLongMid', fgaKey: 'oppFgaLongMid' },
-  { key: 'oppDiffAllMid', label: 'All Mid', align: 'right', sortable: true, defense: true, fgpctKey: 'oppOnFgpctAllMid', fgaKey: 'oppFgaAllMid' },
-  { key: 'oppDiffCornerThree', label: 'Corner 3', align: 'right', sortable: true, defense: true, fgpctKey: 'oppOnFgpctCornerThree', fgaKey: 'oppFgaCornerThree' },
-  { key: 'oppDiffNcThree', label: 'Non-Corner 3', align: 'right', sortable: true, defense: true, fgpctKey: 'oppOnFgpctNcThree', fgaKey: 'oppFgaNcThree' },
-  { key: 'oppDiffAllThree', label: 'All 3', align: 'right', sortable: true, defense: true, fgpctKey: 'oppOnFgpctAllThree', fgaKey: 'oppFgaAllThree' },
+  { key: 'playerFull', label: 'Jugador', align: 'left', sortable: true },
+  { key: 'team', label: 'Equipo', align: 'left', sortable: true },
+  { key: 'games', label: 'PJ', align: 'right', sortable: true },
+  { key: 'mpg', label: 'MPP', align: 'right', sortable: true },
+  { key: 'drbPct', label: 'RD%', align: 'right', sortable: true },
+  { key: 'oppDiffRim', label: 'Aro', align: 'right', sortable: true, defense: true, fgpctKey: 'oppOnFgpctRim', fgaKey: 'oppFgaRim' },
+  { key: 'oppDiffShortMid', label: 'Med Corta', align: 'right', sortable: true, defense: true, fgpctKey: 'oppOnFgpctShortMid', fgaKey: 'oppFgaShortMid' },
+  { key: 'oppDiffLongMid', label: 'Med Larga', align: 'right', sortable: true, defense: true, fgpctKey: 'oppOnFgpctLongMid', fgaKey: 'oppFgaLongMid' },
+  { key: 'oppDiffAllMid', label: 'Media', align: 'right', sortable: true, defense: true, fgpctKey: 'oppOnFgpctAllMid', fgaKey: 'oppFgaAllMid' },
+  { key: 'oppDiffCornerThree', label: 'Esquina 3', align: 'right', sortable: true, defense: true, fgpctKey: 'oppOnFgpctCornerThree', fgaKey: 'oppFgaCornerThree' },
+  { key: 'oppDiffNcThree', label: 'Centro 3', align: 'right', sortable: true, defense: true, fgpctKey: 'oppOnFgpctNcThree', fgaKey: 'oppFgaNcThree' },
+  { key: 'oppDiffAllThree', label: 'Todo 3', align: 'right', sortable: true, defense: true, fgpctKey: 'oppOnFgpctAllThree', fgaKey: 'oppFgaAllThree' },
 ]
 
 export default function PlayerStats({ players }) {
@@ -289,9 +289,9 @@ export default function PlayerStats({ players }) {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-semibold text-acb-900">Player Statistics</h2>
+        <h2 className="text-2xl font-semibold text-acb-900">Estadísticas de Jugador</h2>
         <p className="text-acb-500 text-sm mt-1">
-          Individual player performance metrics - Switch between basic and advanced views
+          Métricas de rendimiento individual - Cambia entre vistas básica y avanzada
         </p>
       </div>
 
@@ -300,7 +300,7 @@ export default function PlayerStats({ players }) {
         <div className="flex flex-wrap items-center gap-4 mb-4">
           {/* Season Filter */}
           <div className="flex items-center gap-2">
-            <span className="text-sm text-acb-600">Season:</span>
+            <span className="text-sm text-acb-600">Temporada:</span>
             <select
               value={selectedSeason}
               onChange={(e) => setSelectedSeason(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
@@ -309,7 +309,7 @@ export default function PlayerStats({ players }) {
               {availableSeasons.map(season => (
                 <option key={season} value={season}>{season-1}-{String(season).slice(-2)}</option>
               ))}
-              <option value="all">All Seasons</option>
+              <option value="all">Todas las Temporadas</option>
             </select>
           </div>
 
@@ -322,7 +322,7 @@ export default function PlayerStats({ players }) {
                   ? 'bg-white text-acb-900 shadow-sm'
                   : 'text-acb-600 hover:text-acb-900'}`}
             >
-              Basic
+              Básico
             </button>
             <button
               onClick={() => setViewMode('advanced')}
@@ -331,7 +331,7 @@ export default function PlayerStats({ players }) {
                   ? 'bg-white text-acb-900 shadow-sm'
                   : 'text-acb-600 hover:text-acb-900'}`}
             >
-              Advanced
+              Avanzado
             </button>
             <button
               onClick={() => setViewMode('misc')}
@@ -340,7 +340,7 @@ export default function PlayerStats({ players }) {
                   ? 'bg-white text-acb-900 shadow-sm'
                   : 'text-acb-600 hover:text-acb-900'}`}
             >
-              Misc
+              Otros
             </button>
             <button
               onClick={() => setViewMode('frequency')}
@@ -349,7 +349,7 @@ export default function PlayerStats({ players }) {
                   ? 'bg-white text-acb-900 shadow-sm'
                   : 'text-acb-600 hover:text-acb-900'}`}
             >
-              Shooting: Frequency
+              Tiro: Frecuencia
             </button>
             <button
               onClick={() => setViewMode('accuracy')}
@@ -358,7 +358,7 @@ export default function PlayerStats({ players }) {
                   ? 'bg-white text-acb-900 shadow-sm'
                   : 'text-acb-600 hover:text-acb-900'}`}
             >
-              Shooting: Accuracy
+              Tiro: Precisión
             </button>
             <button
               onClick={() => setViewMode('defense')}
@@ -367,7 +367,7 @@ export default function PlayerStats({ players }) {
                   ? 'bg-white text-acb-900 shadow-sm'
                   : 'text-acb-600 hover:text-acb-900'}`}
             >
-              Opp. Shooting
+              Tiro Rival
             </button>
           </div>
 
@@ -378,7 +378,7 @@ export default function PlayerStats({ players }) {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search players..."
+              placeholder="Buscar jugadores..."
               className="w-full pl-10 pr-4 py-2 border border-acb-200 rounded-md text-sm"
             />
           </div>
@@ -391,7 +391,7 @@ export default function PlayerStats({ players }) {
               onChange={(e) => setTeamFilter(e.target.value)}
               className="px-3 py-2 border border-acb-200 rounded-md text-sm bg-white"
             >
-              <option value="">All Teams</option>
+              <option value="">Todos los Equipos</option>
               {teams.map(team => (
                 <option key={team} value={team}>{team}</option>
               ))}
@@ -407,7 +407,7 @@ export default function PlayerStats({ players }) {
                   ? 'bg-acb-100 border-acb-300 text-acb-700'
                   : 'bg-white border-acb-200 text-acb-500 hover:bg-acb-50'}`}
             >
-              {showFilteredPlayers ? 'Hide' : 'Show'} {filteredOutCount} filtered
+              {showFilteredPlayers ? 'Ocultar' : 'Mostrar'} {filteredOutCount} filtrados
             </button>
           )}
         </div>
@@ -415,9 +415,9 @@ export default function PlayerStats({ players }) {
 
       {/* Results count */}
       <div className="text-sm text-acb-500">
-        Showing {filteredPlayers.length} of {qualifiedPlayers.length} qualified players
+        Mostrando {filteredPlayers.length} de {qualifiedPlayers.length} jugadores calificados
         {filteredOutCount > 0 && !showFilteredPlayers && (
-          <span className="text-acb-400"> ({filteredOutCount} below threshold hidden)</span>
+          <span className="text-acb-400"> ({filteredOutCount} bajo umbral ocultos)</span>
         )}
       </div>
 
@@ -518,7 +518,7 @@ export default function PlayerStats({ players }) {
 
         {filteredPlayers.length > 100 && (
           <div className="px-4 py-3 bg-acb-50 border-t border-acb-200 text-sm text-acb-500 text-center">
-            Showing first 100 players. Use filters to narrow results.
+            Mostrando los primeros 100 jugadores. Usa los filtros para ajustar resultados.
           </div>
         )}
       </div>

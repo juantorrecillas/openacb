@@ -95,13 +95,41 @@ add_boxscore_columns <- function(df) {
       asistencias = asis_t2 + asis_t3
     )
   
+  # Calculate FT_trip based on opponent fouls that makes free throws without
+  #a previous made shot and end the possession
+  df <- df %>%
+    group_by(id_match) %>%
+    arrange(order, .by_group = TRUE) %>%
+    mutate(
+      prev_is_qualifying_foul = lag(type.description %in% c("Personal 2TL", "Personal 3TL"), n = 1, default = FALSE),
+      FT_trip = as.integer(
+        type.description == "Falta recibida" &
+          prev_is_qualifying_foul
+      )
+    ) %>%
+    ungroup() %>%
+    select(-prev_is_qualifying_foul)
+
+  # MISSED FG FOLLOWED BY OFFENSIVE REBOUND
+  df <- df %>%
+    group_by(id_match) %>%
+    arrange(order, .by_group = TRUE) %>%
+    mutate(
+      next_is_oreb = lead(reb_of, n = 1, default = 0) == 1,
+      missed_fg_off_reb = as.integer(
+        (T2F == 1 | T3F == 1) & next_is_oreb
+      )
+    ) %>%
+    ungroup() %>%
+    select(-next_is_oreb)  
+  
   # =========================================================================
   # CALCULATE ASSISTED FIELD GOALS 
   #==========================================================================
   
   df <- df %>%
-    group_by(id_match, team.team_actual_name) %>%
-    arrange(period, desc(minute), desc(second), .by_group = TRUE) %>%
+    group_by(id_match) %>%
+    arrange(order, .by_group = TRUE) %>%
     mutate(
       # Check if next event was an assist
       prev_was_assist = lead(asistencias, default = 0) > 0,
@@ -119,20 +147,20 @@ add_boxscore_columns <- function(df) {
   # ======================================================================
   df <- df %>%
     group_by(id_match) %>%
-    arrange(period, desc(minute), desc(second), .by_group = TRUE) %>%
+    arrange(order, .by_group = TRUE) %>%
     mutate(
       # Get previous event's team
       prev_team = lag(team.team_actual_name),
       
-      # Opponent turnover (previous event was turnover by different team)
-      prev_was_opp_turnover = lag(recuperacion, default = 0) > 0 & prev_team != team.team_actual_name,
+      # our steal
+      prev_was_steal = lag(recuperacion, default = 0) > 0,
       
       # Our offensive rebound (previous event was our own OREB)
       prev_was_oreb = lag(reb_of, default = 0) > 0 & prev_team == team.team_actual_name,
       
-      # Transition FGM (after opponent turnover)
-      transition_fgm2 = as.integer(T2A > 0 & prev_was_opp_turnover),
-      transition_fgm3 = as.integer(T3A > 0 & prev_was_opp_turnover),
+      # Transition FGM (after steal)
+      transition_fgm2 = as.integer(T2A > 0 & prev_was_steal),
+      transition_fgm3 = as.integer(T3A > 0 & prev_was_steal),
       transition_fgm = transition_fgm2 + transition_fgm3,
       
       # 2nd chance FGM (after offensive rebound)
@@ -141,28 +169,8 @@ add_boxscore_columns <- function(df) {
       second_chance_fgm = second_chance_fgm2 + second_chance_fgm3
     ) %>%
     ungroup()
-
-  # Calculate FT_trip based on consecutive FT attempts
-  # A trip is the start of a sequence of 1+ free throws
-  # EXCLUDING and-one situations (FT after made basket)
-  df <- df %>%
-    group_by(id_match, team.team_actual_name) %>%
-    arrange(period, desc(minute), desc(second), .by_group = TRUE) %>%
-    mutate(
-      # Check if current row is a FT attempt
-      is_ft = T1I > 0,
-      # Check if previous row was a made field goal (and-one situation)
-      prev_made_fg = lag(T2A > 0 | T3A > 0, default = FALSE),
-      # Check if previous row was NOT a FT attempt (or is first row)
-      prev_is_ft = lag(is_ft, default = FALSE),
-      # FT trip = start of a FT sequence, BUT NOT if preceded by made FG (and-one)
-      # Trip occurs when: current is FT AND previous was not FT AND previous was not made FG
-      FT_trip = as.integer(is_ft & !prev_is_ft & !prev_made_fg)
-    ) %>%
-    ungroup() %>%
-    select(-is_ft, -prev_is_ft, -prev_made_fg)  
   
-  df <- df %>% arrange(id_match, order)
+  df <- df %>% arrange(order, id_match)
   return(df)
 }
 

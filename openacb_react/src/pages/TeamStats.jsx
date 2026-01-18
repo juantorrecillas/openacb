@@ -28,139 +28,139 @@ const TEAM_COLORS = [
 
 const statOptions = [
   // Team boxscore stats
-  { value: 'ppg', label: 'Points/Game', format: 'decimal' },
-  { value: 'rpg', label: 'Rebounds/Game', format: 'decimal' },
-  { value: 'apg', label: 'Assists/Game', format: 'decimal' },
-  { value: 'topg', label: 'Turnovers/Game', format: 'decimal' },
-  { value: 'spg', label: 'Steals/Game', format: 'decimal' },
-  { value: 'bpg', label: 'Blocks/Game', format: 'decimal' },
-  { value: 'fg3mPg', label: '3PM/Game', format: 'decimal' },
-  { value: 'fgPct', label: 'FG%', format: 'decimal' },
-  { value: 'ftPct', label: 'FT%', format: 'decimal' },
+  { value: 'ppg', label: 'Puntos/Partido', format: 'decimal' },
+  { value: 'rpg', label: 'Rebotes/Partido', format: 'decimal' },
+  { value: 'apg', label: 'Asistencias/Partido', format: 'decimal' },
+  { value: 'topg', label: 'Pérdidas/Partido', format: 'decimal' },
+  { value: 'spg', label: 'Robos/Partido', format: 'decimal' },
+  { value: 'bpg', label: 'Tapones/Partido', format: 'decimal' },
+  { value: 'fg3mPg', label: 'Triples/Partido', format: 'decimal' },
+  { value: 'fgPct', label: 'TC%', format: 'decimal' },
+  { value: 'ftPct', label: 'TL%', format: 'decimal' },
   // Team advanced stats
-  { value: 'ortg', label: 'Offensive Rating', format: 'decimal' },
-  { value: 'drtg', label: 'Defensive Rating', format: 'decimal' },
-  { value: 'netRtg', label: 'Net Rating', format: 'decimal' },
-  { value: 'pace', label: 'Pace', format: 'decimal' },
+  { value: 'ortg', label: 'Eficiencia Ofensiva', format: 'decimal' },
+  { value: 'drtg', label: 'Eficiencia Defensiva', format: 'decimal' },
+  { value: 'netRtg', label: 'Eficiencia Neta', format: 'decimal' },
+  { value: 'pace', label: 'Ritmo', format: 'decimal' },
   { value: 'efg', label: 'eFG%', format: 'pct'},
-  { value: 'ts', label: 'True Shooting %', format: 'pct' },
+  { value: 'ts', label: 'TS%', format: 'pct' },
   { value: 'threePct', label: '3P%', format: 'pct' },
-  { value: 'threeRate', label: '3P Rate', format: 'pct' },
-  { value: 'astRate', label: 'Assist Rate', format: 'pct' },
-  { value: 'tovRate', label: 'Turnover Rate', format: 'pct' },
-  { value: 'orbPct', label: 'ORB%', format: 'pct' },
-  { value: 'drbPct', label: 'DRB%', format: 'pct' },
-  { value: 'ftRate', label: 'FT Rate', format: 'decimal' },
-  { value: 'stlRate', label: 'Steal Rate', format: 'pct' },
-  { value: 'blkRate', label: 'Block Rate', format: 'pct' },
-  { value: 'astToRatio', label: 'AST/TO Ratio', format: 'decimal' },
-  { value: 'offTo', label: 'Pts off TO %', format: 'pct' },
-  { value: 'secondChance', label: '2nd Chance Pts %', format: 'pct' },
-  { value: 'assistedFgm', label: 'Assisted Pts %', format: 'pct' },
-  { value: 'assistedFgm2', label: 'Assisted 2PT %', format: 'pct' },
-  { value: 'assistedFgm3', label: 'Assisted 3PT %', format: 'pct' },
+  { value: 'threeRate', label: 'Ratio 3P', format: 'pct' },
+  { value: 'astRate', label: 'Ratio Asist.', format: 'pct' },
+  { value: 'tovRate', label: 'Ratio Pérdidas', format: 'pct' },
+  { value: 'orbPct', label: 'RO%', format: 'pct' },
+  { value: 'drbPct', label: 'RD%', format: 'pct' },
+  { value: 'ftRate', label: 'Ratio TL', format: 'decimal' },
+  { value: 'stlRate', label: 'Ratio Robos', format: 'pct' },
+  { value: 'blkRate', label: 'Ratio Tapones', format: 'pct' },
+  { value: 'astToRatio', label: 'Ratio AST/PER', format: 'decimal' },
+  { value: 'offTo', label: 'Pts de Robo %', format: 'pct' },
+  { value: 'secondChance', label: '2da Oport. %', format: 'pct' },
+  { value: 'assistedFgm', label: 'Pts Asistidos %', format: 'pct' },
+  { value: 'assistedFgm2', label: '2PT Asistidos %', format: 'pct' },
+  { value: 'assistedFgm3', label: '3PT Asistidos %', format: 'pct' },
   // Opponent boxscore stats
-  { value: 'opp_ppg', label: 'Opp PPG', format: 'decimal' },
-  { value: 'opp_rpg', label: 'Opp RPG', format: 'decimal' },
-  { value: 'opp_apg', label: 'Opp APG', format: 'decimal' },
-  { value: 'opp_fgPct', label: 'Opp FG%', format: 'decimal' },
+  { value: 'opp_ppg', label: 'Riv PPP', format: 'decimal' },
+  { value: 'opp_rpg', label: 'Riv RPP', format: 'decimal' },
+  { value: 'opp_apg', label: 'Riv APP', format: 'decimal' },
+  { value: 'opp_fgPct', label: 'Riv TC%', format: 'decimal' },
   // Opponent advanced stats
-  { value: 'opp_ortg', label: 'Opp Offensive Rating', format: 'decimal' },
-  { value: 'opp_drtg', label: 'Opp Defensive Rating', format: 'decimal' },
-  { value: 'opp_efg', label: 'Opp eFG%', format: 'pct' },
-  { value: 'opp_ts', label: 'Opp True Shooting %', format: 'pct' },
-  { value: 'opp_threePct', label: 'Opp 3P%', format: 'pct' },
-  { value: 'opp_threeRate', label: 'Opp 3P Rate', format: 'pct' },
-  { value: 'opp_astRate', label: 'Opp Assist Rate', format: 'pct' },
-  { value: 'opp_tovRate', label: 'Opp Turnover Rate', format: 'pct' },
-  { value: 'opp_orbPct', label: 'Opp ORB%', format: 'pct' },
-  { value: 'opp_drbPct', label: 'Opp DRB%', format: 'pct' },
-  { value: 'opp_ftRate', label: 'Opp FT Rate', format: 'decimal' },
-  { value: 'opp_stlRate', label: 'Opp Steal Rate', format: 'pct' },
-  { value: 'opp_blkRate', label: 'Opp Block Rate', format: 'pct' },
-  { value: 'opp_astToRatio', label: 'Opp AST/TO Ratio', format: 'decimal' },
-  { value: 'opp_offTo', label: 'Opp Pts off TO %', format: 'pct' },
-  { value: 'opp_secondChance', label: 'Opp 2nd Chance %', format: 'pct' },
-  { value: 'opp_assistedFgm', label: 'Opp Assisted Pts %', format: 'pct' },
-  { value: 'opp_assistedFgm2', label: 'Opp Assisted 2PT %', format: 'pct' },
-  { value: 'opp_assistedFgm3', label: 'Opp Assisted 3PT %', format: 'pct' },
+  { value: 'opp_ortg', label: 'Riv Ef. Ofensiva', format: 'decimal' },
+  { value: 'opp_drtg', label: 'Riv Ef. Defensiva', format: 'decimal' },
+  { value: 'opp_efg', label: 'Riv eFG%', format: 'pct' },
+  { value: 'opp_ts', label: 'Riv TS%', format: 'pct' },
+  { value: 'opp_threePct', label: 'Riv 3P%', format: 'pct' },
+  { value: 'opp_threeRate', label: 'Riv Ratio 3P', format: 'pct' },
+  { value: 'opp_astRate', label: 'Riv Ratio Asist.', format: 'pct' },
+  { value: 'opp_tovRate', label: 'Riv Ratio Pérdidas', format: 'pct' },
+  { value: 'opp_orbPct', label: 'Riv RO%', format: 'pct' },
+  { value: 'opp_drbPct', label: 'Riv RD%', format: 'pct' },
+  { value: 'opp_ftRate', label: 'Riv Ratio TL', format: 'decimal' },
+  { value: 'opp_stlRate', label: 'Riv Ratio Robos', format: 'pct' },
+  { value: 'opp_blkRate', label: 'Riv Ratio Tapones', format: 'pct' },
+  { value: 'opp_astToRatio', label: 'Riv AST/PER', format: 'decimal' },
+  { value: 'opp_offTo', label: 'Riv Pts de Robo %', format: 'pct' },
+  { value: 'opp_secondChance', label: 'Riv 2da Oport. %', format: 'pct' },
+  { value: 'opp_assistedFgm', label: 'Riv Pts Asist. %', format: 'pct' },
+  { value: 'opp_assistedFgm2', label: 'Riv 2PT Asist. %', format: 'pct' },
+  { value: 'opp_assistedFgm3', label: 'Riv 3PT Asist. %', format: 'pct' },
 ]
 
 // Basic team stats columns - Boxscore stats like player stats
 const basicColumns = [
-  { key: 'team', label: 'Team', align: 'left' },
-  { key: 'games', label: 'G', align: 'right' },
-  { key: 'ppg', label: 'PPG', align: 'right', highlight: true },
-  { key: 'rpg', label: 'RPG', align: 'right' },
-  { key: 'apg', label: 'APG', align: 'right' },
-  { key: 'topg', label: 'TOV', align: 'right', inverse: true },
-  { key: 'spg', label: 'SPG', align: 'right' },
-  { key: 'bpg', label: 'BPG', align: 'right' },
-  { key: 'fg3mPg', label: '3PM', align: 'right' },
-  { key: 'fgPct', label: 'FG%', align: 'right' },
+  { key: 'team', label: 'Equipo', align: 'left' },
+  { key: 'games', label: 'PJ', align: 'right' },
+  { key: 'ppg', label: 'PPP', align: 'right', highlight: true },
+  { key: 'rpg', label: 'RPP', align: 'right' },
+  { key: 'apg', label: 'APP', align: 'right' },
+  { key: 'topg', label: 'PER', align: 'right', inverse: true },
+  { key: 'spg', label: 'RBP', align: 'right' },
+  { key: 'bpg', label: 'TPP', align: 'right' },
+  { key: 'fg3mPg', label: '3PA', align: 'right' },
+  { key: 'fgPct', label: 'TC%', align: 'right' },
   { key: 'threePct', label: '3P%', align: 'right' },
-  { key: 'ftPct', label: 'FT%', align: 'right' },
+  { key: 'ftPct', label: 'TL%', align: 'right' },
 ]
 
 // Advanced team stats columns - Ratings, pace, and rate stats
 const advancedColumns = [
-  { key: 'team', label: 'Team', align: 'left' },
-  { key: 'games', label: 'G', align: 'right' },
+  { key: 'team', label: 'Equipo', align: 'left' },
+  { key: 'games', label: 'PJ', align: 'right' },
   { key: 'ortg', label: 'ORtg', align: 'right', highlight: true },
   { key: 'drtg', label: 'DRtg', align: 'right', highlight: true, inverse: true },
-  { key: 'netRtg', label: 'Net', align: 'right', highlight: true },
-  { key: 'pace', label: 'Pace', align: 'right' },
+  { key: 'netRtg', label: 'Neto', align: 'right', highlight: true },
+  { key: 'pace', label: 'Ritmo', align: 'right' },
   { key: 'efg', label: 'eFG%', align: 'right' },
   { key: 'ts', label: 'TS%', align: 'right' },
   { key: 'threeRate', label: '3PAr', align: 'right' },
   { key: 'astRate', label: 'AST%', align: 'right' },
-  { key: 'tovRate', label: 'TOV%', align: 'right', inverse: true },
-  { key: 'orbPct', label: 'ORB%', align: 'right' },
-  { key: 'drbPct', label: 'DRB%', align: 'right' },
-  { key: 'stlRate', label: 'STL%', align: 'right' },
-  { key: 'blkRate', label: 'BLK%', align: 'right' },
-  { key: 'astToRatio', label: 'AST/TO', align: 'right' },
-  { key: 'offTo', label: 'Pts off TO%', align: 'right' },
-  { key: 'secondChance', label: '2nd Ch%', align: 'right' },
-  { key: 'assistedFgm', label: 'Ast Pts%', align: 'right' },
+  { key: 'tovRate', label: 'PER%', align: 'right', inverse: true },
+  { key: 'orbPct', label: 'RO%', align: 'right' },
+  { key: 'drbPct', label: 'RD%', align: 'right' },
+  { key: 'stlRate', label: 'ROB%', align: 'right' },
+  { key: 'blkRate', label: 'TAP%', align: 'right' },
+  { key: 'astToRatio', label: 'AST/PER', align: 'right' },
+  { key: 'offTo', label: 'Pts Robo%', align: 'right' },
+  { key: 'secondChance', label: '2da Op%', align: 'right' },
+  { key: 'assistedFgm', label: 'Pts Ast%', align: 'right' },
 ]
 
 // Opponent basic stats columns - Boxscore stats allowed
 const oppBasicColumns = [
-  { key: 'team', label: 'Team', align: 'left' },
-  { key: 'games', label: 'G', align: 'right' },
-  { key: 'opp_ppg', label: 'PPG', align: 'right', highlight: true, inverse: true },
-  { key: 'opp_rpg', label: 'RPG', align: 'right', inverse: true },
-  { key: 'opp_apg', label: 'APG', align: 'right', inverse: true },
-  { key: 'opp_topg', label: 'TOV', align: 'right' },
-  { key: 'opp_spg', label: 'SPG', align: 'right', inverse: true },
-  { key: 'opp_bpg', label: 'BPG', align: 'right', inverse: true },
-  { key: 'opp_fg3mPg', label: '3PM', align: 'right', inverse: true },
-  { key: 'opp_fgPct', label: 'FG%', align: 'right', inverse: true },
+  { key: 'team', label: 'Equipo', align: 'left' },
+  { key: 'games', label: 'PJ', align: 'right' },
+  { key: 'opp_ppg', label: 'PPP', align: 'right', highlight: true, inverse: true },
+  { key: 'opp_rpg', label: 'RPP', align: 'right', inverse: true },
+  { key: 'opp_apg', label: 'APP', align: 'right', inverse: true },
+  { key: 'opp_topg', label: 'PER', align: 'right' },
+  { key: 'opp_spg', label: 'RBP', align: 'right', inverse: true },
+  { key: 'opp_bpg', label: 'TPP', align: 'right', inverse: true },
+  { key: 'opp_fg3mPg', label: '3PA', align: 'right', inverse: true },
+  { key: 'opp_fgPct', label: 'TC%', align: 'right', inverse: true },
   { key: 'opp_threePct', label: '3P%', align: 'right', inverse: true },
-  { key: 'opp_ftPct', label: 'FT%', align: 'right', inverse: true },
+  { key: 'opp_ftPct', label: 'TL%', align: 'right', inverse: true },
 ]
 
 // Opponent advanced stats columns - Ratings and rate stats allowed
 const oppAdvancedColumns = [
-  { key: 'team', label: 'Team', align: 'left' },
-  { key: 'games', label: 'G', align: 'right' },
+  { key: 'team', label: 'Equipo', align: 'left' },
+  { key: 'games', label: 'PJ', align: 'right' },
   { key: 'opp_ortg', label: 'ORtg', align: 'right', highlight: true, inverse: true },
   { key: 'opp_drtg', label: 'DRtg', align: 'right', highlight: true },
-  { key: 'pace', label: 'Pace', align: 'right' },
+  { key: 'pace', label: 'Ritmo', align: 'right' },
   { key: 'opp_efg', label: 'eFG%', align: 'right', inverse: true },
   { key: 'opp_ts', label: 'TS%', align: 'right', inverse: true },
   { key: 'opp_threeRate', label: '3PAr', align: 'right' },
   { key: 'opp_astRate', label: 'AST%', align: 'right', inverse: true },
-  { key: 'opp_tovRate', label: 'TOV%', align: 'right' },
-  { key: 'opp_orbPct', label: 'ORB%', align: 'right', inverse: true },
-  { key: 'opp_drbPct', label: 'DRB%', align: 'right', inverse: true },
-  { key: 'opp_stlRate', label: 'STL%', align: 'right', inverse: true },
-  { key: 'opp_blkRate', label: 'BLK%', align: 'right', inverse: true },
-  { key: 'opp_astToRatio', label: 'AST/TO', align: 'right', inverse: true },
-  { key: 'opp_offTo', label: 'Pts off TO%', align: 'right', inverse: true },
-  { key: 'opp_secondChance', label: '2nd Ch%', align: 'right', inverse: true },
-  { key: 'opp_assistedFgm', label: 'Ast Pts%', align: 'right', inverse: true },
+  { key: 'opp_tovRate', label: 'PER%', align: 'right' },
+  { key: 'opp_orbPct', label: 'RO%', align: 'right', inverse: true },
+  { key: 'opp_drbPct', label: 'RD%', align: 'right', inverse: true },
+  { key: 'opp_stlRate', label: 'ROB%', align: 'right', inverse: true },
+  { key: 'opp_blkRate', label: 'TAP%', align: 'right', inverse: true },
+  { key: 'opp_astToRatio', label: 'AST/PER', align: 'right', inverse: true },
+  { key: 'opp_offTo', label: 'Pts Robo%', align: 'right', inverse: true },
+  { key: 'opp_secondChance', label: '2da Op%', align: 'right', inverse: true },
+  { key: 'opp_assistedFgm', label: 'Pts Ast%', align: 'right', inverse: true },
 ]
 
 export default function TeamStats({ teams }) {
@@ -355,9 +355,9 @@ export default function TeamStats({ teams }) {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-semibold text-acb-900">Team Statistics</h2>
+        <h2 className="text-2xl font-semibold text-acb-900">Estadísticas de Equipo</h2>
         <p className="text-acb-500 text-sm mt-1">
-          Compare team performance across offensive and defensive metrics
+          Compara el rendimiento de los equipos en métricas ofensivas y defensivas
         </p>
       </div>
       
@@ -365,7 +365,7 @@ export default function TeamStats({ teams }) {
       <div className="bg-white rounded-lg border border-acb-200 p-6">
         <div className="flex flex-wrap items-center gap-4 mb-6">
           <div className="flex items-center gap-2">
-            <label className="text-sm text-acb-600">Season:</label>
+            <label className="text-sm text-acb-600">Temporada:</label>
             <select
               value={selectedSeason}
               onChange={(e) => setSelectedSeason(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
@@ -374,11 +374,11 @@ export default function TeamStats({ teams }) {
               {availableSeasons.map(season => (
                 <option key={season} value={season}>{season-1}-{String(season).slice(-2)}</option>
               ))}
-              <option value="all">All Seasons</option>
+              <option value="all">Todas las Temporadas</option>
             </select>
           </div>
           <div className="flex items-center gap-2">
-            <label className="text-sm text-acb-600">X-Axis:</label>
+            <label className="text-sm text-acb-600">Eje X:</label>
             <select
               value={xAxis}
               onChange={(e) => setXAxis(e.target.value)}
@@ -390,7 +390,7 @@ export default function TeamStats({ teams }) {
             </select>
           </div>
           <div className="flex items-center gap-2">
-            <label className="text-sm text-acb-600">Y-Axis:</label>
+            <label className="text-sm text-acb-600">Eje Y:</label>
             <select
               value={yAxis}
               onChange={(e) => setYAxis(e.target.value)}
@@ -406,7 +406,7 @@ export default function TeamStats({ teams }) {
               onClick={() => setShowLabels(!showLabels)}
               className={`px-3 py-1.5 border border-acb-200 rounded text-sm bg-white hover:bg-acb-50 ${showLabels ? 'bg-acb-100' : ''}`}
             >
-              {showLabels ? 'Hide Labels' : 'Show Labels'}
+              {showLabels ? 'Ocultar Nombres' : 'Mostrar Nombres'}
             </button>
           </div>
         </div>
@@ -503,7 +503,7 @@ export default function TeamStats({ teams }) {
               ? 'bg-white text-acb-900 shadow-sm'
               : 'text-acb-600 hover:text-acb-900'}`}
         >
-          Basic
+          Básico
         </button>
         <button
           onClick={() => setViewMode('advanced')}
@@ -512,7 +512,7 @@ export default function TeamStats({ teams }) {
               ? 'bg-white text-acb-900 shadow-sm'
               : 'text-acb-600 hover:text-acb-900'}`}
         >
-          Advanced
+          Avanzado
         </button>
         <button
           onClick={() => setViewMode('oppBasic')}
@@ -521,7 +521,7 @@ export default function TeamStats({ teams }) {
               ? 'bg-white text-acb-900 shadow-sm'
               : 'text-acb-600 hover:text-acb-900'}`}
         >
-          Opp. Basic
+          Riv. Básico
         </button>
         <button
           onClick={() => setViewMode('oppAdvanced')}
@@ -530,7 +530,7 @@ export default function TeamStats({ teams }) {
               ? 'bg-white text-acb-900 shadow-sm'
               : 'text-acb-600 hover:text-acb-900'}`}
         >
-          Opp. Advanced
+          Riv. Avanzado
         </button>
       </div>
 
@@ -608,7 +608,7 @@ export default function TeamStats({ teams }) {
       {/* Legend for team colors (optional) */}
       {selectedSeason !== 'all' && (
         <div className="bg-white rounded-lg border border-acb-200 p-4">
-          <h3 className="text-sm font-semibold text-acb-700 mb-2">Team Colors</h3>
+          <h3 className="text-sm font-semibold text-acb-700 mb-2">Colores de Equipo</h3>
           <div className="flex flex-wrap gap-2">
             {teamsWithColors.map((team, index) => (
               <div

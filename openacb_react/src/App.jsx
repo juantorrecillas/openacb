@@ -23,6 +23,10 @@ function App() {
   const [shotsCache, setShotsCache] = useState({}) // { 2021: [...], 2022: [...], ... }
   const [loadingShots, setLoadingShots] = useState({}) // { 2021: true, 2022: false, ... }
 
+  // Lazy loading for lineups - load on demand per season
+  const [lineupsCache, setLineupsCache] = useState({}) // { 2021: {...}, 2022: {...}, ... }
+  const [loadingLineups, setLoadingLineups] = useState({}) // { 2021: true, 2022: false, ... }
+
   useEffect(() => {
     async function loadData() {
       try {
@@ -76,6 +80,36 @@ function App() {
     }
   }
 
+  // Function to load lineups for a specific season
+  const loadLineupsForSeason = async (season) => {
+    // Return cached data if already loaded
+    if (lineupsCache[season]) {
+      return lineupsCache[season]
+    }
+
+    // Don't reload if already loading
+    if (loadingLineups[season]) {
+      return null
+    }
+
+    try {
+      setLoadingLineups(prev => ({ ...prev, [season]: true }))
+      const response = await fetch(`/data/lineups-${season}.json`)
+      if (!response.ok) throw new Error('Lineup data not found')
+      const lineupData = await response.json()
+
+      // Cache the loaded lineups
+      setLineupsCache(prev => ({ ...prev, [season]: lineupData }))
+      setLoadingLineups(prev => ({ ...prev, [season]: false }))
+
+      return lineupData
+    } catch (error) {
+      console.error(`Error loading lineups for season ${season}:`, error)
+      setLoadingLineups(prev => ({ ...prev, [season]: false }))
+      return null
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -89,14 +123,15 @@ function App() {
       {/* Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex items-center justify-between h-20">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-slate-800 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">A</span>
-              </div>
+              <img
+                src="/openacb_nobckg.png"
+                alt="OpenACB Logo"
+                className="w-24 h-24 object-contain"
+              />
               <div>
-                <h1 className="text-lg font-semibold text-slate-900">OpenACB</h1>
-                <p className="text-xs text-slate-500">Datos Abiertos Liga Endesa</p>
+                <h1 className="text-xl font-semibold text-slate-900">openACB</h1>
               </div>
             </div>
             
@@ -137,7 +172,14 @@ function App() {
         )}
         {activeTab === 'teams' && <TeamStats teams={data.teams} />}
         {activeTab === 'players' && <PlayerStats players={data.players} />}
-        {activeTab === 'lineups' && <LineupAnalysis teams={data.teams} />}
+        {activeTab === 'lineups' && (
+          <LineupAnalysis
+            teams={data.teams}
+            loadLineupsForSeason={loadLineupsForSeason}
+            lineupsCache={lineupsCache}
+            loadingLineups={loadingLineups}
+          />
+        )}
         {activeTab === 'factors' && <FourFactors teams={data.teams} />}
       </main>
 
@@ -154,4 +196,3 @@ function App() {
 }
 
 export default App
-"// TEST: This should trigger a reload" 

@@ -8,11 +8,8 @@ import { Users, Info, Plus, X, Search, ChevronDown, ChevronUp } from 'lucide-rea
  * Uses pre-calculated data from R for instant performance.
  */
 
-export default function LineupAnalysis({ teams, players }) {
-  // State for data and UI
-  const [lineupData, setLineupData] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [useMockData, setUseMockData] = useState(false)
+export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCache, loadingLineups }) {
+  // State for UI
   const [showAllPlayers, setShowAllPlayers] = useState(false)
   const [sortConfig, setSortConfig] = useState({ key: 'netDiff', direction: 'desc' })
 
@@ -24,6 +21,21 @@ export default function LineupAnalysis({ teams, players }) {
 
   const [selectedSeason, setSelectedSeason] = useState(availableSeasons[0] || 2025)
   const [selectedTeam, setSelectedTeam] = useState('')
+
+  // Load lineups when season changes
+  useEffect(() => {
+    if (selectedSeason) {
+      loadLineupsForSeason(selectedSeason)
+    }
+  }, [selectedSeason, loadLineupsForSeason])
+
+  // Get lineups for current season from cache
+  const lineupData = useMemo(() => {
+    return lineupsCache[selectedSeason] || null
+  }, [lineupsCache, selectedSeason])
+
+  // Check if lineups are currently loading
+  const loading = loadingLineups[selectedSeason] || false
 
   // Ensure selectedTeam is valid for the selected season
   useEffect(() => {
@@ -37,27 +49,6 @@ export default function LineupAnalysis({ teams, players }) {
   const [selectedPlayers, setSelectedPlayers] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
 
-  // Load lineup data
-  useEffect(() => {
-    async function loadLineupData() {
-      try {
-        const response = await fetch('/data/lineups.json')
-        if (!response.ok) throw new Error('Lineup data not found')
-
-        const data = await response.json()
-        setLineupData(data)
-        setUseMockData(false)
-      } catch (err) {
-        console.warn('Using mock data:', err.message)
-        setUseMockData(true)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    loadLineupData()
-  }, [])
-
   // Filter teams by season
   const seasonFilteredTeams = useMemo(() => {
     if (selectedSeason === 'all') return teams
@@ -66,35 +57,30 @@ export default function LineupAnalysis({ teams, players }) {
 
   const teamList = useMemo(() => seasonFilteredTeams.map(t => t.team).sort(), [seasonFilteredTeams])
 
-  // Get current team data key
-  const currentDataKey = useMemo(() => {
+  // Get current team data (per-season format: data is keyed by team name directly)
+  const currentTeamData = useMemo(() => {
     if (!lineupData?.data) return null
-    return Object.keys(lineupData.data).find(key =>
-      key.startsWith(`${selectedSeason}_`) && lineupData.data[key].team === selectedTeam
-    )
-  }, [lineupData, selectedSeason, selectedTeam])
+    // In per-season files, data is keyed by team name
+    return lineupData.data[selectedTeam] || null
+  }, [lineupData, selectedTeam])
 
   // Get available players for current team
   const availablePlayers = useMemo(() => {
-    if (!lineupData?.data || useMockData || !currentDataKey) return []
-
-    if (lineupData.data[currentDataKey]?.players) {
-      return Object.keys(lineupData.data[currentDataKey].players).sort()
-    }
-    return []
-  }, [lineupData, useMockData, currentDataKey])
+    if (!currentTeamData?.players) return []
+    return Object.keys(currentTeamData.players).sort()
+  }, [currentTeamData])
 
   // Get all players data for the table
   const allPlayersData = useMemo(() => {
-    if (!lineupData?.data || !currentDataKey) return []
+    if (!currentTeamData?.players) return []
 
-    const playersObj = lineupData.data[currentDataKey]?.players || {}
+    const playersObj = currentTeamData.players
     return Object.entries(playersObj).map(([key, player]) => ({
       key,
       name: player.name || key,
       ...player
     }))
-  }, [lineupData, currentDataKey])
+  }, [currentTeamData])
 
   // Sorted players data
   const sortedPlayersData = useMemo(() => {
@@ -117,18 +103,27 @@ export default function LineupAnalysis({ teams, players }) {
 
   // Get data for selected players
   const getLineupDataForPlayers = () => {
-    if (!lineupData?.data || useMockData || selectedPlayers.length === 0 || !currentDataKey) return null
+    if (!currentTeamData || selectedPlayers.length === 0) return null
 
-    const teamData = lineupData.data[currentDataKey]
     const sortedPlayers = [...selectedPlayers].sort()
-    const playerKey = sortedPlayers.join('_')
 
     if (selectedPlayers.length === 1) {
-      return teamData.players?.[selectedPlayers[0]] || null
+      return currentTeamData.players?.[selectedPlayers[0]] || null
     } else if (selectedPlayers.length === 2) {
-      return teamData.pairs?.[playerKey] || null
-    } else if (selectedPlayers.length >= 3) {
-      return teamData.trios?.[playerKey] || null
+      // Pairs use underscore separator
+      const playerKey = sortedPlayers.join('_')
+      return currentTeamData.pairs?.[playerKey] || null
+    } else if (selectedPlayers.length === 3) {
+      // Trios use underscore separator
+      const playerKey = sortedPlayers.join('_')
+      return currentTeamData.trios?.[playerKey] || null
+    } else if (selectedPlayers.length === 4) {
+      // No 4-player data exists (not computed in ETL)
+      return null
+    } else if (selectedPlayers.length === 5) {
+      // 5-man lineups use pipe separator
+      const lineupKey = sortedPlayers.join('|')
+      return currentTeamData.lineups?.[lineupKey] || null
     }
     return null
   }
@@ -183,12 +178,12 @@ export default function LineupAnalysis({ teams, players }) {
     return (
       <div className="space-y-6">
         <div>
-          <h2 className="text-2xl font-semibold text-acb-900">Lineup Analysis</h2>
-          <p className="text-acb-500 text-sm mt-1">Loading player combination data...</p>
+          <h2 className="text-2xl font-semibold text-acb-900">Análisis de Alineaciones</h2>
+          <p className="text-acb-500 text-sm mt-1">Cargando datos de combinaciones...</p>
         </div>
         <div className="bg-acb-50 rounded-lg p-8 text-center">
           <div className="animate-pulse">
-            <div className="text-acb-600">Loading lineup analysis data...</div>
+            <div className="text-acb-600">Cargando análisis de alineaciones...</div>
           </div>
         </div>
       </div>
@@ -199,9 +194,9 @@ export default function LineupAnalysis({ teams, players }) {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-semibold text-acb-900">Lineup Analysis</h2>
+        <h2 className="text-2xl font-semibold text-acb-900">Análisis de Alineaciones</h2>
         <p className="text-acb-500 text-sm mt-1">
-          Analyze player on/off court impact and combination performance
+          Analiza el impacto on/off de jugadores y rendimiento de combinaciones
         </p>
       </div>
 
@@ -210,7 +205,7 @@ export default function LineupAnalysis({ teams, players }) {
         <div className="flex flex-wrap items-center gap-4">
           {/* Season Filter */}
           <div className="flex items-center gap-2">
-            <span className="text-sm text-acb-600 font-medium">Season:</span>
+            <span className="text-sm text-acb-600 font-medium">Temporada:</span>
             <select
               value={selectedSeason}
               onChange={(e) => {
@@ -249,7 +244,7 @@ export default function LineupAnalysis({ teams, players }) {
             <Search className="w-4 h-4 text-acb-400" />
             <input
               type="text"
-              placeholder="Search players..."
+              placeholder="Buscar jugadores..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="flex-1 px-3 py-2 border border-acb-200 rounded-md text-sm bg-white"
@@ -259,7 +254,7 @@ export default function LineupAnalysis({ teams, players }) {
           {/* Selected Players Chips */}
           {selectedPlayers.length > 0 && (
             <div className="flex flex-wrap gap-2 items-center">
-              <span className="text-sm text-acb-600 font-medium">Analyzing:</span>
+              <span className="text-sm text-acb-600 font-medium">Analizando:</span>
               {selectedPlayers.map(player => (
                 <div key={player} className="flex items-center gap-1 bg-orange-100 text-orange-800 rounded-full px-3 py-1">
                   <span className="text-sm font-medium">{player}</span>
@@ -269,7 +264,7 @@ export default function LineupAnalysis({ teams, players }) {
                 </div>
               ))}
               <button onClick={clearPlayers} className="text-sm text-acb-500 hover:text-acb-700">
-                Clear all
+                Limpiar
               </button>
             </div>
           )}
@@ -297,7 +292,7 @@ export default function LineupAnalysis({ teams, players }) {
               </div>
             ) : (
               <div className="p-4 text-center text-acb-400 text-sm">
-                No players found{searchQuery && ` for "${searchQuery}"`}
+                No se encontraron jugadores{searchQuery && ` para "${searchQuery}"`}
               </div>
             )}
           </div>
@@ -312,7 +307,7 @@ export default function LineupAnalysis({ teams, players }) {
               {currentLineupData.name || selectedPlayers[0]}
             </h3>
             <p className="text-acb-200 text-sm">
-              {currentLineupData.onMin?.toFixed(1)} minutes on court • {currentLineupData.offMin?.toFixed(1)} minutes off court
+              {currentLineupData.onMin?.toFixed(1)} min en cancha • {currentLineupData.offMin?.toFixed(1)} min fuera
             </p>
           </div>
 
@@ -321,24 +316,24 @@ export default function LineupAnalysis({ teams, players }) {
             <table className="w-full">
               <thead>
                 <tr className="bg-acb-50 text-left text-xs text-acb-600 uppercase tracking-wider">
-                  <th className="px-4 py-3 font-semibold">Metric</th>
-                  <th className="px-4 py-3 font-semibold text-center">On Court</th>
-                  <th className="px-4 py-3 font-semibold text-center">Off Court</th>
-                  <th className="px-4 py-3 font-semibold text-center">Difference</th>
-                  <th className="px-4 py-3 font-semibold text-center">Impact</th>
+                  <th className="px-4 py-3 font-semibold">Métrica</th>
+                  <th className="px-4 py-3 font-semibold text-center">En Cancha</th>
+                  <th className="px-4 py-3 font-semibold text-center">Fuera</th>
+                  <th className="px-4 py-3 font-semibold text-center">Diferencia</th>
+                  <th className="px-4 py-3 font-semibold text-center">Impacto</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-acb-100">
                 {/* Ratings */}
                 <StatRow
-                  label="Offensive Rating"
+                  label="Ef. Ofensiva"
                   onValue={currentLineupData.onORtg}
                   offValue={currentLineupData.offORtg}
                   unit="pts/100"
                   goodThreshold={110}
                 />
                 <StatRow
-                  label="Defensive Rating"
+                  label="Ef. Defensiva"
                   onValue={currentLineupData.onDRtg}
                   offValue={currentLineupData.offDRtg}
                   unit="pts/100"
@@ -346,7 +341,7 @@ export default function LineupAnalysis({ teams, players }) {
                   inverse
                 />
                 <StatRow
-                  label="Net Rating"
+                  label="Ef. Neta"
                   onValue={currentLineupData.onNetRtg}
                   offValue={currentLineupData.offNetRtg}
                   unit="pts/100"
@@ -403,41 +398,42 @@ export default function LineupAnalysis({ teams, players }) {
                 }`}>
                   {currentLineupData.netDiff > 0 ? '+' : ''}{currentLineupData.netDiff?.toFixed(1)}
                 </div>
-                <div className="text-sm text-acb-600 mt-1">Net Rating Impact</div>
+                <div className="text-sm text-acb-600 mt-1">Impacto en Ef. Neta</div>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Pair/Trio Analysis Results */}
+      {/* Pair/Trio/Lineup Analysis Results */}
       {selectedPlayers.length > 1 && currentLineupData && (
         <div className="bg-white rounded-lg border border-acb-200 overflow-hidden">
           <div className="bg-gradient-to-r from-acb-700 to-acb-800 px-4 py-3">
             <h3 className="font-semibold text-white text-lg">
-              {selectedPlayers.length === 2 ? 'Duo' : 'Trio'} Analysis
+              Análisis de {selectedPlayers.length === 2 ? 'Dúo' : selectedPlayers.length === 3 ? 'Trío' : 'Quinteto'}
             </h3>
             <p className="text-acb-200 text-sm">
-              {selectedPlayers.join(' + ')} • {currentLineupData.onMin?.toFixed(1)} minutes together
+              {selectedPlayers.join(' + ')} • {currentLineupData.onMin?.toFixed(1)} min juntos
+              {currentLineupData.offMin != null && ` • ${currentLineupData.offMin?.toFixed(1)} min separados`}
             </p>
           </div>
 
           {/* Main Ratings */}
-          <div className="grid grid-cols-3 divide-x divide-acb-200">
+          <div className="grid grid-cols-4 divide-x divide-acb-200">
             <div className="p-4 text-center">
-              <div className="text-xs text-acb-500 uppercase tracking-wider mb-1">Offensive Rtg</div>
+              <div className="text-xs text-acb-500 uppercase tracking-wider mb-1">Ef. Ofensiva</div>
               <div className={`text-2xl font-bold font-mono ${getRatingColor(currentLineupData.onORtg)}`}>
                 {currentLineupData.onORtg?.toFixed(1)}
               </div>
             </div>
             <div className="p-4 text-center">
-              <div className="text-xs text-acb-500 uppercase tracking-wider mb-1">Defensive Rtg</div>
+              <div className="text-xs text-acb-500 uppercase tracking-wider mb-1">Ef. Defensiva</div>
               <div className={`text-2xl font-bold font-mono ${getRatingColor(currentLineupData.onDRtg, true)}`}>
                 {currentLineupData.onDRtg?.toFixed(1)}
               </div>
             </div>
-            <div className="p-4 text-center bg-acb-50">
-              <div className="text-xs text-acb-500 uppercase tracking-wider mb-1">Net Rating</div>
+            <div className="p-4 text-center">
+              <div className="text-xs text-acb-500 uppercase tracking-wider mb-1">Ef. Neta</div>
               <div className={`text-2xl font-bold font-mono ${
                 currentLineupData.onNetRtg > 0 ? 'text-green-600' :
                 currentLineupData.onNetRtg < 0 ? 'text-red-500' : 'text-acb-500'
@@ -448,6 +444,27 @@ export default function LineupAnalysis({ teams, players }) {
                 {getPerformanceIndicator(currentLineupData.onNetRtg).emoji}
               </div>
             </div>
+            {currentLineupData.netDiff != null ? (
+              <div className="p-4 text-center bg-acb-50">
+                <div className="text-xs text-acb-500 uppercase tracking-wider mb-1">Impacto</div>
+                <div className={`text-2xl font-bold font-mono ${
+                  currentLineupData.netDiff > 0 ? 'text-green-600' :
+                  currentLineupData.netDiff < 0 ? 'text-red-500' : 'text-acb-500'
+                }`}>
+                  {(currentLineupData.netDiff > 0 ? '+' : '') + currentLineupData.netDiff?.toFixed(1)}
+                </div>
+                <div className="text-lg mt-1">
+                  {getPerformanceIndicator(currentLineupData.netDiff).emoji}
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 text-center bg-acb-50">
+                <div className="text-xs text-acb-500 uppercase tracking-wider mb-1">Posesiones</div>
+                <div className="text-2xl font-bold font-mono text-acb-700">
+                  {currentLineupData.onPoss}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Four Factors */}
@@ -485,11 +502,15 @@ export default function LineupAnalysis({ teams, players }) {
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex gap-3">
           <span className="text-xl">⚠️</span>
           <div>
-            <p className="font-medium text-amber-800">No data available</p>
+            <p className="font-medium text-amber-800">Sin datos disponibles</p>
             <p className="text-sm text-amber-700">
-              {selectedPlayers.length > 2
-                ? "This trio combination may not have played enough possessions together."
-                : "This player combination may not have sufficient sample size."}
+              {selectedPlayers.length === 4
+                ? "Los datos para combinaciones de 4 jugadores no están calculados. Selecciona 1, 2, 3 o 5 jugadores."
+                : selectedPlayers.length === 5
+                  ? "Esta alineación de 5 puede no haber jugado suficientes minutos juntos."
+                  : selectedPlayers.length > 2
+                    ? "Esta combinación de jugadores puede no haber jugado suficientes minutos juntos."
+                    : "Esta combinación de jugadores puede no tener suficiente tamaño de muestra."}
             </p>
           </div>
         </div>
@@ -499,12 +520,12 @@ export default function LineupAnalysis({ teams, players }) {
       {allPlayersData.length > 0 && (
         <div className="bg-white rounded-lg border border-acb-200 overflow-hidden">
           <div className="px-4 py-3 border-b border-acb-200 flex items-center justify-between">
-            <h3 className="font-semibold text-acb-900">Team On/Off Overview</h3>
+            <h3 className="font-semibold text-acb-900">Resumen On/Off del Equipo</h3>
             <button
               onClick={() => setShowAllPlayers(!showAllPlayers)}
               className="text-sm text-acb-600 hover:text-acb-800 flex items-center gap-1"
             >
-              {showAllPlayers ? 'Show Less' : 'Show All'}
+              {showAllPlayers ? 'Mostrar Menos' : 'Mostrar Todos'}
               {showAllPlayers ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </button>
           </div>
@@ -513,14 +534,14 @@ export default function LineupAnalysis({ teams, players }) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-acb-50 text-left text-xs text-acb-600 uppercase tracking-wider">
-                  <th className="px-4 py-3 font-semibold">Player</th>
+                  <th className="px-4 py-3 font-semibold">Jugador</th>
                   <SortableHeader label="ORtg On" sortKey="onORtg" current={sortConfig} onSort={handleSort} />
                   <SortableHeader label="ORtg Off" sortKey="offORtg" current={sortConfig} onSort={handleSort} />
                   <SortableHeader label="DRtg On" sortKey="onDRtg" current={sortConfig} onSort={handleSort} />
                   <SortableHeader label="DRtg Off" sortKey="offDRtg" current={sortConfig} onSort={handleSort} />
                   <SortableHeader label="Net On" sortKey="onNetRtg" current={sortConfig} onSort={handleSort} />
                   <SortableHeader label="Net Off" sortKey="offNetRtg" current={sortConfig} onSort={handleSort} />
-                  <SortableHeader label="Impact" sortKey="netDiff" current={sortConfig} onSort={handleSort} highlight />
+                  <SortableHeader label="Impacto" sortKey="netDiff" current={sortConfig} onSort={handleSort} highlight />
                   <SortableHeader label="eFG%" sortKey="onEFG" current={sortConfig} onSort={handleSort} />
                   <SortableHeader label="TOV%" sortKey="onTOV" current={sortConfig} onSort={handleSort} />
                   <SortableHeader label="DRB%" sortKey="onDRB" current={sortConfig} onSort={handleSort} />
@@ -598,11 +619,44 @@ export default function LineupAnalysis({ teams, players }) {
 
       {/* Legend */}
       <div className="flex items-center justify-center gap-6 text-xs text-acb-500 flex-wrap bg-acb-50 rounded-lg p-3">
-        <span className="flex items-center gap-1">🔥 Elite (top tier)</span>
-        <span className="flex items-center gap-1">✅ Good (above avg)</span>
-        <span className="flex items-center gap-1">➖ Average</span>
-        <span className="flex items-center gap-1">⚠️ Below average</span>
-        <span className="flex items-center gap-1">🔻 Poor</span>
+        <span className="flex items-center gap-1">🔥 Élite</span>
+        <span className="flex items-center gap-1">✅ Bueno</span>
+        <span className="flex items-center gap-1">➖ Medio</span>
+        <span className="flex items-center gap-1">⚠️ Debajo Media </span>
+        <span className="flex items-center gap-1">🔻 Pobre</span>
+      </div>
+
+      {/* On/Off Explanation */}
+      <div className="bg-acb-50 rounded-lg border border-acb-200 p-4">
+        <h3 className="text-sm font-semibold text-acb-900 mb-3 flex items-center gap-2">
+          <Info className="w-4 h-4" />
+          Cómo interpretar las estadísticas On/Off
+        </h3>
+        <div className="text-sm text-acb-600 space-y-3">
+          <p>
+            El análisis <strong>On/Off</strong> mide el impacto de un jugador comparando cómo rinde el equipo cuando él está en pista versus cuando no.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+            <div className="bg-white p-3 rounded border border-acb-100">
+              <div className="font-medium text-acb-900 mb-1">On Court</div>
+              <p className="text-xs">Estadísticas del equipo durante los minutos que el jugador o combinación seleccionada está jugando.</p>
+            </div>
+            <div className="bg-white p-3 rounded border border-acb-100">
+              <div className="font-medium text-acb-900 mb-1">Off Court</div>
+              <p className="text-xs">Estadísticas del equipo durante los minutos que el jugador o combinación no está en pista.</p>
+            </div>
+            <div className="bg-white p-3 rounded border border-acb-100">
+              <div className="font-medium text-acb-900 mb-1">Impacto (Diff)</div>
+              <p className="text-xs">La diferencia entre On y Off. Indica cuánto mejora (o empeora) el equipo con su presencia.</p>
+            </div>
+          </div>
+          <ul className="list-disc list-inside space-y-1 mt-2 text-xs">
+            <li><strong>Eficiencia Ofensiva (ORtg):</strong> Puntos anotados por 100 posesiones. <span className="text-green-600">Mayor es mejor</span>. Un Diff positivo significa que el ataque mejora con el jugador.</li>
+            <li><strong>Eficiencia Defensiva (DRtg):</strong> Puntos recibidos por 100 posesiones. <span className="text-green-600">Menor es mejor</span>. Un Diff negativo significa que la defensa mejora con el jugador.</li>
+            <li><strong>Eficiencia Neta (NetRtg):</strong> Diferencia entre ORtg y DRtg. Muestra el margen de victoria por 100 posesiones.</li>
+            <li><strong>Impacto:</strong>Diferencia entre el Net rating del equipo cuando el jugador está dentro y el Net rating del equipo cuando el jugador está fuera de la pista. Intenta medir el impacto del jugador eliminando el efecto de la dinámica general del equipo. </li>
+          </ul>
+        </div>
       </div>
     </div>
   )

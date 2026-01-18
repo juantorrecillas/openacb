@@ -10,13 +10,13 @@ library(httr)
 library(dplyr)
 
 #' Scrape all play-by-play data for a given season
-#' 
+#'
 #' @param season_id Integer year (e.g., 2025 for 2024-2025 season)
 #' @param data_dir Base directory for storing data (default: "./data/raw")
 #' @param config_path Path to seasons.R config file
 #' @return Invisibly returns the match data frame
-#' 
-scrape_season <- function(season_id, 
+#'
+scrape_season <- function(season_id,
                           data_dir = "./data/raw",
                           config_path = "./config/seasons.R") {
   
@@ -75,16 +75,16 @@ scrape_season <- function(season_id,
     merge(weeks, by.x = "weekid", by.y = "id") %>%
     filter(finalized == TRUE) %>%
     mutate(jornada = as.numeric(gsub("Jornada ", "", jornada)))
-  
+
   cat("  Found", nrow(all_matches), "completed matches\n")
   
   # Get unique match IDs
  match_ids <- unique(all_matches$match_id)
-  
+
   # Scrape each match
   cat("\n→ Scraping play-by-play data...\n")
   pb <- txtProgressBar(min = 0, max = length(match_ids), style = 3)
-  
+
   errors <- c()
   
   for (i in seq_along(match_ids)) {
@@ -177,10 +177,10 @@ scrape_season <- function(season_id,
 }
 
 #' Scrape multiple seasons
-#' 
+#'
 #' @param season_ids Vector of season IDs to scrape
 #' @param ... Additional arguments passed to scrape_season
-#' 
+#'
 scrape_seasons <- function(season_ids, ...) {
   for (sid in season_ids) {
     scrape_season(sid, ...)

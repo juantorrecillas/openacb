@@ -275,6 +275,8 @@ calculate_player_stats <- function(season_id,
 
       # Playmaking
       assists = sum(asistencias, na.rm = TRUE),
+      assists_2fg = sum(asis_t2, na.rm = TRUE),
+      assists_3fg = sum(asis_t3, na.rm = TRUE),
       turnovers = sum(perdida, na.rm = TRUE),
 
       # Defense
@@ -288,6 +290,9 @@ calculate_player_stats <- function(season_id,
 
       # Free throw trips (for possession calculation)
       ft_trips = sum(FT_trip, na.rm = TRUE),
+
+      # Missed FGs followed by offensive rebound (possession continued)
+      missed_fg_off_reb = sum(missed_fg_off_reb, na.rm = TRUE),
 
       # Count games
       games = n_distinct(id_match),
@@ -334,10 +339,20 @@ calculate_player_stats <- function(season_id,
       ts = ifelse(fga + ft_trips > 0, points / (2 * (fga + ft_trips)) * 100, 0),
 
       # Possessions (individual contribution)
-      possessions = fga + ft_trips + turnovers,
+      # Dean Oliver logic: missed FGs followed by OREB didn't end the possession
+      possessions = fga + ft_trips + turnovers - missed_fg_off_reb,
 
-      # Offensive Rating (points per 100 possessions)
-      ortg = ifelse(possessions > 0, (points / possessions) * 100, 0),
+      # Points Produced (Dean Oliver credit allocation)
+      # Unassisted shots = full credit, assisted shots = 50/50 split with passer
+      unassisted_fgm2 = fgm2 - assisted_fgm2,
+      unassisted_fgm3 = fgm3 - assisted_fgm3,
+      points_produced = (2 * unassisted_fgm2 + 3 * unassisted_fgm3) +
+                        0.5 * (2 * assisted_fgm2 + 3 * assisted_fgm3) +
+                        0.5 * (2 * assists_2fg + 3 * assists_3fg) +
+                        ftm,
+
+      # Offensive Rating (points produced per 100 possessions)
+      ortg = ifelse(possessions > 0, (points_produced / possessions) * 100, 0),
 
       # 3PT attempt rate
       three_rate = ifelse(fga > 0, fga3 / fga * 100, 0),
@@ -406,7 +421,7 @@ calculate_player_stats <- function(season_id,
         team_assists_on = sum(asistencias, na.rm = TRUE),
         team_oreb_on = sum(reb_of, na.rm = TRUE),
         team_dreb_on = sum(reb_def, na.rm = TRUE),
-        team_poss_on = sum(T2I + T3I + FT_trip + perdida, na.rm = TRUE),
+        team_poss_on = sum(T2I + T3I + FT_trip + perdida - reb_of, na.rm = TRUE),
         team_points = sum(2*T2A + 3*T3A + T1A),
         team_ortg = team_points / team_poss_on,
         .groups = "drop"
@@ -424,7 +439,7 @@ calculate_player_stats <- function(season_id,
         opp_turnovers_on = sum(perdida, na.rm = TRUE),
         opp_oreb_on = sum(reb_of, na.rm = TRUE),
         opp_dreb_on = sum(reb_def, na.rm = TRUE),
-        opp_poss_on = sum(T2I + T3I + FT_trip + perdida, na.rm = TRUE),
+        opp_poss_on = sum(T2I + T3I + FT_trip + perdida - reb_of, na.rm = TRUE),
         opp_points = sum(2*T2A + 3*T3A + T1A),
         opp_ortg = opp_points / opp_poss_on,
         .groups = "drop"
@@ -485,11 +500,10 @@ calculate_player_stats <- function(season_id,
       # BUT: Assisted FGs count as 0.5, and assists also count as 0.5
 
       player_poss_adj = fga + turnovers + ft_trips - (0.5 * assisted_fgm) + (0.5 * assists),
-      # Team possessions (adjusted for assists) while player on court
-      team_assisted_fgm = team_fgm_on,  # All team made FGs while on court
+
+      # Team possessions while player on court
       team_poss_adj = ifelse(!is.na(team_poss_on),
-                             team_fga_on + team_turnovers_on + team_ft_trips_on -
-                               0.5 * team_assisted_fgm + 0.5 * team_assists_on,
+                             team_fga_on + team_turnovers_on + team_ft_trips_on,
                              NA),
 
       # Usage Rate (as percentage)
