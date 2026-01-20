@@ -59,8 +59,8 @@ export_shot_data <- function() {
         shots_export <- data.frame(
           id = seq_len(nrow(shots)),
           matchId = shots$id_match,
-          player = shots$license.licenseNick,
-          playerFull = shots$license.licenseStr15,
+          playerId = shots$license.id,
+          player = shots$license.licenseStr15,
           team = shots$team.team_actual_name,
           opponent = shots$opponent,
           period = shots$period,

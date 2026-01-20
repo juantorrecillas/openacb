@@ -43,17 +43,31 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
   )
   
   const playerList = useMemo(() => {
-    if ((filterType === 'team' || filterType === 'player') && selectedTeam) {
-      return [...new Set(seasonFilteredShots.filter(s => s.team === selectedTeam).map(s => s.player))].sort()
-    }
-    return [...new Set(seasonFilteredShots.map(s => s.player))].sort()
+    // Build list of unique players using playerId as the unique key
+    const shots = (filterType === 'team' || filterType === 'player') && selectedTeam
+      ? seasonFilteredShots.filter(s => s.team === selectedTeam)
+      : seasonFilteredShots
+
+    // Create a map of playerId -> player name to ensure uniqueness by ID
+    const playerMap = new Map()
+    shots.forEach(s => {
+      const id = String(s.playerId)
+      if (s.playerId && !playerMap.has(id)) {
+        playerMap.set(id, s.player)
+      }
+    })
+
+    // Return array of {id, name} objects sorted by name
+    return Array.from(playerMap.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name))
   }, [seasonFilteredShots, filterType, selectedTeam])
 
   // Filtered player list based on search input
   const filteredPlayerList = useMemo(() => {
     if (!playerSearch) return playerList
-    return playerList.filter(player =>
-      player.toLowerCase().includes(playerSearch.toLowerCase())
+    return playerList.filter(p =>
+      p.name.toLowerCase().includes(playerSearch.toLowerCase())
     )
   }, [playerList, playerSearch])
 
@@ -81,7 +95,7 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
       if (filterType === 'team' && selectedTeam && shot.team !== selectedTeam) {
         return false
       }
-      if (filterType === 'player' && selectedPlayer && shot.player !== selectedPlayer) {
+      if (filterType === 'player' && selectedPlayer && String(shot.playerId) !== selectedPlayer) {
         return false
       }
 
@@ -251,8 +265,8 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
                 size="4"
               >
                 <option value="">Selecciona jugador...</option>
-                {filteredPlayerList.map(player => (
-                  <option key={player} value={player}>{player}</option>
+                {filteredPlayerList.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
               </select>
             </div>
@@ -280,10 +294,10 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
         <div className="lg:col-span-2 bg-white rounded-lg border border-acb-200 p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-medium text-acb-900">
-              {filterType === 'player' && selectedPlayer 
-                ? selectedPlayer 
-                : filterType === 'team' && selectedTeam 
-                  ? selectedTeam 
+              {filterType === 'player' && selectedPlayer
+                ? playerList.find(p => p.id === selectedPlayer)?.name || selectedPlayer
+                : filterType === 'team' && selectedTeam
+                  ? selectedTeam
                   : 'Todos los Jugadores'}
             </h3>
             <div className="flex items-center gap-4 text-xs text-acb-500">
