@@ -7,6 +7,16 @@ import { Filter, Circle, X } from 'lucide-react'
 // Note: Zone calculation functions removed since we now use pre-calculated
 // zone and zoned fields from the CSV data
 
+// Convert full name to abbreviated format: "Giorgi Shermadini" -> "G. Shermadini"
+const abbreviateName = (fullName) => {
+  if (!fullName) return '-'
+  const parts = fullName.trim().split(/\s+/)
+  if (parts.length === 1) return parts[0]
+  const firstInitial = parts[0].charAt(0).toUpperCase()
+  const lastName = parts[parts.length - 1]
+  return `${firstInitial}. ${lastName}`
+}
+
 export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShots, teams, players }) {
   // Get available seasons from teams data (since we don't load all shots upfront)
   const availableSeasons = useMemo(() => {
@@ -57,17 +67,23 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
       }
     })
 
-    // Return array of {id, name} objects sorted by name
+    // Return array of {id, name, displayName} objects sorted by surname (last word of name)
     return Array.from(playerMap.entries())
-      .map(([id, name]) => ({ id, name }))
-      .sort((a, b) => a.name.localeCompare(b.name))
+      .map(([id, name]) => {
+        const parts = name.trim().split(/\s+/)
+        const surname = parts[parts.length - 1] || name
+        return { id, name, displayName: abbreviateName(name), surname }
+      })
+      .sort((a, b) => a.surname.localeCompare(b.surname))
   }, [seasonFilteredShots, filterType, selectedTeam])
 
-  // Filtered player list based on search input
+  // Filtered player list based on search input (search both full name and abbreviated)
   const filteredPlayerList = useMemo(() => {
     if (!playerSearch) return playerList
+    const search = playerSearch.toLowerCase()
     return playerList.filter(p =>
-      p.name.toLowerCase().includes(playerSearch.toLowerCase())
+      p.name.toLowerCase().includes(search) ||
+      p.displayName.toLowerCase().includes(search)
     )
   }, [playerList, playerSearch])
 
@@ -266,7 +282,7 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
               >
                 <option value="">Selecciona jugador...</option>
                 {filteredPlayerList.map(p => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
+                  <option key={p.id} value={p.id}>{p.displayName}</option>
                 ))}
               </select>
             </div>
@@ -295,7 +311,7 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-medium text-acb-900">
               {filterType === 'player' && selectedPlayer
-                ? playerList.find(p => p.id === selectedPlayer)?.name || selectedPlayer
+                ? playerList.find(p => p.id === selectedPlayer)?.displayName || selectedPlayer
                 : filterType === 'team' && selectedTeam
                   ? selectedTeam
                   : 'Todos los Jugadores'}

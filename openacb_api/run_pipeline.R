@@ -209,15 +209,15 @@ if (interactive()) {
 }
 
 #Quick update
-{
-  create_all_pbp_variables()
-  clean_all_pbp()
-  calculate_all_team_stats()
-  process_all_shot_charts()
-  calculate_all_lineup_analysis()
+# {
+#   create_all_pbp_variables()
+#   clean_all_pbp()
+#   calculate_all_team_stats()
+#   process_all_shot_charts()
+#   calculate_all_lineup_analysis()
   calculate_all_player_stats()
   source("export_lineup_data.R")
-  export_lineup_data_to_react()
+  export_lineup_data_to_react() 
   source("./export_to_react.R")
-}
+# }
 

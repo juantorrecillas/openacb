@@ -231,17 +231,21 @@ build_team_player_mapping <- function(df_pbp, pista_cols) {
 }
 
 #' Build player info lookup (ID and display name)
-#' Returns a data.table with licenseNick, license.id, and displayName (N.Surname format)
+#' Returns a data.table with playerKey (nick_id), licenseNick, playerId, and displayName
+#' Uses playerKey as the unique identifier to handle players with same surname
 #'
 build_player_info <- function(df_pbp) {
-  player_info <- unique(df_pbp[!is.na(license.licenseNick) & license.licenseNick != "",
+  player_info <- unique(df_pbp[!is.na(license.licenseNick) & license.licenseNick != "" & !is.na(license.id),
     .(licenseNick = license.licenseNick,
       playerId = license.id,
       displayName = license.licenseAbbrev)
   ])
 
-  # Keep first occurrence for each licenseNick (in case of duplicates)
-  player_info <- player_info[!duplicated(licenseNick)]
+  # Create unique playerKey combining nickname and ID (handles same-surname players)
+  player_info[, playerKey := paste0(licenseNick, "_", playerId)]
+
+  # Keep first occurrence for each playerKey (deduplicate by unique ID, not just nick)
+  player_info <- player_info[!duplicated(playerKey)]
 
   return(player_info)
 }
@@ -368,8 +372,11 @@ calculate_individual_stats_optimized <- function(team_data, team_name, player_co
   for (pista_col in player_cols) {
     if (!pista_col %in% names(team_data)) next
 
-    # Extract player nick from column name (everything before the last _NUMBER_pista)
-    player <- sub("_[0-9]+_pista$", "", pista_col)
+    # Extract player key from column name (nick_id format, everything before _pista)
+    # This preserves the unique identifier for players with same surname
+    player_key <- sub("_pista$", "", pista_col)
+    # Also extract just the nickname for display purposes
+    player_nick <- sub("_[0-9]+$", "", player_key)
 
     # On court stats
     on_subset <- team_data[team_data[[pista_col]] == 1]
@@ -380,13 +387,15 @@ calculate_individual_stats_optimized <- function(team_data, team_name, player_co
     off_stats <- calculate_stats_for_subset(off_subset, team_name)
 
     if (!is.null(on_stats) && !is.null(off_stats)) {
-      # Get player info (ID and display name)
-      pinfo <- player_info[licenseNick == player]
+      # Get player info (ID and display name) using playerKey for exact match
+      pinfo <- player_info[playerKey == player_key]
       player_id <- if (nrow(pinfo) > 0) pinfo$playerId[1] else NA
-      display_name <- if (nrow(pinfo) > 0) pinfo$displayName[1] else player
+      display_name <- if (nrow(pinfo) > 0) pinfo$displayName[1] else player_nick
 
-      results[[player]] <- list(
-        player = player,
+      # Use player_key (nick_id) as the key to handle same-surname players
+      results[[player_key]] <- list(
+        player = player_key,
+        nickname = player_nick,
         playerId = player_id,
         displayName = display_name,
         # Minutes (primary metric now)
@@ -452,9 +461,12 @@ calculate_pair_stats_optimized <- function(team_data, team_name, player_cols, pl
 
     if (!pista_col1 %in% names(team_data) || !pista_col2 %in% names(team_data)) next
 
-    # Extract player nicks from column names
-    player1 <- sub("_[0-9]+_pista$", "", pista_col1)
-    player2 <- sub("_[0-9]+_pista$", "", pista_col2)
+    # Extract player keys from column names (nick_id format for uniqueness)
+    player_key1 <- sub("_pista$", "", pista_col1)
+    player_key2 <- sub("_pista$", "", pista_col2)
+    # Also extract nicknames for fallback display
+    player_nick1 <- sub("_[0-9]+$", "", player_key1)
+    player_nick2 <- sub("_[0-9]+$", "", player_key2)
 
     # Both players on court
     on_subset <- team_data[team_data[[pista_col1]] == 1 & team_data[[pista_col2]] == 1]
@@ -465,11 +477,11 @@ calculate_pair_stats_optimized <- function(team_data, team_name, player_cols, pl
     off_stats <- calculate_stats_for_subset(off_subset, team_name)
 
     if (!is.null(on_stats)) {
-      # Get display names
-      p1info <- player_info[licenseNick == player1]
-      p2info <- player_info[licenseNick == player2]
-      display1 <- if (nrow(p1info) > 0) p1info$displayName[1] else player1
-      display2 <- if (nrow(p2info) > 0) p2info$displayName[1] else player2
+      # Get display names using playerKey for exact match
+      p1info <- player_info[playerKey == player_key1]
+      p2info <- player_info[playerKey == player_key2]
+      display1 <- if (nrow(p1info) > 0) p1info$displayName[1] else player_nick1
+      display2 <- if (nrow(p2info) > 0) p2info$displayName[1] else player_nick2
 
       # Calculate impact (net rating difference)
       net_diff <- if (!is.null(off_stats)) {
@@ -478,11 +490,12 @@ calculate_pair_stats_optimized <- function(team_data, team_name, player_cols, pl
         NA
       }
 
-      pair_key <- paste(sort(c(player1, player2)), collapse = "_")
+      # Use player_key (nick_id) for unique pair identification
+      pair_key <- paste(sort(c(player_key1, player_key2)), collapse = "_")
       results[[pair_key]] <- list(
         players = paste(display1, display2, sep = " & "),
-        player1 = player1,
-        player2 = player2,
+        player1 = player_key1,
+        player2 = player_key2,
         player1Id = if (nrow(p1info) > 0) p1info$playerId[1] else NA,
         player2Id = if (nrow(p2info) > 0) p2info$playerId[1] else NA,
         onMin = round(on_stats$minutes, 1),
@@ -525,8 +538,10 @@ calculate_trio_stats_optimized <- function(team_data, team_name, player_cols, pl
   for (trio_cols in trios) {
     if (!all(trio_cols %in% names(team_data))) next
 
-    # Extract player nicks from column names
-    trio <- sapply(trio_cols, function(col) sub("_[0-9]+_pista$", "", col))
+    # Extract player keys from column names (nick_id format for uniqueness)
+    trio_keys <- sapply(trio_cols, function(col) sub("_pista$", "", col))
+    # Also extract nicknames for fallback display
+    trio_nicks <- sapply(trio_keys, function(k) sub("_[0-9]+$", "", k))
 
     # All three players on court
     on_subset <- team_data[
@@ -545,13 +560,13 @@ calculate_trio_stats_optimized <- function(team_data, team_name, player_cols, pl
     off_stats <- calculate_stats_for_subset(off_subset, team_name)
 
     if (!is.null(on_stats)) {
-      # Get display names and IDs
-      display_names <- sapply(trio, function(p) {
-        pinfo <- player_info[licenseNick == p]
-        if (nrow(pinfo) > 0) pinfo$displayName[1] else p
+      # Get display names and IDs using playerKey for exact match
+      display_names <- sapply(seq_along(trio_keys), function(i) {
+        pinfo <- player_info[playerKey == trio_keys[i]]
+        if (nrow(pinfo) > 0) pinfo$displayName[1] else trio_nicks[i]
       })
-      player_ids <- sapply(trio, function(p) {
-        pinfo <- player_info[licenseNick == p]
+      player_ids <- sapply(trio_keys, function(k) {
+        pinfo <- player_info[playerKey == k]
         if (nrow(pinfo) > 0) pinfo$playerId[1] else NA
       })
 
@@ -562,10 +577,11 @@ calculate_trio_stats_optimized <- function(team_data, team_name, player_cols, pl
         NA
       }
 
-      trio_key <- paste(sort(trio), collapse = "_")
+      # Use player_key (nick_id) for unique trio identification
+      trio_key <- paste(sort(trio_keys), collapse = "_")
       results[[trio_key]] <- list(
         players = paste(display_names, collapse = " & "),
-        playerList = trio,
+        playerList = as.list(trio_keys),
         playerIds = as.list(player_ids),
         onMin = round(on_stats$minutes, 1),
         offMin = if (!is.null(off_stats)) round(off_stats$minutes, 1) else NA,
@@ -610,12 +626,12 @@ calculate_lineup_stats_optimized <- function(team_data, team_name, player_cols, 
   # A lineup is defined by exactly which 5 players are on court
   team_rows <- team_data[team.team_actual_name == team_name]
 
-  # Build lineup string for each row
+  # Build lineup string for each row using player_key (nick_id) for uniqueness
   lineup_ids <- apply(team_rows[, ..pista_cols], 1, function(row) {
     on_court <- names(row)[row == 1]
     if (length(on_court) == 5) {
-      # Extract player nicks (remove _id_pista suffix)
-      players_on <- sapply(on_court, function(col) sub("_[0-9]+_pista$", "", col))
+      # Extract player keys (nick_id format, remove only _pista suffix)
+      players_on <- sapply(on_court, function(col) sub("_pista$", "", col))
       paste(sort(players_on), collapse = "|")
     } else {
       NA_character_
@@ -631,15 +647,15 @@ calculate_lineup_stats_optimized <- function(team_data, team_name, player_cols, 
 
   cat("    Found", length(valid_lineups), "5-man lineups with sufficient data\n")
 
-  # Build a mapping from player nick to full column name
-  nick_to_col <- setNames(pista_cols, sapply(pista_cols, function(col) sub("_[0-9]+_pista$", "", col)))
+  # Build a mapping from player_key to full column name
+  key_to_col <- setNames(pista_cols, sapply(pista_cols, function(col) sub("_pista$", "", col)))
 
   # Calculate stats for each lineup
   for (lineup_id in valid_lineups) {
-    lineup_players <- strsplit(lineup_id, "\\|")[[1]]
+    lineup_player_keys <- strsplit(lineup_id, "\\|")[[1]]
 
     # Get the full column names for these players
-    pista_cols_lineup <- nick_to_col[lineup_players]
+    pista_cols_lineup <- key_to_col[lineup_player_keys]
 
     # Skip if we can't find all columns
     if (any(is.na(pista_cols_lineup)) || !all(pista_cols_lineup %in% names(team_data))) next
@@ -656,19 +672,20 @@ calculate_lineup_stats_optimized <- function(team_data, team_name, player_cols, 
     stats <- calculate_stats_for_subset(lineup_subset, team_name)
 
     if (!is.null(stats)) {
-      # Get display names and IDs
-      display_names <- sapply(lineup_players, function(p) {
-        pinfo <- player_info[licenseNick == p]
-        if (nrow(pinfo) > 0) pinfo$displayName[1] else p
+      # Get display names and IDs using playerKey for exact match
+      lineup_nicks <- sapply(lineup_player_keys, function(k) sub("_[0-9]+$", "", k))
+      display_names <- sapply(seq_along(lineup_player_keys), function(i) {
+        pinfo <- player_info[playerKey == lineup_player_keys[i]]
+        if (nrow(pinfo) > 0) pinfo$displayName[1] else lineup_nicks[i]
       })
-      player_ids <- sapply(lineup_players, function(p) {
-        pinfo <- player_info[licenseNick == p]
+      player_ids <- sapply(lineup_player_keys, function(k) {
+        pinfo <- player_info[playerKey == k]
         if (nrow(pinfo) > 0) pinfo$playerId[1] else NA
       })
 
       results[[lineup_id]] <- list(
         players = paste(display_names, collapse = " | "),
-        playerList = lineup_players,
+        playerList = as.list(lineup_player_keys),
         playerIds = as.list(player_ids),
         onMin = round(stats$minutes, 1),
         onORtg = round(stats$oer * 100, 1),

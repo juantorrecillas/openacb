@@ -177,8 +177,17 @@ export default function PlayerStats({ players }) {
         return true
       })
       .sort((a, b) => {
-        const aVal = a[sortKey] || 0
-        const bVal = b[sortKey] || 0
+        let aVal = a[sortKey] || 0
+        let bVal = b[sortKey] || 0
+
+        // When sorting by player name, sort by surname (last word)
+        if (sortKey === 'playerFull' && typeof aVal === 'string') {
+          const aParts = aVal.trim().split(/\s+/)
+          const bParts = bVal.trim().split(/\s+/)
+          aVal = aParts[aParts.length - 1] || aVal
+          bVal = bParts[bParts.length - 1] || bVal
+        }
+
         if (typeof aVal === 'string') {
           return sortDir === 'desc'
             ? bVal.localeCompare(aVal)
@@ -197,9 +206,20 @@ export default function PlayerStats({ players }) {
     }
   }
 
+  // Convert full name to abbreviated format: "Giorgi Shermadini" -> "G. Shermadini"
+  const abbreviateName = (fullName) => {
+    if (!fullName) return '-'
+    const parts = fullName.trim().split(/\s+/)
+    if (parts.length === 1) return parts[0]
+    const firstInitial = parts[0].charAt(0).toUpperCase()
+    const lastName = parts[parts.length - 1]
+    return `${firstInitial}. ${lastName}`
+  }
+
   const formatValue = (value, key) => {
     if (value === undefined || value === null) return '-'
-    if (key === 'playerFull' || key === 'team') return value
+    if (key === 'playerFull') return abbreviateName(value)
+    if (key === 'team') return value
 
     // Integer values
     if (key === 'games') return value

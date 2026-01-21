@@ -64,11 +64,29 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
     return lineupData.data[selectedTeam] || null
   }, [lineupData, selectedTeam])
 
-  // Get available players for current team
+  // Get available players for current team (keys are now nick_id format for uniqueness)
   const availablePlayers = useMemo(() => {
     if (!currentTeamData?.players) return []
     return Object.keys(currentTeamData.players).sort()
   }, [currentTeamData])
+
+  // Create a mapping from player key to display info
+  const playerDisplayMap = useMemo(() => {
+    if (!currentTeamData?.players) return {}
+    const map = {}
+    Object.entries(currentTeamData.players).forEach(([key, player]) => {
+      map[key] = {
+        name: player.name || player.nickname || key,
+        nickname: player.nickname || key
+      }
+    })
+    return map
+  }, [currentTeamData])
+
+  // Helper to get display name for a player key
+  const getPlayerDisplayName = (playerKey) => {
+    return playerDisplayMap[playerKey]?.name || playerKey
+  }
 
   // Get all players data for the table
   const allPlayersData = useMemo(() => {
@@ -77,7 +95,7 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
     const playersObj = currentTeamData.players
     return Object.entries(playersObj).map(([key, player]) => ({
       key,
-      name: player.name || key,
+      name: player.name || player.nickname || key,
       ...player
     }))
   }, [currentTeamData])
@@ -93,13 +111,17 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
     return sorted
   }, [allPlayersData, sortConfig])
 
-  // Filter players by search query
+  // Filter players by search query (search by display name, not key)
   const filteredPlayers = useMemo(() => {
     if (searchQuery.trim() === '') return availablePlayers
-    return availablePlayers.filter(player =>
-      player.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-  }, [availablePlayers, searchQuery])
+    const query = searchQuery.toLowerCase()
+    return availablePlayers.filter(playerKey => {
+      const displayName = playerDisplayMap[playerKey]?.name || playerKey
+      const nickname = playerDisplayMap[playerKey]?.nickname || playerKey
+      return displayName.toLowerCase().includes(query) ||
+             nickname.toLowerCase().includes(query)
+    })
+  }, [availablePlayers, searchQuery, playerDisplayMap])
 
   // Get data for selected players
   const getLineupDataForPlayers = () => {
@@ -255,10 +277,10 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
           {selectedPlayers.length > 0 && (
             <div className="flex flex-wrap gap-2 items-center">
               <span className="text-sm text-acb-600 font-medium">Analizando:</span>
-              {selectedPlayers.map(player => (
-                <div key={player} className="flex items-center gap-1 bg-orange-100 text-orange-800 rounded-full px-3 py-1">
-                  <span className="text-sm font-medium">{player}</span>
-                  <button onClick={() => removePlayer(player)} className="hover:text-orange-600">
+              {selectedPlayers.map(playerKey => (
+                <div key={playerKey} className="flex items-center gap-1 bg-orange-100 text-orange-800 rounded-full px-3 py-1">
+                  <span className="text-sm font-medium">{getPlayerDisplayName(playerKey)}</span>
+                  <button onClick={() => removePlayer(playerKey)} className="hover:text-orange-600">
                     <X className="w-3 h-3" />
                   </button>
                 </div>
@@ -273,20 +295,20 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
           <div className="max-h-48 overflow-y-auto border border-acb-100 rounded-md bg-acb-50/50">
             {filteredPlayers.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1 p-2">
-                {filteredPlayers.map(player => (
+                {filteredPlayers.map(playerKey => (
                   <button
-                    key={player}
-                    onClick={() => addPlayer(player)}
-                    disabled={selectedPlayers.includes(player) || selectedPlayers.length >= 5}
+                    key={playerKey}
+                    onClick={() => addPlayer(playerKey)}
+                    disabled={selectedPlayers.includes(playerKey) || selectedPlayers.length >= 5}
                     className={`px-2 py-1.5 text-sm rounded transition-all ${
-                      selectedPlayers.includes(player)
+                      selectedPlayers.includes(playerKey)
                         ? 'bg-orange-100 text-orange-700 font-medium'
                         : selectedPlayers.length >= 5
                           ? 'bg-acb-100 text-acb-400 cursor-not-allowed'
                           : 'bg-white hover:bg-orange-50 text-acb-700 hover:text-orange-700 border border-acb-200'
                     }`}
                   >
-                    {player}
+                    {getPlayerDisplayName(playerKey)}
                   </button>
                 ))}
               </div>
@@ -413,7 +435,7 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
               Análisis de {selectedPlayers.length === 2 ? 'Dúo' : selectedPlayers.length === 3 ? 'Trío' : 'Quinteto'}
             </h3>
             <p className="text-acb-200 text-sm">
-              {selectedPlayers.join(' + ')} • {currentLineupData.onMin?.toFixed(1)} min juntos
+              {selectedPlayers.map(k => getPlayerDisplayName(k)).join(' + ')} • {currentLineupData.onMin?.toFixed(1)} min juntos
               {currentLineupData.offMin != null && ` • ${currentLineupData.offMin?.toFixed(1)} min separados`}
             </p>
           </div>

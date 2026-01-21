@@ -213,7 +213,9 @@ transform_individual_stats <- function(individual_data) {
     list(
       id = p$playerId,
       name = p$displayName,
-      nickname = p$player,
+      # player contains the unique key (nick_id), nickname contains just the surname
+      playerKey = p$player,
+      nickname = if (!is.null(p$nickname)) p$nickname else p$player,
       # Minutes
       onMin = p$onMin,
       offMin = p$offMin,

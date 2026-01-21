@@ -340,15 +340,15 @@ calculate_player_stats <- function(season_id,
 
       # Possessions (individual contribution)
       # Dean Oliver logic: missed FGs followed by OREB didn't end the possession
-      possessions = fga + ft_trips + turnovers - missed_fg_off_reb,
+      possessions = fga + ft_trips + turnovers - missed_fg_off_reb + 0.3*(assists_2fg + assists_3fg),
 
       # Points Produced (Dean Oliver credit allocation)
       # Unassisted shots = full credit, assisted shots = 50/50 split with passer
       unassisted_fgm2 = fgm2 - assisted_fgm2,
       unassisted_fgm3 = fgm3 - assisted_fgm3,
       points_produced = (2 * unassisted_fgm2 + 3 * unassisted_fgm3) +
-                        0.5 * (2 * assisted_fgm2 + 3 * assisted_fgm3) +
-                        0.5 * (2 * assists_2fg + 3 * assists_3fg) +
+                        0.7 * (2 * assisted_fgm2 + 3 * assisted_fgm3) +
+                        0.3 * (2 * assists_2fg + 3 * assists_3fg) +
                         ftm,
 
       # Offensive Rating (points produced per 100 possessions)

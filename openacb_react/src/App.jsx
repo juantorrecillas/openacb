@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
-import { BarChart3, Target, Users, TrendingUp, Percent } from 'lucide-react'
+import { BarChart3, Target, Users, TrendingUp, Percent, Trophy } from 'lucide-react'
 import ShotCharts from './pages/ShotCharts'
 import TeamStats from './pages/TeamStats'
 import PlayerStats from './pages/PlayerStats'
 import LineupAnalysis from './pages/LineupAnalysis'
+import LineupRankings from './pages/LineupRankings'
 import FourFactors from './pages/FourFactors'
 
 const tabs = [
@@ -11,6 +12,7 @@ const tabs = [
   { id: 'teams', label: 'Estadísticas de Equipo', icon: BarChart3 },
   { id: 'players', label: 'Estadísticas de Jugador', icon: Users },
   { id: 'lineups', label: 'Alineaciones', icon: TrendingUp },
+  { id: 'rankings', label: 'Rankings', icon: Trophy },
   { id: 'factors', label: 'Cuatro Factores', icon: Percent },
 ]
 
@@ -174,6 +176,14 @@ function App() {
         {activeTab === 'players' && <PlayerStats players={data.players} />}
         {activeTab === 'lineups' && (
           <LineupAnalysis
+            teams={data.teams}
+            loadLineupsForSeason={loadLineupsForSeason}
+            lineupsCache={lineupsCache}
+            loadingLineups={loadingLineups}
+          />
+        )}
+        {activeTab === 'rankings' && (
+          <LineupRankings
             teams={data.teams}
             loadLineupsForSeason={loadLineupsForSeason}
             lineupsCache={lineupsCache}
