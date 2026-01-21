@@ -127,65 +127,67 @@ function App() {
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-50 relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center h-20">
-            {/* Logo */}
-            <button
-              onClick={() => setActiveTab('home')}
-              className="flex items-center gap-3 hover:opacity-80 transition-opacity"
-            >
-              <img
-                src="/openacb_nobckg.png"
-                alt="OpenACB Logo"
-                className="w-24 h-24 object-contain"
-              />
-              <div>
-                <h1 className="text-xl font-semibold text-slate-900">openACB</h1>
-              </div>
-            </button>
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
+        <div className="relative h-20">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
+            <div className="flex items-center h-full">
+              {/* Logo */}
+              <button
+                onClick={() => setActiveTab('home')}
+                className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+              >
+                <img
+                  src="/openacb_nobckg.png"
+                  alt="OpenACB Logo"
+                  className="w-24 h-24 object-contain"
+                />
+                <div>
+                  <h1 className="text-xl font-semibold text-slate-900">openACB</h1>
+                </div>
+              </button>
 
-            {/* Main Navigation */}
-            <nav className="flex items-center gap-1 ml-6">
-              {tabs.map((tab) => {
-                const Icon = tab.icon
-                const isActive = activeTab === tab.id
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-md transition-colors text-sm font-medium whitespace-nowrap
-                      ${isActive
-                        ? 'bg-slate-100 text-slate-900'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                      }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    <span className="hidden lg:inline">{tab.label}</span>
-                  </button>
-                )
-              })}
-            </nav>
+              {/* Main Navigation */}
+              <nav className="flex items-center gap-1 ml-6">
+                {tabs.map((tab) => {
+                  const Icon = tab.icon
+                  const isActive = activeTab === tab.id
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-md transition-colors text-sm font-medium whitespace-nowrap
+                        ${isActive
+                          ? 'bg-slate-100 text-slate-900'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                        }`}
+                    >
+                      <Icon className="w-4 h-4" />
+                      <span className="hidden lg:inline">{tab.label}</span>
+                    </button>
+                  )
+                })}
+              </nav>
+            </div>
           </div>
-        </div>
 
-        {/* About - Fixed to right edge of screen */}
-        {(() => {
-          const AboutIcon = aboutTab.icon
-          return (
-            <button
-              onClick={() => setActiveTab(aboutTab.id)}
-              className={`absolute right-24 top-1/2 -translate-y-1/2 flex items-center gap-2 px-4 py-2 rounded-md transition-colors text-sm font-medium whitespace-nowrap
-                ${activeTab === aboutTab.id
-                  ? 'bg-slate-100 text-slate-900'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                }`}
-            >
-              <AboutIcon className="w-4 h-4" />
-              <span className="hidden sm:inline">{aboutTab.label}</span>
-            </button>
-          )
-        })()}
+          {/* About - Fixed to right edge of full screen */}
+          {(() => {
+            const AboutIcon = aboutTab.icon
+            return (
+              <button
+                onClick={() => setActiveTab(aboutTab.id)}
+                className={`absolute right-8 top-1/2 -translate-y-1/2 flex items-center gap-2 px-4 py-2 rounded-md transition-colors text-sm font-medium whitespace-nowrap z-10
+                  ${activeTab === aboutTab.id
+                    ? 'bg-slate-100 text-slate-900'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                  }`}
+              >
+                <AboutIcon className="w-4 h-4" />
+                <span className="hidden sm:inline">{aboutTab.label}</span>
+              </button>
+            )
+          })()}
+        </div>
       </header>
 
       {/* Main Content */}
