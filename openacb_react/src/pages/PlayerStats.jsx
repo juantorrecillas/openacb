@@ -160,6 +160,28 @@ export default function PlayerStats({ players }) {
     return seasonFilteredPlayers.length - qualifiedPlayers.length
   }, [seasonFilteredPlayers, qualifiedPlayers])
 
+  // Helper function to extract surname for sorting
+  // Handles: "J. Rubio" -> "Rubio", "M. A. Gasol" -> "A. Gasol", "Luwawu-Cabarrot" -> "Luwawu-Cabarrot"
+  const getSortKey = (name) => {
+    if (!name || typeof name !== 'string') return ''
+    
+    // Normalize: trim and replace multiple spaces
+    const normalized = name.trim().replace(/\s+/g, ' ')
+    
+    // Split by dot to handle initials
+    const dotParts = normalized.split('.')
+    if (dotParts.length >= 2) {
+      // Take everything after the last dot
+      const afterLastDot = dotParts.slice(1).join('.').trim()
+      if (afterLastDot) {
+        return afterLastDot
+      }
+    }
+    
+    // No dots - use full name
+    return normalized
+  }
+
   const filteredPlayers = useMemo(() => {
     // Start with either all players or only qualified players
     const basePlayers = showFilteredPlayers ? seasonFilteredPlayers : qualifiedPlayers
@@ -176,14 +198,21 @@ export default function PlayerStats({ players }) {
         let aVal = a[sortKey] || 0
         let bVal = b[sortKey] || 0
 
-        // When sorting by player name, use playerAbbrev if available (already has correct surname)
+        // When sorting by player name, use playerAbbrev if available
         if (sortKey === 'playerFull' && typeof aVal === 'string') {
-          // Use playerAbbrev field which already has the correct abbreviated name
           aVal = a.playerAbbrev || aVal
           bVal = b.playerAbbrev || bVal
         }
 
         if (typeof aVal === 'string') {
+          // For player names, sort by surname instead of full name
+          if (sortKey === 'playerFull') {
+            const aSortKey = getSortKey(aVal)
+            const bSortKey = getSortKey(bVal)
+            return sortDir === 'desc'
+              ? bSortKey.localeCompare(aSortKey)
+              : aSortKey.localeCompare(bSortKey)
+          }
           return sortDir === 'desc'
             ? bVal.localeCompare(aVal)
             : aVal.localeCompare(bVal)

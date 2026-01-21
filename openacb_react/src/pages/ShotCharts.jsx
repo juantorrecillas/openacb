@@ -64,14 +64,40 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
       }
     })
 
-    // Return array of {id, name, displayName} objects sorted by abbreviated name
+    // Helper function to extract surname for sorting
+  // Handles: "J. Rubio" -> "Rubio", "M. A. Gasol" -> "A. Gasol", "Luwawu-Cabarrot" -> "Luwawu-Cabarrot"
+  const getSortKey = (name) => {
+    if (!name || typeof name !== 'string') return ''
+    
+    // Normalize: trim and replace multiple spaces
+    const normalized = name.trim().replace(/\s+/g, ' ')
+    
+    // Split by dot to handle initials
+    const dotParts = normalized.split('.')
+    if (dotParts.length >= 2) {
+      // Take everything after the last dot
+      const afterLastDot = dotParts.slice(1).join('.').trim()
+      if (afterLastDot) {
+        return afterLastDot
+      }
+    }
+    
+    // No dots - use full name
+    return normalized
+  }
+
+  // Return array of {id, name, displayName} objects sorted by surname
     return Array.from(playerMap.entries())
       .map(([id, name]) => {
         // Get abbreviated name from players data if available
         const displayName = getPlayerAbbrev(players, id)
         return { id, name, displayName }
       })
-      .sort((a, b) => a.displayName.localeCompare(b.displayName))
+      .sort((a, b) => {
+        const aSortKey = getSortKey(a.displayName)
+        const bSortKey = getSortKey(b.displayName)
+        return aSortKey.localeCompare(bSortKey)
+      })
   }, [seasonFilteredShots, filterType, selectedTeam, players])
 
   // Filtered player list based on search input (search both full name and abbreviated)
