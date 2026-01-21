@@ -269,6 +269,7 @@ export_player_data <- function() {
         playerId = p$player_id,
         licenseId = p$license_id,
         player = p$player,
+        playerAbbrev = p$player_abbrev,
         playerFull = p$player_full,
         season = p$season,
         team = p$team,

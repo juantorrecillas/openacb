@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
-import { BarChart3, Target, Users, TrendingUp, Percent, Trophy } from 'lucide-react'
+import { BarChart3, Target, Users, TrendingUp, Percent, Trophy, Info } from 'lucide-react'
+import Home from './pages/Home'
 import ShotCharts from './pages/ShotCharts'
 import TeamStats from './pages/TeamStats'
 import PlayerStats from './pages/PlayerStats'
 import LineupAnalysis from './pages/LineupAnalysis'
 import LineupRankings from './pages/LineupRankings'
 import FourFactors from './pages/FourFactors'
+import About from './pages/About'
 
 const tabs = [
   { id: 'shots', label: 'Cartas de Tiro', icon: Target },
@@ -16,8 +18,10 @@ const tabs = [
   { id: 'factors', label: 'Cuatro Factores', icon: Percent },
 ]
 
+const aboutTab = { id: 'about', label: 'Acerca de', icon: Info }
+
 function App() {
-  const [activeTab, setActiveTab] = useState('shots')
+  const [activeTab, setActiveTab] = useState('home')
   const [data, setData] = useState({ teams: [], players: [] })
   const [loading, setLoading] = useState(true)
 
@@ -123,10 +127,14 @@ function App() {
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-50 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-20">
-            <div className="flex items-center gap-3">
+          <div className="flex items-center h-20">
+            {/* Logo */}
+            <button
+              onClick={() => setActiveTab('home')}
+              className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+            >
               <img
                 src="/openacb_nobckg.png"
                 alt="OpenACB Logo"
@@ -135,9 +143,10 @@ function App() {
               <div>
                 <h1 className="text-xl font-semibold text-slate-900">openACB</h1>
               </div>
-            </div>
-            
-            <nav className="flex items-center gap-1">
+            </button>
+
+            {/* Main Navigation */}
+            <nav className="flex items-center gap-1 ml-6">
               {tabs.map((tab) => {
                 const Icon = tab.icon
                 const isActive = activeTab === tab.id
@@ -145,24 +154,43 @@ function App() {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors text-sm font-medium
-                      ${isActive 
-                        ? 'bg-slate-100 text-slate-900' 
+                    className={`flex items-center gap-2 px-3 py-2 rounded-md transition-colors text-sm font-medium whitespace-nowrap
+                      ${isActive
+                        ? 'bg-slate-100 text-slate-900'
                         : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                       }`}
                   >
                     <Icon className="w-4 h-4" />
-                    <span className="hidden sm:inline">{tab.label}</span>
+                    <span className="hidden lg:inline">{tab.label}</span>
                   </button>
                 )
               })}
             </nav>
           </div>
         </div>
+
+        {/* About - Fixed to right edge of screen */}
+        {(() => {
+          const AboutIcon = aboutTab.icon
+          return (
+            <button
+              onClick={() => setActiveTab(aboutTab.id)}
+              className={`absolute right-24 top-1/2 -translate-y-1/2 flex items-center gap-2 px-4 py-2 rounded-md transition-colors text-sm font-medium whitespace-nowrap
+                ${activeTab === aboutTab.id
+                  ? 'bg-slate-100 text-slate-900'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                }`}
+            >
+              <AboutIcon className="w-4 h-4" />
+              <span className="hidden sm:inline">{aboutTab.label}</span>
+            </button>
+          )
+        })()}
       </header>
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {activeTab === 'home' && <Home setActiveTab={setActiveTab} />}
         {activeTab === 'shots' && (
           <ShotCharts
             loadShotsForSeason={loadShotsForSeason}
@@ -191,13 +219,14 @@ function App() {
           />
         )}
         {activeTab === 'factors' && <FourFactors teams={data.teams} />}
+        {activeTab === 'about' && <About />}
       </main>
 
       {/* Footer */}
       <footer className="border-t border-slate-200 bg-white mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between text-sm text-slate-500">
-            <p>hecho con cariño por <a href="https://github.com/juantorrecillas" className="text-slate-600 hover:text-slate-900 underline">juan torrecillas</a> 🍋</p>
+            <p>hecho con cariño por <a href="https://juantorrecillas.es" className="text-slate-600 hover:text-slate-900 underline">juan torrecillas</a> 🍋</p>
           </div>
         </div>
       </footer>

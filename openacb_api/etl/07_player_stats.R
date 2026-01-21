@@ -258,7 +258,7 @@ calculate_player_stats <- function(season_id,
   # Basic stats aggregation by player
   basic_stats <- df %>%
     filter(!is.na(license.licenseNick) & license.licenseNick != "") %>%
-    group_by(license.id, license.licenseNick, license.licenseStr, team.team_actual_name) %>%
+    group_by(license.id, license.licenseNick, license.licenseAbbrev, license.licenseStr, team.team_actual_name) %>%
     summarise(
       # Shooting
       fgm2 = sum(T2A, na.rm = TRUE),
@@ -315,7 +315,7 @@ calculate_player_stats <- function(season_id,
 
       .groups = "drop"
     ) %>%
-    rename(license_id = license.id, player = license.licenseNick, player_full = license.licenseStr, team = team.team_actual_name)
+    rename(license_id = license.id, player = license.licenseNick, player_abbrev = license.licenseAbbrev, player_full = license.licenseStr, team = team.team_actual_name)
 
   # Calculate derived stats
   basic_stats <- basic_stats %>%
@@ -1036,7 +1036,7 @@ calculate_player_stats <- function(season_id,
   # Select and order columns
   final_stats <- player_stats %>%
     select(
-      player_id, license_id, player, player_full, team, season, games, total_minutes, mpg, qualified,
+      player_id, license_id, player, player_abbrev, player_full, team, season, games, total_minutes, mpg, qualified,
       # Basic totals
       points, rebounds, oreb, dreb, assists, steals, blocks, turnovers, fouls,
       # Shooting totals

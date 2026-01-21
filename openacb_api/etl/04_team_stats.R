@@ -57,12 +57,17 @@ calculate_team_stats <- function(season_id,
   # Team aggregations
   cat("→ Aggregating team statistics...\n")
 
+  # First, count unique matches per team (more reliable than tip-off data)
+  games_count <- df %>%
+    group_by(team.team_actual_name) %>%
+    summarise(ngames = n_distinct(id_match), .groups = "drop")
+
   temp <- df %>%
     group_by(team.team_actual_name) %>%
     summarise(across(all_of(BOXSCORE_COLUMNS), \(x) sum(x, na.rm = TRUE)), .groups = "drop") %>%
+    left_join(games_count, by = "team.team_actual_name") %>%
     mutate(
-      pos = T2I + T3I + FT_trip - reb_of + perdida,
-      ngames = salto_ganado + salto_perdido
+      pos = T2I + T3I + FT_trip - reb_of + perdida
     )
 
   # Opponent aggregations

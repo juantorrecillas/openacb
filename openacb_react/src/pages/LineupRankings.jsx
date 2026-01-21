@@ -226,7 +226,7 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
       // 5-man lineups don't have netDiff, always sort by onNetRtg
       sortKey = 'onNetRtg'
     } else if (activeView === 'league' && !sortByImpact) {
-      sortKey = 'onORtg'
+      sortKey = 'onNetRtg'
     } else {
       sortKey = 'netDiff'
     }
@@ -405,7 +405,7 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
                     : 'bg-acb-50 text-acb-600 hover:bg-acb-100'
                 }`}
               >
-                ORtg
+                NetRtg
               </button>
             </div>
           )}

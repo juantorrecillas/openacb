@@ -180,12 +180,11 @@ export default function PlayerStats({ players }) {
         let aVal = a[sortKey] || 0
         let bVal = b[sortKey] || 0
 
-        // When sorting by player name, sort by surname (last word)
+        // When sorting by player name, use playerAbbrev if available (already has correct surname)
         if (sortKey === 'playerFull' && typeof aVal === 'string') {
-          const aParts = aVal.trim().split(/\s+/)
-          const bParts = bVal.trim().split(/\s+/)
-          aVal = aParts[aParts.length - 1] || aVal
-          bVal = bParts[bParts.length - 1] || bVal
+          // Use playerAbbrev field which already has the correct abbreviated name
+          aVal = a.playerAbbrev || aVal
+          bVal = b.playerAbbrev || bVal
         }
 
         if (typeof aVal === 'string') {
@@ -206,19 +205,10 @@ export default function PlayerStats({ players }) {
     }
   }
 
-  // Convert full name to abbreviated format: "Giorgi Shermadini" -> "G. Shermadini"
-  const abbreviateName = (fullName) => {
-    if (!fullName) return '-'
-    const parts = fullName.trim().split(/\s+/)
-    if (parts.length === 1) return parts[0]
-    const firstInitial = parts[0].charAt(0).toUpperCase()
-    const lastName = parts[parts.length - 1]
-    return `${firstInitial}. ${lastName}`
-  }
-
-  const formatValue = (value, key) => {
+  const formatValue = (value, key, player) => {
     if (value === undefined || value === null) return '-'
-    if (key === 'playerFull') return abbreviateName(value)
+    // Use pre-calculated playerAbbrev field from data (e.g., "J. Fernández")
+    if (key === 'playerFull') return player?.playerAbbrev || value
     if (key === 'team') return value
 
     // Integer values
@@ -498,7 +488,7 @@ export default function PlayerStats({ players }) {
                         {hasDefense ? (
                           <div className="flex flex-col items-end gap-0.5">
                             <span className={`font-mono ${diffValue < 0 ? 'text-green-700 font-medium' : diffValue > 0 ? 'text-red-700' : 'text-acb-700'}`}>
-                              {formatValue(diffValue, col.key)}
+                              {formatValue(diffValue, col.key, player)}
                             </span>
                             <span className="text-xs text-acb-400">
                               {defenseFgpct.toFixed(1)}% / {defenseFga}
@@ -507,7 +497,7 @@ export default function PlayerStats({ players }) {
                         ) : hasZoneFga ? (
                           <div className="flex flex-col items-end gap-0.5">
                             <span className="font-mono text-acb-900">
-                              {formatValue(player[col.key], col.key)}
+                              {formatValue(player[col.key], col.key, player)}
                             </span>
                             <span className="text-xs text-acb-400">
                               {fgaValue}
@@ -516,7 +506,7 @@ export default function PlayerStats({ players }) {
                         ) : hasPercentile ? (
                           <div className="flex flex-col items-end gap-1">
                             <span className={`font-mono ${getPercentileColor(player[col.key], col.key)}`}>
-                              {formatValue(player[col.key], col.key)}
+                              {formatValue(player[col.key], col.key, player)}
                             </span>
                             <span className={`text-xs px-1.5 py-0.5 rounded ${getPercentileBadgeColor(percentileValue)}`}>
                               {Math.round(percentileValue)}%
@@ -524,7 +514,7 @@ export default function PlayerStats({ players }) {
                           </div>
                         ) : (
                           <span className={`${col.align === 'right' ? 'font-mono' : ''} ${col.align === 'right' ? getPercentileColor(player[col.key], col.key) : 'text-acb-700'}`}>
-                            {formatValue(player[col.key], col.key)}
+                            {formatValue(player[col.key], col.key, player)}
                           </span>
                         )}
                       </td>

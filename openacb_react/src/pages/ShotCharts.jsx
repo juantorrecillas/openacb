@@ -7,14 +7,11 @@ import { Filter, Circle, X } from 'lucide-react'
 // Note: Zone calculation functions removed since we now use pre-calculated
 // zone and zoned fields from the CSV data
 
-// Convert full name to abbreviated format: "Giorgi Shermadini" -> "G. Shermadini"
-const abbreviateName = (fullName) => {
-  if (!fullName) return '-'
-  const parts = fullName.trim().split(/\s+/)
-  if (parts.length === 1) return parts[0]
-  const firstInitial = parts[0].charAt(0).toUpperCase()
-  const lastName = parts[parts.length - 1]
-  return `${firstInitial}. ${lastName}`
+// Helper to get abbreviated name from player data
+// Uses pre-calculated playerAbbrev field from data (e.g., "J. Fernández")
+const getPlayerAbbrev = (players, playerId) => {
+  const player = players.find(p => String(p.licenseId) === String(playerId))
+  return player?.playerAbbrev || player?.playerFull || '-'
 }
 
 export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShots, teams, players }) {
@@ -67,15 +64,15 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
       }
     })
 
-    // Return array of {id, name, displayName} objects sorted by surname (last word of name)
+    // Return array of {id, name, displayName} objects sorted by abbreviated name
     return Array.from(playerMap.entries())
       .map(([id, name]) => {
-        const parts = name.trim().split(/\s+/)
-        const surname = parts[parts.length - 1] || name
-        return { id, name, displayName: abbreviateName(name), surname }
+        // Get abbreviated name from players data if available
+        const displayName = getPlayerAbbrev(players, id)
+        return { id, name, displayName }
       })
-      .sort((a, b) => a.surname.localeCompare(b.surname))
-  }, [seasonFilteredShots, filterType, selectedTeam])
+      .sort((a, b) => a.displayName.localeCompare(b.displayName))
+  }, [seasonFilteredShots, filterType, selectedTeam, players])
 
   // Filtered player list based on search input (search both full name and abbreviated)
   const filteredPlayerList = useMemo(() => {

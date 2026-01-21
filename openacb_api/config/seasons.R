@@ -59,8 +59,10 @@ TEAM_NAME_MAPPINGS_GLOBAL <- list(
 TEAM_NAME_MAPPINGS_BY_SEASON <- list(
   # Format: season_id = list("variant" = "canonical")
   `2021` = list(
+    "Iberostar Tenerife" = "Lenovo Tenerife"
   ),
   `2022` = list(
+    "Baskonia" = "Bitci Baskonia"
   ),
   `2023` = list(
     "Dreamland Gran Canaria" = "Gran Canaria"
