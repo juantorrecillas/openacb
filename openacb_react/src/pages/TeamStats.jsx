@@ -147,6 +147,7 @@ const oppAdvancedColumns = [
   { key: 'games', label: 'PJ', align: 'right' },
   { key: 'opp_ortg', label: 'ORtg', align: 'right', highlight: true, inverse: true },
   { key: 'opp_drtg', label: 'DRtg', align: 'right', highlight: true },
+  { key: 'netRtg', label: 'Neto', align: 'right', highlight: true },
   { key: 'pace', label: 'Ritmo', align: 'right' },
   { key: 'opp_efg', label: 'eFG%', align: 'right', inverse: true },
   { key: 'opp_ts', label: 'TS%', align: 'right', inverse: true },
