@@ -12,7 +12,7 @@
 .Rprofile
 
 # ============================================================================
-# React Frontend (openacb_react)
+# React Frontend 
 # ============================================================================
 openacb_react/node_modules/
 openacb_react/dist/
@@ -25,7 +25,7 @@ openacb_react/yarn-error.log
 openacb_react/.pnpm-debug.log
 
 # ============================================================================
-# Data Files (Large / Not for version control)
+# Data Files
 # ============================================================================
 # Raw API data and processed files
 openacb_api/data/raw/

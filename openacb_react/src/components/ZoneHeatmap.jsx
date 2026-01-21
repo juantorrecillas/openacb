@@ -12,9 +12,6 @@ const SIDELINE_X = 7.5;
 const PAINT_HALF_WIDTH = 2.4;  // From R script: x > -2.4 and x < 2.4
 const CORNER_BOUNDARY_Y = -11; // From R script: y <= -11 for corners
 
-// Calculate where corner 3 line meets the arc
-const THREE_PT_ARC_Y = BASKET_Y + Math.sqrt(THREE_PT_R ** 2 - CORNER_3_X ** 2);
-
 // Angle where center zones meet elbow zones (29.7 degrees from vertical)
 const ANGLE_BOUNDARY = 29.7 * (Math.PI / 180);
 
@@ -403,19 +400,19 @@ export default function ZoneHeatmap({ shots, leagueShots = [], width = 750, heig
       <div className="absolute bottom-2 left-2 right-2 bg-white/95 p-2 rounded border border-acb-300 text-xs">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="font-medium text-acb-700">Zone Statistics</span>
+            <span className="font-medium text-acb-700">Carta de tiro por zonas de tiro</span>
             <span className="text-acb-500">
-              (vs League Zone Avg)
+              (vs Media de la Liga)
             </span>
           </div>
           <div className="flex items-center gap-3 text-xs">
             <div className="flex items-center gap-1">
               <div className="w-3 h-3 rounded" style={{ backgroundColor: 'rgba(34, 197, 94, 0.7)' }}></div>
-              <span>Above avg</span>
+              <span>Por encima de la media</span>
             </div>
             <div className="flex items-center gap-1">
               <div className="w-3 h-3 rounded" style={{ backgroundColor: 'rgba(220, 38, 38, 0.7)' }}></div>
-              <span>Below avg</span>
+              <span>Por debajo de la media</span>
             </div>
           </div>
         </div>

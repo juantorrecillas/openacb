@@ -4,6 +4,6 @@ import './index.css'
 import App from './App'
 
 createRoot(document.getElementById('root')).render(
-  // Temporarily disabled StrictMode for debugging
+
   <App />
 )
