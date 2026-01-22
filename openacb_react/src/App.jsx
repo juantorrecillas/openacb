@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Analytics } from '@vercel/analytics/react'
 import { BarChart3, Target, Users, TrendingUp, Percent, Trophy, Info } from 'lucide-react'
 import Home from './pages/Home'
 import ShotCharts from './pages/ShotCharts'
@@ -125,9 +126,10 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
+    <>
+      <div className="min-h-screen bg-slate-50">
+        {/* Header */}
+        <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
         <div className="relative h-20">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
             <div className="flex items-center h-full">
@@ -233,6 +235,8 @@ function App() {
         </div>
       </footer>
     </div>
+    <Analytics />
+  </>
   )
 }
 
