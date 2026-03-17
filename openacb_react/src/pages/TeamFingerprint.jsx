@@ -553,6 +553,21 @@ export default function TeamFingerprint({ teams, teamLogos = {} }) {
 
       {teamData && (
         <div className="space-y-6">
+          {/* Team Header */}
+          <div className="bg-white rounded-lg border border-acb-200 p-5 flex items-center gap-4">
+            {teamLogos[selectedTeam] && (
+              <img
+                src={teamLogos[selectedTeam]}
+                alt={selectedTeam}
+                className="w-16 h-16 object-contain"
+              />
+            )}
+            <div>
+              <h3 className="text-xl font-bold text-acb-900">{selectedTeam}</h3>
+              <p className="text-sm text-acb-500">{seasonLabel(selectedSeason)}</p>
+            </div>
+          </div>
+
           {/* Fortalezas / Debilidades */}
           <div className="grid md:grid-cols-2 gap-6">
             <TraitCard
