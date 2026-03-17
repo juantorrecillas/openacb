@@ -1,0 +1,163 @@
+# =============================================================================
+# 12 - Player Bio Scraper
+# =============================================================================
+# Scrapes player bio data (position, height, birth date) from acb.com using
+# rvest + CSS selectors. Outputs:
+#   - player-bio.json  (for React, keyed by licenseId)
+#   - player_bio.csv   (for R pipeline, used by 07_player_stats.R)
+#
+# CSS selectors (from ACB player page):
+#   Position:   .posicion .roboto_condensed_bold
+#   Height:     .altura .roboto_condensed_bold
+#   Birth date: .fecha_nacimiento .roboto_condensed_bold
+#
+# Usage (from openacb_api/ directory):
+#   source("etl/12_player_positions.R")
+#   generate_player_bio()                         # all seasons, incremental
+#   generate_player_bio(incremental = FALSE)      # force re-scrape all
+# =============================================================================
+
+library(rvest)
+library(jsonlite)
+
+generate_player_bio <- function(
+    data_dir    = "./data/processed",
+    output_dir  = "../openacb_react/public/data",
+    seasons     = c(2021, 2022, 2023, 2024, 2025, 2026),
+    incremental = TRUE,
+    sleep_sec   = 1
+) {
+  cat("\n--- Extracting player bio data from acb.com ---\n")
+
+  # -- 1. Collect unique licenseIds from processed player stats ----------------
+  all_ids <- character(0)
+  for (yr in seasons) {
+    paths <- c(
+      file.path(data_dir, paste0("PlayerStats", yr, ".csv")),
+      file.path(data_dir, paste0("PlayerStats", yr, ".Rds"))
+    )
+    for (p in paths) {
+      if (file.exists(p)) {
+        df <- if (grepl("\\.Rds$", p)) readRDS(p) else
+                read.csv(p, encoding = "UTF-8", stringsAsFactors = FALSE)
+        if ("license_id" %in% names(df)) {
+          all_ids <- c(all_ids, as.character(df$license_id[!is.na(df$license_id)]))
+        }
+        break
+      }
+    }
+  }
+  all_ids <- unique(all_ids)
+  cat(sprintf("  Found %d unique players across all seasons.\n", length(all_ids)))
+
+  if (length(all_ids) == 0) {
+    cat("  No licenseIds found. Run the player stats pipeline first.\n")
+    return(invisible(list()))
+  }
+
+  # -- 2. Load existing output (incremental mode) -----------------------------
+  output_file <- file.path(output_dir, "player-bio.json")
+  bio_map <- list()
+  if (incremental && file.exists(output_file)) {
+    bio_map <- fromJSON(output_file, simplifyVector = FALSE)
+    cat(sprintf("  Loaded %d existing entries (incremental mode).\n", length(bio_map)))
+  }
+
+  pending <- setdiff(all_ids, names(bio_map))
+  cat(sprintf("  %d players to scrape.\n", length(pending)))
+
+  if (length(pending) == 0) {
+    cat("  All players already have bio data. Nothing to do.\n")
+    return(invisible(bio_map))
+  }
+
+  # -- 3. Scrape each player page with rvest -----------------------------------
+  base_url <- "https://www.acb.com/jugador/temporada-a-temporada/id/"
+  css_position <- ".posicion .roboto_condensed_bold"
+  css_altura   <- ".altura .roboto_condensed_bold"
+  css_fecha    <- ".fecha_nacimiento .roboto_condensed_bold"
+
+  ok_count  <- 0
+  err_count <- 0
+
+  for (i in seq_along(pending)) {
+    lid <- pending[i]
+    url <- paste0(base_url, lid)
+
+    if (i > 1) Sys.sleep(sleep_sec)
+
+    html <- tryCatch(read_html(url), error = function(e) NULL)
+
+    if (is.null(html)) {
+      cat(sprintf("    [%d/%d] %s — connection error, skipping.\n", i, length(pending), lid))
+      err_count <- err_count + 1
+      next
+    }
+
+    # Extract fields via CSS selectors
+    pos_text    <- html %>% html_nodes(css_position) %>% html_text() %>% trimws()
+    height_text <- html %>% html_nodes(css_altura)   %>% html_text() %>% trimws()
+    fecha_text  <- html %>% html_nodes(css_fecha)    %>% html_text() %>% trimws()
+
+    # Position: keep as-is (e.g. "Escolta", "Base", "Ala-Pívot")
+    position <- if (length(pos_text) > 0 && nzchar(pos_text[1])) pos_text[1] else NA_character_
+
+    # Height: "1,88" → 1.88 (numeric)
+    height_m <- NA_real_
+    if (length(height_text) > 0 && nzchar(height_text[1])) {
+      h <- gsub(",", ".", height_text[1])
+      h <- sub("\\s*m.*$", "", h)
+      height_m <- suppressWarnings(as.numeric(trimws(h)))
+    }
+
+    # Birth date: "26/12/1991" → "1991-12-26"
+    birth_date <- NA_character_
+    if (length(fecha_text) > 0 && nzchar(fecha_text[1])) {
+      dmy <- regmatches(fecha_text[1], regexpr("\\d{2}/\\d{2}/\\d{4}", fecha_text[1]))
+      if (length(dmy) == 1) {
+        parts <- strsplit(dmy, "/")[[1]]
+        birth_date <- paste(parts[3], parts[2], parts[1], sep = "-")
+      }
+    }
+
+    if (is.na(position) && is.na(height_m) && is.na(birth_date)) {
+      cat(sprintf("    [%d/%d] %s — no bio data found.\n", i, length(pending), lid))
+      err_count <- err_count + 1
+    } else {
+      bio_map[[lid]] <- list(
+        position  = if (!is.na(position))   position   else NULL,
+        heightM   = if (!is.na(height_m))   height_m   else NULL,
+        birthDate = if (!is.na(birth_date)) birth_date else NULL
+      )
+      ok_count <- ok_count + 1
+    }
+
+    if (i %% 25 == 0 || i == length(pending)) {
+      cat(sprintf("    [%d/%d] done — %d found, %d errors so far.\n",
+                  i, length(pending), ok_count, err_count))
+    }
+  }
+
+  # -- 4. Save outputs --------------------------------------------------------
+
+  # JSON for React
+  dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
+  write_json(bio_map, output_file, auto_unbox = TRUE, null = "null")
+
+  # CSV for R pipeline (07_player_stats.R joins position from here)
+  csv_file <- file.path(data_dir, "player_bio.csv")
+  bio_df <- data.frame(
+    license_id = as.integer(names(bio_map)),
+    position   = sapply(bio_map, function(x) if (!is.null(x$position))  x$position  else NA_character_),
+    height_m   = sapply(bio_map, function(x) if (!is.null(x$heightM))   x$heightM   else NA_real_),
+    birth_date = sapply(bio_map, function(x) if (!is.null(x$birthDate)) x$birthDate else NA_character_),
+    stringsAsFactors = FALSE,
+    row.names = NULL
+  )
+  write.csv(bio_df, csv_file, row.names = FALSE, fileEncoding = "UTF-8")
+
+  cat(sprintf("\n  Saved %d player bio records.\n", length(bio_map)))
+  cat(sprintf("    New: %d  |  Errors: %d\n", ok_count, err_count))
+
+  invisible(bio_map)
+}

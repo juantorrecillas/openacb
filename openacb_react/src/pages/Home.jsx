@@ -1,0 +1,148 @@
+import { Link } from 'react-router-dom'
+import { Target, BarChart3, Users, TrendingUp, Trophy, Percent, UserCircle, ArrowRight, GitCompareArrows, Fingerprint, Activity, Crown } from 'lucide-react'
+
+// Tab id → URL path mapping (must match App.jsx)
+const TAB_PATHS = {
+  teams: '/equipos',
+  fingerprint: '/perfil-equipo',
+  gameflow: '/flujo-partido',
+  factors: '/cuatro-factores',
+  players: '/jugadores',
+  profile: '/jugador',
+  similarity: '/similitud',
+  lineups: '/alineaciones',
+  rankings: '/mejores-alineaciones',
+  shots: '/cartas-tiro',
+  zoneleaders: '/lideres-zona',
+  about: '/info',
+}
+
+const categories = [
+  {
+    id: 'jugadores',
+    title: 'Jugadores',
+    description: 'Estadísticas individuales, perfiles y comparativas',
+    tools: [
+      { id: 'players',    title: 'Estadísticas',     description: 'Estadísticas Básicas y Avanzadas de todos los jugadores de la liga.',          icon: Users },
+      { id: 'profile',    title: 'Perfil de Jugador', description: 'Perfil completo del jugador - estadísticas, arquetipos, evolución...',  icon: UserCircle },
+      { id: 'similarity', title: 'Similitud',         description: 'Jugadores con perfiles estadísticos similares.',          icon: GitCompareArrows },
+    ],
+  },
+  {
+    id: 'equipos',
+    title: 'Equipos',
+    description: 'Rendimiento, estilo e identidad de cada equipo',
+    tools: [
+      { id: 'teams',       title: 'Estadísticas de Equipo',       description: 'Estadísticas Avanzadas de cada equipoo',              icon: BarChart3 },
+      { id: 'fingerprint', title: 'Perfil de Equipo',   description: 'Perfil ofensivo y defensivo: Fortalezas y Debilidades.',       icon: Fingerprint },
+      { id: 'gameflow',    title: 'Análisis de Partido', description: 'Evolución del marcador jugada a jugada y rendimiento detallado por cuartos.',              icon: Activity },
+      { id: 'factors',     title: 'Cuatro Factores',    description: 'Análisis de los Four Factors de Dean Oliver.',                    icon: Percent },
+
+    ],
+  },
+  {
+    id: 'alineaciones',
+    title: 'Alineaciones',
+    description: 'Combinaciones y rendimiento de quintetos',
+    tools: [
+      { id: 'lineups',  title: 'Análisis On/Off', description: 'Qué alineaciones funcionan mejor sobre la pista.', icon: TrendingUp },
+      { id: 'rankings', title: 'Mejores Alineaciones',         description: 'Las alineaciones con mayor impacto en la liga.',      icon: Trophy },
+    ],
+  },
+  {
+    id: 'tiro',
+    title: 'Tiro',
+    description: 'Visualizaciones de tiro y líderes por zona',
+    tools: [
+      { id: 'shots',       title: 'Cartas de Tiro',   description: 'Mapas de calor con la distribución espacial de tiros.', icon: Target },
+      { id: 'zoneleaders', title: 'Líderes por Zona', description: 'Máximos Anotadores y tiradores más eficientes en cada zona del campo: para toda la liga y por equipos.',               icon: Crown },
+    ],
+  },
+]
+
+function CategoryBlock({ category }) {
+  return (
+    <div className="bg-white rounded-xl overflow-hidden border border-acb-200">
+      {/* Category header */}
+      <div className="bg-acb-700 px-5 py-4">
+        <h3 className="text-sm font-bold text-white uppercase tracking-wide">{category.title}</h3>
+        <p className="text-acb-300 text-xs mt-0.5">{category.description}</p>
+      </div>
+      {/* Tools list */}
+      <div className="divide-y divide-acb-100">
+        {category.tools.map((tool) => {
+          const Icon = tool.icon
+          return (
+            <Link
+              key={tool.id}
+              to={TAB_PATHS[tool.id] || '/'}
+              className="w-full flex items-center gap-3 px-5 py-3.5 text-left hover:bg-accent-100 transition-colors group"
+            >
+              <div className="flex-shrink-0 p-2 rounded-lg bg-acb-100">
+                <Icon className="w-4 h-4 text-acb-500" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-semibold text-acb-800 group-hover:text-accent-700">{tool.title}</div>
+                <div className="text-xs text-acb-400 truncate">{tool.description}</div>
+              </div>
+              <ArrowRight className="w-3.5 h-3.5 text-acb-300 group-hover:text-accent-500 group-hover:translate-x-0.5 transition-all flex-shrink-0" />
+            </Link>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function Home() {
+  return (
+    <div className="max-w-5xl mx-auto">
+      {/* Hero Section */}
+      <div className="text-center mb-10">
+        <div className="flex justify-center mb-6">
+          <img src="/openacb_nobckg.png" alt="OpenACB Logo" className="w-28 h-28 object-contain" />
+        </div>
+        <h1 className="text-4xl font-bold text-acb-900 mb-4">Bienvenido a OpenACB</h1>
+        <p className="text-xl text-acb-600 max-w-3xl mx-auto leading-relaxed">
+          Herramientas de analítica y estadísticas avanzadas para la Liga ACB.
+          Explora, visualiza y utiliza los recursos disponibles para entender mejor el baloncesto ACB.
+        </p>
+      </div>
+
+      {/* Category Grid */}
+      <div className="grid md:grid-cols-2 gap-5 mb-8">
+        {categories.map((category) => (
+          <CategoryBlock key={category.id} category={category} />
+        ))}
+      </div>
+
+      {/* Quick Stats Banner */}
+      <div className="bg-gradient-to-r from-acb-900 to-acb-700 rounded-lg p-8 text-white">
+        <div className="grid md:grid-cols-3 gap-8 text-center">
+          <div>
+            <div className="text-3xl font-bold mb-2">6</div>
+            <div className="text-acb-300 text-sm">Temporadas Disponibles: 2020-2026</div>
+          </div>
+          <div></div>
+          <div>
+            <div className="text-3xl font-bold mb-2">100%</div>
+            <div className="text-acb-300 text-sm">Código Abierto</div>
+          </div>
+        </div>
+      </div>
+
+      {/* CTA */}
+      <div className="mt-8 text-center">
+        <Link
+          to="/info"
+          className="inline-flex items-center gap-2 px-6 py-3 bg-acb-900 text-white rounded-lg hover:bg-acb-800 transition-colors"
+        >
+          Más información sobre el proyecto
+          <ArrowRight className="w-4 h-4" />
+        </Link>
+      </div>
+    </div>
+  )
+}
+
+export default Home
