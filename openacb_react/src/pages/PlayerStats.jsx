@@ -10,19 +10,19 @@ const basicColumns = [
   { key: 'team', label: 'Equipo', align: 'left', sortable: true },
   positionCol,
   { key: 'games', label: 'PJ', align: 'right', sortable: true },
-  { key: 'mpg', label: 'MPP', align: 'right', sortable: true, pctKey: 'mpgPct' },
-  { key: 'fgPct', label: 'TC%', align: 'right', sortable: true, pctKey: 'fgPctPct' },
-  { key: 'fg3Pct', label: '3P%', align: 'right', sortable: true, pctKey: 'fg3PctPct' },
-  { key: 'ftPct', label: 'TL%', align: 'right', sortable: true, pctKey: 'ftPctPct' },
-  { key: 'ppg', label: 'PPP', align: 'right', sortable: true, highlight: true, pctKey: 'ppgPct' },
-  { key: 'rpg', label: 'RPP', align: 'right', sortable: true, pctKey: 'rpgPct' },
-  { key: 'drebpg', label: 'RD', align: 'right', sortable: true, pctKey: 'drebpgPct' },
-  { key: 'orebpg', label: 'RO', align: 'right', sortable: true, pctKey: 'orebpgPct' },
-  { key: 'apg', label: 'APP', align: 'right', sortable: true, pctKey: 'apgPct' },
-  { key: 'spg', label: 'RBP', align: 'right', sortable: true, pctKey: 'spgPct' },
-  { key: 'bpg', label: 'TPP', align: 'right', sortable: true, pctKey: 'bpgPct' },
-  { key: 'topg', label: 'PER', align: 'right', sortable: true, inverse: true, pctKey: 'topgPct' },
-  { key: 'fpg', label: 'FPP', align: 'right', sortable: true, inverse: true, pctKey: 'fpgPct' },
+  { key: 'mpg', label: 'MPP', align: 'right', sortable: true, pctKey: 'mpgPct', posPctKey: 'mpgPosPct' },
+  { key: 'fgPct', label: 'TC%', align: 'right', sortable: true, pctKey: 'fgPctPct', posPctKey: 'fgPctPosPct' },
+  { key: 'fg3Pct', label: '3P%', align: 'right', sortable: true, pctKey: 'fg3PctPct', posPctKey: 'fg3PctPosPct' },
+  { key: 'ftPct', label: 'TL%', align: 'right', sortable: true, pctKey: 'ftPctPct', posPctKey: 'ftPctPosPct' },
+  { key: 'ppg', label: 'PPP', align: 'right', sortable: true, highlight: true, pctKey: 'ppgPct', posPctKey: 'ppgPosPct' },
+  { key: 'rpg', label: 'RPP', align: 'right', sortable: true, pctKey: 'rpgPct', posPctKey: 'rpgPosPct' },
+  { key: 'drebpg', label: 'RD', align: 'right', sortable: true, pctKey: 'drebpgPct', posPctKey: 'drebpgPosPct' },
+  { key: 'orebpg', label: 'RO', align: 'right', sortable: true, pctKey: 'orebpgPct', posPctKey: 'orebpgPosPct' },
+  { key: 'apg', label: 'APP', align: 'right', sortable: true, pctKey: 'apgPct', posPctKey: 'apgPosPct' },
+  { key: 'spg', label: 'RBP', align: 'right', sortable: true, pctKey: 'spgPct', posPctKey: 'spgPosPct' },
+  { key: 'bpg', label: 'TPP', align: 'right', sortable: true, pctKey: 'bpgPct', posPctKey: 'bpgPosPct' },
+  { key: 'topg', label: 'PER', align: 'right', sortable: true, inverse: true, pctKey: 'topgPct', posPctKey: 'topgPosPct' },
+  { key: 'fpg', label: 'FPP', align: 'right', sortable: true, inverse: true, pctKey: 'fpgPct', posPctKey: 'fpgPosPct' },
 ]
 
 // Advanced stats - shooting efficiency and rate statistics
@@ -31,18 +31,18 @@ const advancedColumns = [
   { key: 'team', label: 'Equipo', align: 'left', sortable: true },
   positionCol,
   { key: 'games', label: 'PJ', align: 'right', sortable: true },
-  { key: 'ortg', label: 'ORtg', align: 'right', sortable: true, highlight: true, pctKey: 'ortgPct' },
-  { key: 'usg', label: 'USG%', align: 'right', sortable: true, pctKey: 'usgPct' },
-  { key: 'efg', label: 'eFG%', align: 'right', sortable: true, pctKey: 'efgPct' },
-  { key: 'ts', label: 'TS%', align: 'right', sortable: true, pctKey: 'tsPct' },
-  { key: 'threeRate', label: '3PAr', align: 'right', sortable: true, pctKey: 'threeRatePct' },
-  { key: 'orbPct', label: 'RO%', align: 'right', sortable: true, pctKey: 'orbPctPct' },
-  { key: 'drbPct', label: 'RD%', align: 'right', sortable: true, pctKey: 'drbPctPct' },
-  { key: 'trbPct', label: 'REB%', align: 'right', sortable: true, pctKey: 'trbPctPct' },
-  { key: 'astPct', label: 'AST%', align: 'right', sortable: true, pctKey: 'astPctPct' },
-  { key: 'stlPct', label: 'ROB%', align: 'right', sortable: true, pctKey: 'stlPctPct' },
-  { key: 'blkPct', label: 'TAP%', align: 'right', sortable: true, pctKey: 'blkPctPct' },
-  { key: 'tovPct', label: 'PER%', align: 'right', sortable: true, inverse: true, pctKey: 'tovPctPct' },
+  { key: 'ortg', label: 'ORtg', align: 'right', sortable: true, highlight: true, pctKey: 'ortgPct', posPctKey: 'ortgPosPct' },
+  { key: 'usg', label: 'USG%', align: 'right', sortable: true, pctKey: 'usgPct', posPctKey: 'usgPosPct' },
+  { key: 'efg', label: 'eFG%', align: 'right', sortable: true, pctKey: 'efgPct', posPctKey: 'efgPosPct' },
+  { key: 'ts', label: 'TS%', align: 'right', sortable: true, pctKey: 'tsPct', posPctKey: 'tsPosPct' },
+  { key: 'threeRate', label: '3PAr', align: 'right', sortable: true, pctKey: 'threeRatePct', posPctKey: 'threeRatePosPct' },
+  { key: 'orbPct', label: 'RO%', align: 'right', sortable: true, pctKey: 'orbPctPct', posPctKey: 'orbPctPosPct' },
+  { key: 'drbPct', label: 'RD%', align: 'right', sortable: true, pctKey: 'drbPctPct', posPctKey: 'drbPctPosPct' },
+  { key: 'trbPct', label: 'REB%', align: 'right', sortable: true, pctKey: 'trbPctPct', posPctKey: 'trbPctPosPct' },
+  { key: 'astPct', label: 'AST%', align: 'right', sortable: true, pctKey: 'astPctPct', posPctKey: 'astPctPosPct' },
+  { key: 'stlPct', label: 'ROB%', align: 'right', sortable: true, pctKey: 'stlPctPct', posPctKey: 'stlPctPosPct' },
+  { key: 'blkPct', label: 'TAP%', align: 'right', sortable: true, pctKey: 'blkPctPct', posPctKey: 'blkPctPosPct' },
+  { key: 'tovPct', label: 'PER%', align: 'right', sortable: true, inverse: true, pctKey: 'tovPctPct', posPctKey: 'tovPctPosPct' },
 ]
 
 // Miscellaneous stats - contextual variables and play type percentages
@@ -131,6 +131,7 @@ export default function PlayerStats({ players, playerBio = {} }) {
   const [teamFilter, setTeamFilter] = useState('')
   const [positionFilter, setPositionFilter] = useState('')
   const [showFilteredPlayers, setShowFilteredPlayers] = useState(false)
+  const [pctMode, setPctMode] = useState('league') // 'league' or 'position'
 
   // Use the 'qualified' field from R data (pre-calculated with correct thresholds)
   // Falls back to local calculation if field not present
@@ -422,6 +423,23 @@ export default function PlayerStats({ players, playerBio = {} }) {
             </button>
           </div>
 
+          {/* Percentile Mode Toggle - only for views with percentiles */}
+          {(viewMode === 'basic' || viewMode === 'advanced' || viewMode === 'misc') && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-acb-500">Percentil:</span>
+              <div className="flex rounded-md border border-acb-200 text-xs overflow-hidden">
+                <button
+                  onClick={() => setPctMode('league')}
+                  className={`px-2.5 py-1 font-medium transition-colors ${pctMode === 'league' ? 'bg-acb-800 text-white' : 'bg-white text-acb-600 hover:bg-acb-50'}`}
+                >Liga</button>
+                <button
+                  onClick={() => setPctMode('position')}
+                  className={`px-2.5 py-1 font-medium transition-colors ${pctMode === 'position' ? 'bg-acb-800 text-white' : 'bg-white text-acb-600 hover:bg-acb-50'}`}
+                >Posición</button>
+              </div>
+            </div>
+          )}
+
           {/* Search */}
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-acb-400" />
@@ -528,8 +546,9 @@ export default function PlayerStats({ players, playerBio = {} }) {
                     {i + 1}
                   </td>
                   {columns.map(col => {
-                    const hasPercentile = col.pctKey && player[col.pctKey] != null
-                    const percentileValue = hasPercentile ? player[col.pctKey] : null
+                    const activePctKey = pctMode === 'position' && col.posPctKey ? col.posPctKey : col.pctKey
+                    const hasPercentile = activePctKey && player[activePctKey] != null
+                    const percentileValue = hasPercentile ? player[activePctKey] : null
                     const hasZoneFga = col.zone && col.fgaKey && player[col.fgaKey] != null
                     const fgaValue = hasZoneFga ? player[col.fgaKey] : null
                     const hasDefense = col.defense && col.fgpctKey && col.fgaKey && player[col.fgpctKey] != null

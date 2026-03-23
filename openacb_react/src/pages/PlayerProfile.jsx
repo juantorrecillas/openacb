@@ -342,9 +342,10 @@ function CareerTable({ records }) {
 }
 
 // ─── Percentile Bar ────────────────────────────────────────────
-function PctBar({ label, value, pctKey, player, fmtKey, inverse }) {
+function PctBar({ label, value, pctKey, posPctKey, player, fmtKey, inverse, usePos }) {
   const v = player[value]
-  const pct = pctKey ? player[pctKey] : null
+  const activePctKey = usePos && posPctKey ? posPctKey : pctKey
+  const pct = activePctKey ? player[activePctKey] : null
   // For inverse stats (turnovers, fouls), high percentile = bad, so flip the color
   const colorPct = inverse ? (pct != null ? 100 - pct : null) : pct
 
@@ -382,64 +383,81 @@ const profileSections = [
   {
     title: 'Anotación',
     stats: [
-      { label: 'PPP', value: 'ppg', pctKey: 'ppgPct' },
-      { label: 'ORtg', value: 'ortg', pctKey: 'ortgPct', fmtKey: 'ortg' },
-      { label: 'USG%', value: 'usg', pctKey: 'usgPct', fmtKey: 'usg' },
-      { label: 'TS%', value: 'ts', pctKey: 'tsPct', fmtKey: 'ts' },
-      { label: 'eFG%', value: 'efg', pctKey: 'efgPct', fmtKey: 'efg' },
+      { label: 'PPP', value: 'ppg', pctKey: 'ppgPct', posPctKey: 'ppgPosPct' },
+      { label: 'ORtg', value: 'ortg', pctKey: 'ortgPct', posPctKey: 'ortgPosPct', fmtKey: 'ortg' },
+      { label: 'USG%', value: 'usg', pctKey: 'usgPct', posPctKey: 'usgPosPct', fmtKey: 'usg' },
+      { label: 'TS%', value: 'ts', pctKey: 'tsPct', posPctKey: 'tsPosPct', fmtKey: 'ts' },
+      { label: 'eFG%', value: 'efg', pctKey: 'efgPct', posPctKey: 'efgPosPct', fmtKey: 'efg' },
     ],
   },
   {
     title: 'Tiro',
     stats: [
-      { label: 'TC%', value: 'fgPct', pctKey: 'fgPctPct', fmtKey: 'fgPct' },
-      { label: '3P%', value: 'fg3Pct', pctKey: 'fg3PctPct', fmtKey: 'fg3Pct' },
-      { label: 'TL%', value: 'ftPct', pctKey: 'ftPctPct', fmtKey: 'ftPct' },
-      { label: '3PAr', value: 'threeRate', pctKey: 'threeRatePct', fmtKey: 'threeRate' },
+      { label: 'TC%', value: 'fgPct', pctKey: 'fgPctPct', posPctKey: 'fgPctPosPct', fmtKey: 'fgPct' },
+      { label: '3P%', value: 'fg3Pct', pctKey: 'fg3PctPct', posPctKey: 'fg3PctPosPct', fmtKey: 'fg3Pct' },
+      { label: 'TL%', value: 'ftPct', pctKey: 'ftPctPct', posPctKey: 'ftPctPosPct', fmtKey: 'ftPct' },
+      { label: '3PAr', value: 'threeRate', pctKey: 'threeRatePct', posPctKey: 'threeRatePosPct', fmtKey: 'threeRate' },
     ],
   },
   {
     title: 'Creación',
     stats: [
-      { label: 'APP', value: 'apg', pctKey: 'apgPct' },
-      { label: 'AST%', value: 'astPct', pctKey: 'astPctPct', fmtKey: 'astPct' },
-      { label: 'PER', value: 'topg', pctKey: 'topgPct', inverse: true },
-      { label: 'TOV%', value: 'tovPct', pctKey: 'tovPctPct', fmtKey: 'tovPct', inverse: true },
+      { label: 'APP', value: 'apg', pctKey: 'apgPct', posPctKey: 'apgPosPct' },
+      { label: 'AST%', value: 'astPct', pctKey: 'astPctPct', posPctKey: 'astPctPosPct', fmtKey: 'astPct' },
+      { label: 'PER', value: 'topg', pctKey: 'topgPct', posPctKey: 'topgPosPct', inverse: true },
+      { label: 'TOV%', value: 'tovPct', pctKey: 'tovPctPct', posPctKey: 'tovPctPosPct', fmtKey: 'tovPct', inverse: true },
     ],
   },
   {
     title: 'Rebote',
     stats: [
-      { label: 'RPP', value: 'rpg', pctKey: 'rpgPct' },
-      { label: 'RO%', value: 'orbPct', pctKey: 'orbPctPct', fmtKey: 'orbPct' },
-      { label: 'RD%', value: 'drbPct', pctKey: 'drbPctPct', fmtKey: 'drbPct' },
-      { label: 'REB%', value: 'trbPct', pctKey: 'trbPctPct', fmtKey: 'trbPct' },
+      { label: 'RPP', value: 'rpg', pctKey: 'rpgPct', posPctKey: 'rpgPosPct' },
+      { label: 'RO%', value: 'orbPct', pctKey: 'orbPctPct', posPctKey: 'orbPctPosPct', fmtKey: 'orbPct' },
+      { label: 'RD%', value: 'drbPct', pctKey: 'drbPctPct', posPctKey: 'drbPctPosPct', fmtKey: 'drbPct' },
+      { label: 'REB%', value: 'trbPct', pctKey: 'trbPctPct', posPctKey: 'trbPctPosPct', fmtKey: 'trbPct' },
     ],
   },
   {
     title: 'Defensa',
     stats: [
-      { label: 'RBP', value: 'spg', pctKey: 'spgPct' },
-      { label: 'ROB%', value: 'stlPct', pctKey: 'stlPctPct', fmtKey: 'stlPct' },
-      { label: 'TPP', value: 'bpg', pctKey: 'bpgPct' },
-      { label: 'TAP%', value: 'blkPct', pctKey: 'blkPctPct', fmtKey: 'blkPct' },
+      { label: 'RBP', value: 'spg', pctKey: 'spgPct', posPctKey: 'spgPosPct' },
+      { label: 'ROB%', value: 'stlPct', pctKey: 'stlPctPct', posPctKey: 'stlPctPosPct', fmtKey: 'stlPct' },
+      { label: 'TPP', value: 'bpg', pctKey: 'bpgPct', posPctKey: 'bpgPosPct' },
+      { label: 'TAP%', value: 'blkPct', pctKey: 'blkPctPct', posPctKey: 'blkPctPosPct', fmtKey: 'blkPct' },
     ],
   },
 ]
 
 function PercentileProfile({ player }) {
+  const [usePos, setUsePos] = useState(false)
+  const hasPosPct = player.ppgPosPct != null
+
   return (
     <div className="bg-white rounded-lg border border-acb-200 p-5">
-      <div className="mb-4">
-        <h3 className="font-semibold text-acb-900">Perfil de Rendimiento</h3>
-        <p className="text-xs text-acb-500">{player.team} - {seasonLabel(player.season)} - {player.games} partidos - Percentiles</p>
+      <div className="mb-4 flex items-start justify-between">
+        <div>
+          <h3 className="font-semibold text-acb-900">Perfil de Rendimiento</h3>
+          <p className="text-xs text-acb-500">{player.team} - {seasonLabel(player.season)} - {player.games} partidos - Percentiles {usePos ? `(vs. ${player.position || 'posición'})` : '(vs. liga)'}</p>
+        </div>
+        {hasPosPct && (
+          <div className="flex rounded-md border border-acb-200 text-xs overflow-hidden shrink-0">
+            <button
+              onClick={() => setUsePos(false)}
+              className={`px-3 py-1.5 font-medium transition-colors ${!usePos ? 'bg-acb-800 text-white' : 'bg-white text-acb-600 hover:bg-acb-50'}`}
+            >Liga</button>
+            <button
+              onClick={() => setUsePos(true)}
+              className={`px-3 py-1.5 font-medium transition-colors ${usePos ? 'bg-acb-800 text-white' : 'bg-white text-acb-600 hover:bg-acb-50'}`}
+            >Posición</button>
+          </div>
+        )}
       </div>
       <div className="grid md:grid-cols-2 gap-x-8 gap-y-5">
         {profileSections.map(section => (
           <div key={section.title}>
             <h4 className="text-xs font-semibold text-acb-500 uppercase tracking-wider mb-1 border-b border-acb-100 pb-1">{section.title}</h4>
             {section.stats.map(s => (
-              <PctBar key={s.value} {...s} player={player} />
+              <PctBar key={s.value} {...s} player={player} usePos={usePos} />
             ))}
           </div>
         ))}
@@ -459,28 +477,31 @@ function PercentileProfile({ player }) {
 
 // ─── Radar Chart (SVG) ─────────────────────────────────────────
 const radarAxes = [
-  { key: 'ppgPct', label: 'Anotación' },       // PPP percentile
-  { key: 'tsPct', label: 'Eficiencia' },        // TS% percentile
-  { key: 'usgPct', label: 'Volumen' },          // USG% percentile
-  { key: 'threeRatePct', label: 'Vol 3%' },     // 3PAr percentile
-  { key: 'astPctPct', label: 'Creación' },      // AST% percentile
-  { key: 'trbPctPct', label: 'Rebote' },        // TRB% percentile
-  { key: 'blkPctPct', label: 'Def. Interior' }, // BLK% percentile
-  { key: 'stlPctPct', label: 'Def. Perímetro' }, // STL% percentile
+  { key: 'ppgPct', posKey: 'ppgPosPct', label: 'Anotación' },
+  { key: 'tsPct', posKey: 'tsPosPct', label: 'Eficiencia' },
+  { key: 'usgPct', posKey: 'usgPosPct', label: 'Volumen' },
+  { key: 'threeRatePct', posKey: 'threeRatePosPct', label: 'Vol 3%' },
+  { key: 'astPctPct', posKey: 'astPctPosPct', label: 'Creación' },
+  { key: 'trbPctPct', posKey: 'trbPctPosPct', label: 'Rebote' },
+  { key: 'blkPctPct', posKey: 'blkPctPosPct', label: 'Def. Interior' },
+  { key: 'stlPctPct', posKey: 'stlPctPosPct', label: 'Def. Perímetro' },
 ]
 
-function getRadarValues(player) {
-  return radarAxes.map(axis => player[axis.key] ?? 50)
+function getRadarValues(player, usePos) {
+  return radarAxes.map(axis => {
+    const k = usePos && axis.posKey ? axis.posKey : axis.key
+    return player[k] ?? 50
+  })
 }
 
-function RadarChart({ player }) {
+function RadarChart({ player, usePos }) {
   const size = 360
   const cx = size / 2
   const cy = size / 2
   const radius = 100
   const levels = [25, 50, 75, 100]
   const n = radarAxes.length
-  const values = getRadarValues(player)
+  const values = getRadarValues(player, usePos)
 
   // Angle for each axis (start from top, go clockwise)
   const angle = (i) => (Math.PI * 2 * i) / n - Math.PI / 2
@@ -573,7 +594,7 @@ function RadarChart({ player }) {
 }
 
 // ─── Archetype Classifier ──────────────────────────────────────
-function classifyArchetype(player) {
+function classifyArchetype(player, bio) {
   const ppg = player.ppgPct ?? 50
   const ts  = player.tsPct ?? 50
   const usg = player.usgPct ?? 50
@@ -584,6 +605,35 @@ function classifyArchetype(player) {
   const orb = player.orbPctPct ?? 50
   const thr = player.threeRatePct ?? 50
   const mpg = player.mpg
+
+  // Position & height (graceful fallback to null when missing)
+  const rawPos = player.position || (bio && bio.position) || null
+  const position = rawPos && rawPos.trim() ? rawPos.trim() : null
+  const height = (() => {
+    const h = player.heightM ?? (bio && bio.heightM)
+    return h != null && isFinite(h) ? h : null
+  })()
+
+  // Position group flags (all false when position is unknown → pure stat fallback)
+  const isGuardPos  = position === 'Base' || position === 'Escolta'
+  const isSecondGuard = position == 'Escolta'
+  const isWingPos   = position === 'Alero'
+  const isBigPos    = position === 'Ala-pívot' || position === 'Pívot'
+  const isCenterPos = position === 'Pívot'
+  const isPFPos     = position === 'Ala-pívot'
+
+  // Height flags
+  const isTall     = height != null && height >= 2.00
+  const isVeryTall = height != null && height >= 2.08
+
+  // Shot creation: share of assisted scoring (0-1 scale, null when missing)
+  const astdFgm  = player.assistedFgm  != null && isFinite(player.assistedFgm)  ? player.assistedFgm  : null
+  const astdFgm3 = player.assistedFgm3 != null && isFinite(player.assistedFgm3) ? player.assistedFgm3 : null
+
+  // Shot creation flags
+  const isSelfCreator   = astdFgm != null && astdFgm < 0.40   // mostly creates own shot
+  const isOffDribble3   = astdFgm3 != null && astdFgm3 < 0.60 // significant off-dribble 3PT ability
+  const isCatchAndShoot = astdFgm3 != null && astdFgm3 >= 0.75 // mostly catch-and-shoot from 3
 
   // Trait flags
   const isHighVolume = usg >= 80
@@ -599,60 +649,87 @@ function classifyArchetype(player) {
 
   // ── Guard archetypes (playmaker-first logic) ──
 
+  // Passing big man: high-vision frontcourt player (Gasol/Jokic type)
+  if (isBigPos && ast >= 75 && !isScorer && usg < 80 && trb >= 50)
+    return { name: 'Interior Creador', desc: 'Interior con visión de juego excepcional que facilita el juego ofensivo', color: 'text-info-700 bg-info-50 border-info-200' }
+
   // Brick-layer: Players with high usage and very low efficiency
   if (usg >= 80 && ts < 10)
     return { name: 'Mandarinas', desc: 'Mandarinero de élite. Tira tanto como falla.', color: 'text-negative-700 bg-negative-50 border-negative-200' }
 
   // All-around elite guard: scores, creates, efficient AND elite defense
-  if (isScorer && isPlaymaker && isEfficient && isPerimDefender && thr > 20 && mpg >= 20 && !isRebounder)
+  if (isScorer && isPlaymaker && isEfficient && isPerimDefender && thr > 20 && mpg >= 20 && !isRebounder && !isCenterPos)
     return { name: 'Base Estrella', desc: 'Anota, crea, defiende y lo hace todo con eficiencia de elite', color: 'text-accent-700 bg-accent-50 border-accent-200' }
   
+    // elite creator + elite defender: high usage playmaker with lockdown defense and elite scorer w/ limited efficiecny
+  if (isPlaymaker && isPerimDefender && usg >= 75 && ppg >= 85 && thr > 20 && mpg >= 20 && !isRebounder && !isCenterPos && isSecondGuard)
+    return { name: 'Combo Guard Todoterreno Élite', desc: 'Escolta con gran defensa perimetral y capaz de anotar con gran volumen', color: 'text-accent-700 bg-accent-50 border-accent-200' }
+
   // elite creator + elite defender: high usage playmaker with lockdown defense and elite scorer w/ limited efficiecny
-  if (isPlaymaker && isPerimDefender && usg >= 75 && ppg >= 85 && thr > 20 && mpg >= 20 && !isRebounder)
+  if (isPlaymaker && isPerimDefender && usg >= 75 && ppg >= 85 && thr > 20 && mpg >= 20 && !isRebounder && !isCenterPos && isGuardPos)
     return { name: 'Base Todoterreno Élite', desc: 'Anotador y creador estrella con defensa perimetral de alto nivel', color: 'text-accent-700 bg-accent-50 border-accent-200' }
   
+
   // Volume scorer: high usage + high scoring, regardless of efficiency
   if (ppg >= 90 && usg >= 90 && thr >= 35 && ast >= 50 && ast < 70 && ts >= 70 && mpg >= 20)
     return { name: 'Estrella Anotadora', desc: 'Anotador élite de alto volumen y eficiencia', color: 'text-accent-700 bg-accent-50 border-accent-200' }
 
   // Complete guard: scores a lot AND creates a lot (without elite defense)
-  if (isScorer && isPlaymaker && isEfficient && trb < 50 && mpg >= 20)
+  if (isScorer && isPlaymaker && isEfficient && trb < 50 && mpg >= 20 && !isCenterPos)
     return { name: 'Base Dominador', desc: 'Anota, crea para otros y lo hace con eficiencia', color: 'text-info-700 bg-info-50 border-info-200' }
 
   // good creator + elite defender: high usage playmaker with lockdown defense (not elite scorer)
-  if (isPlaymaker && isPerimDefender && usg >= 75 && ppg >= 75 && blk < 50 && !isRebounder)
+  if (isPlaymaker && isPerimDefender && usg >= 75 && ppg >= 75 && blk < 50 && !isRebounder && isSelfCreator)
     return { name: 'Creador de Tiros Polivalente', desc: 'Creador de juego y anotador con defensa perimetral de alto nivel', color: 'text-sage-700 bg-sage-50 border-sage-200' }
   // High-octane creator: elite assists + high volume (may sacrifice efficiency)
   if (ast >= 95 && isHighVolume && ppg >= 70 && trb < 80)
     return { name: 'General en la Pista', desc: 'Anotador de alto volumen y alta capacidad de encontrar a sus compañeros', color: 'text-gold-700 bg-gold-50 border-gold-200' }
 
+
   // High-octane creator: elite assists + high volume (may sacrifice efficiency)
-  if (ast >= 80 && isHighVolume && ppg >= 70 && trb < 80 && mpg >= 20)
+  if (ast >= 80 && usg >= 75 && ppg >= 80 && trb < 80 && mpg >= 20 && isSecondGuard)
+    return { name: 'Combo Guard Anotador', desc: 'Escolta con buena capacidad de organizar el juego y alto volumen anotador', color: 'text-gold-700 bg-gold-50 border-gold-200' }
+
+  // High-octane creator: elite assists + high volume (may sacrifice efficiency)
+  if (ast >= 80 && isHighVolume && ppg >= 75 && trb < 80 && mpg >= 20 && isGuardPos)
     return { name: 'Creador de Tiros-Organizador', desc: 'Creador de alto octanaje que también habilita a sus compañeros', color: 'text-gold-700 bg-gold-50 border-gold-200' }
   
-  // Volume scorer: high usage + high scoring, regardless of efficiency
+  // Efficient scorer who creates own shot
+  if (isScorer && thr >= 40 && ast >= 50 && ast < 70 && stl < 75 && isEfficient && isSelfCreator)
+    return { name: 'Anotador Autosuficiente', desc: 'Genera y convierte su propio tiro con alto volumen y eficiencia', color: 'text-gold-700 bg-gold-50 border-gold-200' }
+  // Efficient off-ball scorer
   if (isScorer && thr >= 40 && ast >= 50 && ast < 70 && stl < 75 && isEfficient)
-    return { name: 'Anotador Eficiente', desc: 'Anotador de alto volumen y alta eficiencia que asume la responsabilidad ofensiva', color: 'text-gold-700 bg-gold-50 border-gold-200' }
+    return { name: 'Anotador Eficiente', desc: 'Anotador de alto volumen y alta eficiencia', color: 'text-gold-700 bg-gold-50 border-gold-200' }
 
   // Volume scorer: high usage + high scoring, regardless of efficiency
   if (isScorer && thr >= 30 && ast >= 40 && stl < 75 && mpg >= 20)
     return { name: 'Anotador Compulsivo', desc: 'Anotador de gran volumen con eficiencia limitada', color: 'text-gold-700 bg-gold-50 border-gold-200' }
 
-  // Pure Scorer: High Point count, little supporting stats
+  // Pure Scorer: self-creating or off-ball
+  if (ppg > 85 && thr >= 30 && ast < 50 && stl < 75 && ts >= 70 && isSelfCreator)
+    return { name: 'Anotador Puro', desc: 'Anotador eficiente capaz de generar sus propios tiros', color: 'text-gold-700 bg-gold-50 border-gold-200' }
   if (ppg > 85  && thr >= 30 && ast < 50 && stl < 75 && ts >= 70)
-    return { name: 'Anotador Puro', desc: 'Anotador eficiente con contribución limitada al resto de áreas', color: 'text-gold-700 bg-gold-50 border-gold-200' }
+    return { name: 'Finalizador Eficiente', desc: 'Anotador eficiente que convierte oportunidades sin responsabilidades de creación', color: 'text-gold-700 bg-gold-50 border-gold-200' }
 
   // Volume scorer: high usage + high scoring, regardless of efficiency
-  if (isScorer && thr >= 40 && ast <= 40 && stl < 75 && mpg >= 20)
+  if (isScorer && thr >= 40 && ast <= 40 && stl < 75 && mpg >= 20 && !isGuardPos)
     return { name: 'Alero Anotador', desc: 'Alero con gran volumen y capacidad de anotar y sin responsabilidades en la creación de juego', color: 'text-gold-700 bg-gold-50 border-gold-200' }
 
   // Defensive floor general: elite playmaker + elite perimeter defense, not a scorer
-  if (isPlaymaker && isPerimDefender && !isScorer && ppg < 80)
+  if (isPlaymaker && isPerimDefender && !isScorer && ppg < 80 && isGuardPos)
     return { name: 'Creador de Juego Defensivo', desc: 'Organiza el ataque y lidera la defensa perimetral', color: 'text-sage-700 bg-sage-50 border-sage-200' }
+
+    // Defensive floor general: elite playmaker + elite perimeter defense, not a scorer
+  if (ast>60 && isPerimDefender && !isScorer && ppg < 80 && isWingPos)
+    return { name: 'Point-Forward Defensivo', desc: 'Organiza el ataque y lidera la defensa perimetral', color: 'text-sage-700 bg-sage-50 border-sage-200' }
 
   // Pass-first guard: elite playmaker, not high volume
   if (ast >= 75 && usg < 80 && !isScorer)
     return { name: 'Organizador Puro', desc: 'Prioriza la asistencia y la organización del ataque', color: 'text-info-700 bg-info-50 border-info-200' }
+
+    // Pass-first guard: elite playmaker, not high volume
+  if (ast >= 75 && usg < 80 && !isScorer && !isPerimDefender && !isGuardPos)
+    return { name: 'Point Forward', desc: 'Prioriza la asistencia y la organización del ataque', color: 'text-info-700 bg-info-50 border-info-200' }
 
   // Two-way guard: scorer with elite defense
   if (isScorer && (stl >= 75 || blk >= 65) && ast >= 50 && ast < 70 && trb < 75)
@@ -663,7 +740,7 @@ function classifyArchetype(player) {
     return { name: 'Combo Guard Anotador', desc: 'Anotador eficiente puro, genera poco para los demás', color: 'text-gold-700 bg-gold-50 border-gold-200' }
   
   // Pass-first guard: elite playmaker, not high volume
-  if (ast >= 85 && usg > 70 && ppg > 65 && trb < 50 && blk < 30)
+  if (ast >= 85 && usg > 70 && ppg > 65 && trb < 50 && blk < 30 && !isBigPos)
     return { name: 'Base Completo', desc: 'Organiza y anota eficientemente con buen volumen', color: 'text-info-700 bg-info-50 border-info-200' }
 
   
@@ -684,13 +761,17 @@ function classifyArchetype(player) {
 
   // Slasher: scores inside, low three-point volume
   if (isScorer && thr < 20 && !isRimProtector && stl  > 30)
-    return { name: 'Penetrador', desc: 'Anotador agresivo atacando el aro', color: 'text-gold-700 bg-gold-50 border-gold-200' }
+    return { name: 'Finalizador Interior', desc: 'Anotador agresivo atacando el aro', color: 'text-gold-700 bg-gold-50 border-gold-200' }
 
-  // 3&D Wing - check before Francotirador to catch shooters with elite defense
+  // 3&D Wing vs defensive shot creator: shooter + elite defense
+  if (thr >= 75 && (isPerimDefender || isRimProtector) && isOffDribble3)
+    return { name: 'Alero Creador Defensivo', desc: 'Crea su propio tiro exterior y defiende a alto nivel', color: 'text-sage-700 bg-sage-50 border-sage-200' }
   if (thr >= 75 && (isPerimDefender || isRimProtector))
-    return { name: 'Alero 3&D', desc: 'Tiro exterior y defensa perimetral', color: 'text-sage-700 bg-sage-50 border-sage-200' }
+    return { name: 'Alero 3&D', desc: 'Tirador exterior con defensa de élite', color: 'text-sage-700 bg-sage-50 border-sage-200' }
 
-  // Sharpshooter - pure shooting specialist without elite defense
+  // Shot creator vs catch-and-shoot specialist: shooter without elite defense
+  if (isShooter && !isScorer && ast < 65 && !isPerimDefender && isOffDribble3)
+    return { name: 'Tirador tras Bote', desc: 'Genera su propio tiro exterior con capacidad para anotar desde el bote', color: 'text-sand-700 bg-sand-50 border-sand-200' }
   if (isShooter && !isScorer && ast < 65 && !isPerimDefender)
     return { name: 'Francotirador', desc: 'Especialista en tiro exterior', color: 'text-sand-700 bg-sand-50 border-sand-200' }
 
@@ -720,74 +801,91 @@ function classifyArchetype(player) {
     return { name: 'Estrella Two-Way', desc: 'Dominante en ataque y defensa', color: 'text-accent-700 bg-accent-50 border-accent-200' }
 
   // Versatile guard: high usage + creation + defense, but not a star
-  if (usg >= 65 && ast >= 70 && (stl >= 70) && ppg >= 70 && usg >= 70 && thr > 20 && !isRebounder)
+  if (usg >= 65 && ast >= 70 && (stl >= 70) && ppg >= 70 && usg >= 70 && thr > 20 && !isRebounder && !isBigPos)
     return { name: 'Base Polivalente', desc: 'Base versátil con anotación, creación y defensa', color: 'text-info-700 bg-info-50 border-info-200' }
 
       // Point Forward
-  if (trb >= 70 && ast >75 && blk > 60 && stl > 60 && thr > 50)
+  if ((trb >= 70 && ast > 75 && blk > 60 && stl > 60 && thr > 50) ||
+      ((isWingPos || isPFPos) && trb >= 65 && ast > 70 && blk > 40 && stl > 40 && thr > 40))
     return { name: 'Point Forward', desc: 'Ala-pívot con gran manejo de balón y capacidad de generar para sus compañeros', color:'text-info-700 bg-info-50 border-info-200'  }
 
   // ── Big man archetypes ──
 
+  // Shooting big who doesn't protect the rim
+  if (isBigPos && isShooter && trb >= 50 && blk < 60 && !isScorer)
+    return { name: 'Interior con Tiro', desc: 'Interior que abre el campo con su amenaza exterior', color: 'text-plum-700 bg-plum-50 border-plum-200' }
+
   // Elite Center: All around
-  if (isScorer && trb >= 85 && blk >70 && ast < 75 && mpg >= 20)
+  if (isScorer && (trb >= 85 || (isCenterPos && trb >= 78)) && blk >70 && ast < 75 && mpg >= 20 && !isWingPos && !isGuardPos)
     return { name: 'Pívot Estrella', desc: 'Domina la zona, intimida y lleva el peso ofensivo del equipo.', color: 'text-accent-700 bg-accent-50 border-accent-200' }
   
   // Versatile Center
-  if (isScorer && trb >= 80 && ast >= 70 && mpg >= 20)
+  if (isScorer && trb >= 80 && ast >= 70 && mpg >= 20 && !isWingPos && !isGuardPos)
     return { name: 'Pívot Moderno Estrella', desc: 'Anota en la pintura, rebotea, protege el aro y habilita a sus compañeros con facilidad', color: 'text-accent-700 bg-accent-50 border-accent-200' }
 
   // Versatile Center
-  if (isScorer && trb >= 80 && ast >= 70)
+  if (isScorer && trb >= 80 && ast >= 70 && !isWingPos && !isGuardPos)
     return { name: 'Pívot Moderno', desc: 'Anota en la pintura, rebotea y habilita a sus compañeros con facilidad', color: 'text-plum-700 bg-plum-50 border-plum-200' }
 
-  // Post Scorer
-  if (isScorer && isRebounder && blk < 70 && thr < 40)
-    return { name: 'Anotador en el poste', desc: 'Anotador compulsivo en la zona.', color: 'text-gold-700 bg-gold-50 border-gold-200' }
+  // Post Scorer: self-creating vs finisher
+  if (isScorer && isRebounder && blk < 70 && thr < 40 && !isWingPos && !isGuardPos && isSelfCreator)
+    return { name: 'Creador de Tiros Interior', desc: 'Crea sus propios tiros en la zona con eficiencia y volumen', color: 'text-gold-700 bg-gold-50 border-gold-200' }
+  if (isScorer && isRebounder && blk < 70 && thr < 40 && !isWingPos && !isGuardPos)
+    return { name: 'Coche Escoba', desc: 'Finalizador interior con poca capacidad de generar sus propios tiros', color: 'text-gold-700 bg-gold-50 border-gold-200' }
 
   // Paint Beast: rebounds + blocks
-  if (isRebounder && blk >= 80 && ts >= 85 && ppg  > 75)
+  if (isRebounder && blk >= 80 && ts >= 85 && ppg  > 75 && !isWingPos && !isGuardPos)
     return { name: 'Bestia en la Zona', desc: 'Domina la zona con rebotes y protección de aro, anotando con eficiencia', color: 'text-gold-700 bg-gold-50 border-gold-200' }
     // Pívot Completo
-  if (blk >= 70 && trb >= 70 && ppg >= 85)
+  if (blk >= 70 && trb >= 70 && ppg >= 85 && !isWingPos && !isGuardPos)
     return { name: 'Interior Anotador', desc: 'Rebotea, protege el aro y anota en alto volumen', color: 'text-gold-700 bg-gold-50 border-gold-200' }
 
   // Rim Protector
-  if (isRebounder && blk >= 80 && usg < 60 )
+  if ((isRebounder || (isCenterPos && trb >= 72)) && blk >= 80 && usg < 60 && !isWingPos && !isGuardPos)
     return {name: 'Protector del Aro', desc: 'Protector interior eficaz sin responsabilidades ofensivas', color: 'text-plum-700 bg-plum-50 border-plum-200' }
 
   // Interior defender (not rim protector archetype - lower rebounds)
-  if (blk >= 90 && !isScorer)
+  if (blk >= 90 && !isScorer && !isWingPos && !isGuardPos)
     return { name: 'Intimidador Interior', desc: 'Presencia defensiva cerca del aro con tapones', color: 'text-plum-700 bg-plum-50 border-plum-200' }
 
   // Stretch Big: rebounds + shoots threes
-  if (trb >= 75 && blk >= 60 && thr >= 75)
+  if (trb >= 75 && blk >= 60 && thr >= 75 && (isBigPos || isVeryTall))
     return { name: 'Pívot Abierto', desc: 'Grande que abre el campo con tiro exterior', color: 'text-plum-700 bg-plum-50 border-plum-200' }
 
-      // Ala Pívot Finalizador
-  if (trb >= 80 && ppg >= 75 && usg > 65 && ts >80)
-    return { name: 'Ala Pívot Finalizador', desc: 'Rebotea y finaliza con gran eficiencia', color: 'text-plum-700 bg-plum-50 border-plum-200' }
+      // Ala Pívot: self-creating scorer vs finisher
+  if (trb >= 80 && ppg >= 75 && usg > 65 && ts >80 && !isGuardPos && isSelfCreator)
+    return { name: 'Ala-Pívot Anotador', desc: 'Rebotea y crea su propia anotación con gran eficiencia', color: 'text-plum-700 bg-plum-50 border-plum-200' }
+  if (trb >= 80 && ppg >= 75 && usg > 65 && ts >80 && !isGuardPos)
+    return { name: 'Ala Pívot Finalizador', desc: 'Rebotea y finaliza tras pase con gran eficiencia', color: 'text-plum-700 bg-plum-50 border-plum-200' }
 
 
     // Pívot Completo
-  if (blk >= 70 && trb >= 70 && ppg >= 70)
+  if (blk >= 70 && trb >= 70 && ppg >= 70 && !isWingPos && !isGuardPos)
     return { name: 'Interior de Rol Completo', desc: 'Rebotea, protege el aro y anota sin ser el foco de atención', color: 'text-plum-700 bg-plum-50 border-plum-200' }
 
       // Ala Pívot de Rol
-  if (trb >= 70 && ppg >= 70 && usg < 60)
+  if (trb >= 70 && ppg >= 70 && usg < 60 && !isGuardPos)
     return { name: 'Ala Pívot de Rol', desc: 'Rebotea y anota sin ser el foco de atención', color: 'text-plum-700 bg-plum-50 border-plum-200' }
 
   // Glass Cleaner
-  if (isRebounder && orb >= 70 && !isScorer)
+  if ((isRebounder || (isCenterPos && trb >= 72)) && orb >= 70 && !isScorer && !isWingPos && !isGuardPos)
     return { name: 'Aspiradora', desc: 'Dominador del rebote ofensivo y defensivo', color: 'text-sand-700 bg-sand-50 border-sand-200' }
 
   // Rim Protector
-  if (blk >= 70 && trb >= 70 && !isScorer)
+  if (blk >= 70 && trb >= 70 && !isScorer && !isWingPos && !isGuardPos)
     return { name: 'Pívot de Rol', desc: 'Cumple su función de protector del aro y reboteador', color: 'text-plum-700 bg-plum-50 border-plum-200' }
 
 
 
 
+
+  // Versatile PF catch-all before role archetypes
+  if ((isPFPos || (isWingPos && isTall)) && ppg >= 65 && trb >= 65 && thr > 25)
+    return { name: 'Ala-Pívot Versátil', desc: 'Ala-pívot con capacidad de anotar, rebotear y abrir el campo', color: 'text-plum-700 bg-plum-50 border-plum-200' }
+
+  // Wing with interior impact: rebounds and/or blocks from the wing position
+  if (isWingPos && trb >= 60 && (blk >= 50 || trb >= 75))
+    return { name: 'Alero Reboteador', desc: 'Alero con impacto en el rebote y la defensa interior', color: 'text-sage-700 bg-sage-50 border-sage-200' }
 
   // ── Role archetypes ──
 
@@ -813,17 +911,30 @@ function classifyArchetype(player) {
 }
 
 // ─── Radar + Archetype Card ───────────────────────────────────
-function RadarArchetypeCard({ player }) {
-  const archetype = classifyArchetype(player)
+function RadarArchetypeCard({ player, bio }) {
+  const archetype = classifyArchetype(player, bio)
+  const [usePos, setUsePos] = useState(false)
 
   return (
     <div className="bg-white rounded-lg border border-acb-200 p-5">
       <div className="flex flex-col md:flex-row md:items-start gap-6">
         {/* Radar */}
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-acb-900 mb-1">Radar de Rendimiento</h3>
-          <p className="text-xs text-acb-500 mb-3">{player.team} - {seasonLabel(player.season)}</p>
-          <RadarChart player={player} />
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="font-semibold text-acb-900">Radar de Rendimiento</h3>
+            <div className="flex rounded-lg overflow-hidden border border-acb-200 text-xs">
+              <button
+                onClick={() => setUsePos(false)}
+                className={`px-3 py-1.5 font-medium transition-colors ${!usePos ? 'bg-acb-800 text-white' : 'bg-white text-acb-600 hover:bg-acb-50'}`}
+              >Liga</button>
+              <button
+                onClick={() => setUsePos(true)}
+                className={`px-3 py-1.5 font-medium transition-colors ${usePos ? 'bg-acb-800 text-white' : 'bg-white text-acb-600 hover:bg-acb-50'}`}
+              >Posición</button>
+            </div>
+          </div>
+          <p className="text-xs text-acb-500 mb-3">{player.team} - {seasonLabel(player.season)} - Percentiles {usePos ? `(vs. ${player.position || 'posición'})` : '(vs. liga)'}</p>
+          <RadarChart player={player} usePos={usePos} />
         </div>
         {/* Archetype */}
         <div className="md:w-64 shrink-0 flex flex-col items-center md:items-start md:pt-10">
@@ -834,14 +945,16 @@ function RadarArchetypeCard({ player }) {
           </div>
           {/* Mini stats reference */}
           <div className="mt-4 text-xs text-acb-500 space-y-1 w-full">
-            <div className="flex justify-between"><span>PPP</span><span className="font-mono">{player.ppgPct != null ? Math.round(player.ppgPct) : '-'}p</span></div>
-            <div className="flex justify-between"><span>TS%</span><span className="font-mono">{player.tsPct != null ? Math.round(player.tsPct) : '-'}p</span></div>
-            <div className="flex justify-between"><span>USG%</span><span className="font-mono">{player.usgPct != null ? Math.round(player.usgPct) : '-'}p</span></div>
-            <div className="flex justify-between"><span>Vol 3%</span><span className="font-mono">{player.threeRatePct != null ? Math.round(player.threeRatePct) : '-'}p</span></div>
-            <div className="flex justify-between"><span>AST%</span><span className="font-mono">{player.astPctPct != null ? Math.round(player.astPctPct) : '-'}p</span></div>
-            <div className="flex justify-between"><span>TRB%</span><span className="font-mono">{player.trbPctPct != null ? Math.round(player.trbPctPct) : '-'}p</span></div>
-            <div className="flex justify-between"><span>Def. Int.</span><span className="font-mono">{player.blkPctPct != null ? Math.round(player.blkPctPct) : '-'}p</span></div>
-            <div className="flex justify-between"><span>Def. Per.</span><span className="font-mono">{player.stlPctPct != null ? Math.round(player.stlPctPct) : '-'}p</span></div>
+            {radarAxes.map(axis => {
+              const k = usePos && axis.posKey ? axis.posKey : axis.key
+              const v = player[k]
+              return (
+                <div key={axis.key} className="flex justify-between">
+                  <span>{axis.label}</span>
+                  <span className="font-mono">{v != null ? Math.round(v) : '-'}p</span>
+                </div>
+              )
+            })}
           </div>
         </div>
       </div>
@@ -1116,7 +1229,7 @@ export default function PlayerProfile({ players, playerPhotos = {}, playerBio = 
 
           {seasonRecord && (
             <>
-              <RadarArchetypeCard player={seasonRecord} />
+              <RadarArchetypeCard player={seasonRecord} bio={bio} />
               <PercentileProfile player={seasonRecord} />
             </>
           )}

@@ -269,6 +269,11 @@ export_player_data <- function(all_players) {
         if (is.null(x) || is.na(x)) return(default)
         round(as.numeric(x), digits)
       }
+      # Helper for percentile fields: returns NULL (not 0) when NA
+      pct_val <- function(x, digits = 1) {
+        if (is.null(x) || is.na(x)) return(NULL)
+        round(as.numeric(x), digits)
+      }
 
       list(
         playerId = p$player_id,
@@ -359,35 +364,65 @@ export_player_data <- function(all_players) {
         assistedFgm2 = safe_val(p$S_assisted_fgm2, 3),
         assistedFgm3 = safe_val(p$S_assisted_fgm3, 3),
 
-        # Percentiles (all stats ending with _pct that are percentiles)
-        ppgPct = safe_val(p$ppg_pct, 1),
-        rpgPct = safe_val(p$rpg_pct, 1),
-        orebpgPct = safe_val(p$orebpg_pct, 1),
-        drebpgPct = safe_val(p$drebpg_pct, 1),
-        apgPct = safe_val(p$apg_pct, 1),
-        spgPct = safe_val(p$spg_pct, 1),
-        bpgPct = safe_val(p$bpg_pct, 1),
-        fpgPct = safe_val(p$fpg_pct, 1),
-        topgPct = safe_val(p$topg_pct, 1),
-        mpgPct = safe_val(p$mpg_pct, 1),
-        fgPctPct = safe_val(p$fg_pct_pct, 1),
-        fg3PctPct = safe_val(p$fg3_pct_pct, 1),
-        ftPctPct = safe_val(p$ft_pct_pct, 1),
-        efgPct = safe_val(p$efg_pct, 1),
-        tsPct = safe_val(p$ts_pct, 1),
-        ortgPct = safe_val(p$ortg_pct, 1),
-        threeRatePct = safe_val(p$three_rate_pct, 1),
-        possPgPct = safe_val(p$poss_pg_pct, 1),
-        usgPct = safe_val(p$usg_pct, 1),
+        # Percentiles — league-wide (NULL for unqualified players)
+        ppgPct = pct_val(p$ppg_pct, 1),
+        rpgPct = pct_val(p$rpg_pct, 1),
+        orebpgPct = pct_val(p$orebpg_pct, 1),
+        drebpgPct = pct_val(p$drebpg_pct, 1),
+        apgPct = pct_val(p$apg_pct, 1),
+        spgPct = pct_val(p$spg_pct, 1),
+        bpgPct = pct_val(p$bpg_pct, 1),
+        fpgPct = pct_val(p$fpg_pct, 1),
+        topgPct = pct_val(p$topg_pct, 1),
+        mpgPct = pct_val(p$mpg_pct, 1),
+        fgPctPct = pct_val(p$fg_pct_pct, 1),
+        fg3PctPct = pct_val(p$fg3_pct_pct, 1),
+        ftPctPct = pct_val(p$ft_pct_pct, 1),
+        efgPct = pct_val(p$efg_pct, 1),
+        tsPct = pct_val(p$ts_pct, 1),
+        ortgPct = pct_val(p$ortg_pct, 1),
+        threeRatePct = pct_val(p$three_rate_pct, 1),
+        possPgPct = pct_val(p$poss_pg_pct, 1),
+        usgPct = pct_val(p$usg_pct, 1),
 
-        # Advanced Rate Percentiles
-        orbPctPct = safe_val(p$orb_pct_pct, 1),
-        drbPctPct = safe_val(p$drb_pct_pct, 1),
-        trbPctPct = safe_val(p$trb_pct_pct, 1),
-        astPctPct = safe_val(p$ast_pct_pct, 1),
-        stlPctPct = safe_val(p$stl_pct_pct, 1),
-        blkPctPct = safe_val(p$blk_pct_pct, 1),
-        tovPctPct = safe_val(p$tov_pct_pctile, 1),  # Note: uses pctile suffix for inverse
+        # Advanced Rate Percentiles — league-wide
+        orbPctPct = pct_val(p$orb_pct_pct, 1),
+        drbPctPct = pct_val(p$drb_pct_pct, 1),
+        trbPctPct = pct_val(p$trb_pct_pct, 1),
+        astPctPct = pct_val(p$ast_pct_pct, 1),
+        stlPctPct = pct_val(p$stl_pct_pct, 1),
+        blkPctPct = pct_val(p$blk_pct_pct, 1),
+        tovPctPct = pct_val(p$tov_pct_pctile, 1),
+
+        # Percentiles — by position (NULL when not available)
+        ppgPosPct = pct_val(p$ppg_pos_pct, 1),
+        rpgPosPct = pct_val(p$rpg_pos_pct, 1),
+        orebpgPosPct = pct_val(p$orebpg_pos_pct, 1),
+        drebpgPosPct = pct_val(p$drebpg_pos_pct, 1),
+        apgPosPct = pct_val(p$apg_pos_pct, 1),
+        spgPosPct = pct_val(p$spg_pos_pct, 1),
+        bpgPosPct = pct_val(p$bpg_pos_pct, 1),
+        fpgPosPct = pct_val(p$fpg_pos_pct, 1),
+        topgPosPct = pct_val(p$topg_pos_pct, 1),
+        mpgPosPct = pct_val(p$mpg_pos_pct, 1),
+        fgPctPosPct = pct_val(p$fg_pct_pos_pct, 1),
+        fg3PctPosPct = pct_val(p$fg3_pct_pos_pct, 1),
+        ftPctPosPct = pct_val(p$ft_pct_pos_pct, 1),
+        efgPosPct = pct_val(p$efg_pos_pct, 1),
+        tsPosPct = pct_val(p$ts_pos_pct, 1),
+        ortgPosPct = pct_val(p$ortg_pos_pct, 1),
+        threeRatePosPct = pct_val(p$three_rate_pos_pct, 1),
+        possPgPosPct = pct_val(p$poss_pg_pos_pct, 1),
+        usgPosPct = pct_val(p$usg_pos_pct, 1),
+
+        # Advanced Rate Percentiles — by position
+        orbPctPosPct = pct_val(p$orb_pct_pos_pct, 1),
+        drbPctPosPct = pct_val(p$drb_pct_pos_pct, 1),
+        trbPctPosPct = pct_val(p$trb_pct_pos_pct, 1),
+        astPctPosPct = pct_val(p$ast_pct_pos_pct, 1),
+        stlPctPosPct = pct_val(p$stl_pct_pos_pct, 1),
+        blkPctPosPct = pct_val(p$blk_pct_pos_pct, 1),
+        tovPctPosPct = pct_val(p$tov_pct_pos_pctile, 1),
 
         # Zone Shooting Frequency (% of shots from each zone)
         freqRim = safe_val(p$freq_rim, 1),

@@ -952,6 +952,26 @@ calculate_player_stats <- function(season_id,
     )
 
   # ==========================================================================
+  # JOIN BIO DATA (needed for position-based percentiles)
+  # ==========================================================================
+
+  bio_path <- file.path(processed_dir, "player_bio.csv")
+  if (file.exists(bio_path)) {
+    bio_lookup <- read.csv(bio_path, encoding = "UTF-8", stringsAsFactors = FALSE)
+    bio_lookup$license_id <- as.integer(bio_lookup$license_id)
+    player_stats <- player_stats %>%
+      left_join(bio_lookup %>% select(license_id, position, height_m, birth_date),
+                by = "license_id")
+    cat("  → Joined player bio data (position, height, birth date).\n")
+  } else {
+    player_stats$position   <- NA_character_
+    player_stats$height_m   <- NA_real_
+    player_stats$birth_date <- NA_character_
+    cat("  ⚠ player_bio.csv not found — position/height/birth_date will be NA.\n")
+    cat("    Run generate_player_bio() from etl/12_player_positions.R to generate it.\n")
+  }
+
+  # ==========================================================================
   # CALCULATE PERCENTILES
   # ==========================================================================
 
@@ -1009,6 +1029,85 @@ calculate_player_stats <- function(season_id,
     })
   }
 
+  # --------------------------------------------------------------------------
+  # Null out percentiles for unqualified players
+  # --------------------------------------------------------------------------
+  cat("  → Removing percentiles for unqualified players...\n")
+  all_pct_cols <- c(
+    paste0(pct_stats, "_pct"),
+    "topg_pct", "tov_pct_pctile"
+  )
+  for (col in all_pct_cols) {
+    if (col %in% names(player_stats)) {
+      player_stats[[col]][!qualified] <- NA_real_
+    }
+  }
+
+  # ==========================================================================
+  # CALCULATE POSITION-BASED PERCENTILES
+  # ==========================================================================
+
+  cat("→ Calculating position-based percentile rankings...\n")
+
+  if ("position" %in% names(player_stats) && any(!is.na(player_stats$position))) {
+    positions <- unique(player_stats$position[!is.na(player_stats$position)])
+    cat("  Positions found:", paste(positions, collapse = ", "), "\n")
+
+    # Higher-is-better stats
+    for (stat in pct_stats) {
+      pos_pct_col <- paste0(stat, "_pos_pct")
+      player_stats[[pos_pct_col]] <- NA_real_
+
+      for (pos in positions) {
+        pos_mask <- !is.na(player_stats$position) & player_stats$position == pos
+        pos_qualified <- pos_mask & qualified
+
+        if (sum(pos_qualified) >= 5) {
+          qualified_values <- player_stats[[stat]][pos_qualified]
+          ecdf_func <- ecdf(qualified_values)
+
+          player_stats[[pos_pct_col]][pos_mask & qualified] <- sapply(
+            player_stats[[stat]][pos_mask & qualified],
+            function(x) {
+              if (is.na(x)) return(NA)
+              round(ecdf_func(x) * 100, 1)
+            }
+          )
+        }
+      }
+    }
+
+    # Inverse stats (lower is better)
+    for (stat in inverse_stats) {
+      pos_pct_col <- paste0(stat, "_pos_pct")
+      if (pos_pct_col == "tov_pct_pos_pct") pos_pct_col <- "tov_pct_pos_pctile"
+      player_stats[[pos_pct_col]] <- NA_real_
+
+      for (pos in positions) {
+        pos_mask <- !is.na(player_stats$position) & player_stats$position == pos
+        pos_qualified <- pos_mask & qualified
+
+        if (sum(pos_qualified) >= 5) {
+          qualified_values <- player_stats[[stat]][pos_qualified]
+          ecdf_func <- ecdf(qualified_values)
+
+          player_stats[[pos_pct_col]][pos_mask & qualified] <- sapply(
+            player_stats[[stat]][pos_mask & qualified],
+            function(x) {
+              if (is.na(x)) return(NA)
+              round((1 - ecdf_func(x)) * 100, 1)
+            }
+          )
+        }
+      }
+    }
+
+    n_pos_pct <- sum(grepl("_pos_pct|_pos_pctile", names(player_stats)))
+    cat("  → Created", n_pos_pct, "position-based percentile columns.\n")
+  } else {
+    cat("  ⚠ No position data available — skipping position-based percentiles.\n")
+  }
+
   # ==========================================================================
   # FINALIZE AND SAVE
   # ==========================================================================
@@ -1032,23 +1131,6 @@ calculate_player_stats <- function(season_id,
     "opp_fga_rim", "opp_fga_short_mid", "opp_fga_long_mid", "opp_fga_all_mid",
     "opp_fga_corner_three", "opp_fga_nc_three", "opp_fga_all_three"
   )
-
-  # Join player bio data (position, height, birth date) if available
-  bio_path <- file.path(processed_dir, "player_bio.csv")
-  if (file.exists(bio_path)) {
-    bio_lookup <- read.csv(bio_path, encoding = "UTF-8", stringsAsFactors = FALSE)
-    bio_lookup$license_id <- as.integer(bio_lookup$license_id)
-    player_stats <- player_stats %>%
-      left_join(bio_lookup %>% select(license_id, position, height_m, birth_date),
-                by = "license_id")
-    cat("  → Joined player bio data (position, height, birth date).\n")
-  } else {
-    player_stats$position   <- NA_character_
-    player_stats$height_m   <- NA_real_
-    player_stats$birth_date <- NA_character_
-    cat("  ⚠ player_bio.csv not found — position/height/birth_date will be NA.\n")
-    cat("    Run generate_player_bio() from etl/12_player_positions.R to generate it.\n")
-  }
 
   # Select and order columns
   final_stats <- player_stats %>%
@@ -1075,7 +1157,15 @@ calculate_player_stats <- function(season_id,
       fg_pct_pct, fg3_pct_pct, ft_pct_pct, efg_pct, ts_pct, ortg_pct,
       three_rate_pct, poss_pg_pct, usg_pct,
       orb_pct_pct, drb_pct_pct, trb_pct_pct, ast_pct_pct, stl_pct_pct, blk_pct_pct,
-      topg_pct, tov_pct_pctile
+      topg_pct, tov_pct_pctile,
+      # Position-based percentiles
+      any_of(c(
+        paste0(c("ppg", "rpg", "orebpg", "drebpg", "apg", "spg", "bpg", "fpg", "mpg",
+                 "fg_pct", "fg3_pct", "ft_pct", "efg", "ts", "ortg",
+                 "three_rate", "poss_pg", "usg",
+                 "orb_pct", "drb_pct", "trb_pct", "ast_pct", "stl_pct", "blk_pct"), "_pos_pct"),
+        "topg_pos_pct", "tov_pct_pos_pctile"
+      ))
     ) %>%
     arrange(desc(ppg))
 
