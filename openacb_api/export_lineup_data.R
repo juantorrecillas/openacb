@@ -22,7 +22,7 @@ REACT_APP_DIR <- "../openacb_react"
 OUTPUT_DIR <- file.path(REACT_APP_DIR, "public/data")
 
 # Which seasons to include
-SEASONS <- c(2021, 2022, 2023, 2024, 2025, 2026)
+SEASONS <- c(2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026)
 
 # ============================================================================
 # Main Export Function

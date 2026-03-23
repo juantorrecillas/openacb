@@ -28,7 +28,7 @@ SHINY_DATA_DIR <- "../openacb_api/data/processed"
 REACT_APP_DIR <- "../openacb_react/"
 
 # Which seasons to include (add/remove as needed)
-SEASONS <- c(2021, 2022, 2023, 2024, 2025, 2026)
+SEASONS <- c(2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026)
 
 # ============================================================================
 # Don't edit below this line unless you know what you're doing :)
