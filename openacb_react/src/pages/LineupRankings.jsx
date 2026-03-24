@@ -1,5 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Trophy, TrendingDown, ChevronDown, ChevronUp, Filter } from 'lucide-react'
+
+// Extract licenseId from player key format "Name_12345"
+const getIdFromKey = (key) => key?.split('_').pop() || ''
 
 /**
  * Lineup Rankings Page
@@ -24,6 +28,8 @@ const MIN_MINUTES_PAST = {
 }
 
 export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCache, loadingLineups }) {
+  const navigate = useNavigate()
+
   // State
   const [activeView, setActiveView] = useState('league') // 'league' or 'team'
   const [selectedCategory, setSelectedCategory] = useState('players') // players, pairs, trios, lineups
@@ -467,7 +473,14 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
                       {showBottom ? rankedData.length - index : index + 1}
                     </td>
                     <td className="px-4 py-3 font-medium text-acb-900">
-                      {item.displayName}
+                      {selectedCategory === 'players' ? (
+                        <span
+                          className="cursor-pointer hover:text-accent-600 hover:underline"
+                          onClick={() => navigate(`/jugador/${getIdFromKey(item.key)}`)}
+                        >
+                          {item.displayName}
+                        </span>
+                      ) : item.displayName}
                     </td>
                     {activeView === 'league' && (
                       <td className="px-4 py-3 text-acb-600">{item.team}</td>
@@ -475,14 +488,10 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
                     <td className="px-4 py-3 text-center font-mono text-acb-500">
                       {item.onMin?.toFixed(0)}
                     </td>
-                    <td className={`px-4 py-3 text-center font-mono font-medium ${
-                      item.onORtg > 110 ? 'text-positive' : item.onORtg < 100 ? 'text-negative' : 'text-acb-700'
-                    }`}>
+                    <td className="px-4 py-3 text-center font-mono font-medium text-acb-700">
                       {item.onORtg?.toFixed(1)}
                     </td>
-                    <td className={`px-4 py-3 text-center font-mono font-medium ${
-                      item.onDRtg < 105 ? 'text-positive' : item.onDRtg > 115 ? 'text-negative' : 'text-acb-700'
-                    }`}>
+                    <td className="px-4 py-3 text-center font-mono font-medium text-acb-700">
                       {item.onDRtg?.toFixed(1)}
                     </td>
                     <td className={`px-4 py-3 text-center font-mono font-semibold ${

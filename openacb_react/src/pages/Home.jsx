@@ -120,8 +120,8 @@ function Home() {
       <div className="bg-gradient-to-r from-acb-900 to-acb-700 rounded-lg p-8 text-white">
         <div className="grid md:grid-cols-3 gap-8 text-center">
           <div>
-            <div className="text-3xl font-bold mb-2">6</div>
-            <div className="text-acb-300 text-sm">Temporadas Disponibles: 2020-2026</div>
+            <div className="text-3xl font-bold mb-2">10</div>
+            <div className="text-acb-300 text-sm">Temporadas Disponibles: 2016-2026</div>
           </div>
           <div></div>
           <div>

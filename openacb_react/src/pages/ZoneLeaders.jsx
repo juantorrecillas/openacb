@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import Court from '../components/Court'
+import { getPlayerPhoto } from '../utils/playerPhotos'
 import { Filter } from 'lucide-react'
 
 
@@ -218,7 +219,7 @@ export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingSho
   const { season: urlSeason, metric: urlMetricSlug } = useParams()
   const navigate = useNavigate()
   const availableSeasons = useMemo(() => {
-    const seasons = [...new Set(teams.map(t => t.season))].sort((a, b) => b - a)
+    const seasons = [...new Set(teams.map(t => t.season))].filter(s => s >= 2021).sort((a, b) => b - a)
     return seasons
   }, [teams])
 
@@ -476,7 +477,7 @@ export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingSho
                 {Object.entries(zonePolygons).map(([zoneName], zIdx) => {
                   const leader = zoneLeaders[zoneName]
                   if (!leader) return null
-                  const photoUrl = playerPhotos[String(leader.playerId)]
+                  const photoUrl = getPlayerPhoto(playerPhotos, leader.playerId, selectedSeason)
                   if (!photoUrl) return null
                   const fonts = ZONE_FONT[zoneName] || defaultFont
                   const r = fonts.photo / 2
@@ -531,7 +532,7 @@ export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingSho
                   subLine = leader.makes + '/' + leader.attempts
                 }
 
-                const photoUrl = playerPhotos[String(leader.playerId)]
+                const photoUrl = getPlayerPhoto(playerPhotos, leader.playerId, selectedSeason)
                 const r = fonts.photo / 2
                 const photoOffset = photoUrl ? r + 2 : 0
                 const textBaseY = labelY + photoOffset
@@ -605,9 +606,9 @@ export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingSho
               return (
                 <div key={zone} className="flex items-center justify-between py-2 border-b border-acb-100 last:border-0">
                   <div className="flex items-center gap-2 min-w-0">
-                    {leader && playerPhotos[String(leader.playerId)] && (
+                    {leader && getPlayerPhoto(playerPhotos, leader.playerId, selectedSeason) && (
                       <img
-                        src={playerPhotos[String(leader.playerId)]}
+                        src={getPlayerPhoto(playerPhotos, leader.playerId, selectedSeason)}
                         alt=""
                         className="w-8 h-8 rounded-full object-cover border border-acb-200 flex-shrink-0"
                       />

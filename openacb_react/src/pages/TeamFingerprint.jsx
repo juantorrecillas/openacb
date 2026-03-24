@@ -6,6 +6,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 
 const offensiveAxes = [
   { key: 'ortg',      label: 'Rating Ofensivo',      inverted: false, format: v => v.toFixed(1) },
+  { key: 'pace',      label: 'Ritmo',                inverted: false, format: v => v.toFixed(1) },
   { key: 'threeRate', label: 'Dependencia 3P',       inverted: false, format: v => `${(v * 100).toFixed(1)}%` },
   { key: 'threePct',  label: 'Eficiencia 3P',        inverted: false, format: v => `${(v * 100).toFixed(1)}%` },
   { key: 'ts',        label: 'Eficiencia de Tiro',   inverted: false, format: v => `${(v * 100).toFixed(1)}%` },
@@ -36,6 +37,16 @@ const offensivePhrases = {
     neg: [
       'Le cuesta rendir en ataque en general',
       'El rendimiento ofensivo está muy por debajo de la media; necesita mejorar su ataque',
+    ],
+  },
+  pace: {
+    pos: [
+      'Juega a un ritmo alto, generando más posesiones que la mayoría de equipos',
+      'Uno de los equipos más rápidos de la liga; busca el contraataque y el juego en transición',
+    ],
+    neg: [
+      'Prefiere el juego lento y controlado, reduciendo el número de posesiones',
+      'Ritmo de juego muy bajo; domina el balón y controla los tiempos de manera posicional',
     ],
   },
   threeRate: {
@@ -565,6 +576,14 @@ export default function TeamFingerprint({ teams, teamLogos = {} }) {
             <div>
               <h3 className="text-xl font-bold text-acb-900">{selectedTeam}</h3>
               <p className="text-sm text-acb-500">{seasonLabel(selectedSeason)}</p>
+              {teamData.team.wins != null && (
+                <p className="text-sm text-acb-600 mt-0.5">
+                  PJ {teamData.team.games} &nbsp;·&nbsp;
+                  <span className="text-positive font-medium">{teamData.team.wins}V</span>
+                  {' - '}
+                  <span className="text-negative font-medium">{teamData.team.losses}D</span>
+                </p>
+              )}
             </div>
           </div>
 

@@ -62,6 +62,19 @@ calculate_team_stats <- function(season_id,
     group_by(team.team_actual_name) %>%
     summarise(ngames = n_distinct(id_match), .groups = "drop")
 
+  # Calculate wins per team from per-game point totals
+  game_scores <- df %>%
+    group_by(id_match, team.team_actual_name) %>%
+    summarise(match_pts = sum(puntos, na.rm = TRUE), .groups = "drop")
+
+  wins_count <- game_scores %>%
+    group_by(id_match) %>%
+    mutate(is_winner = match_pts == max(match_pts)) %>%
+    ungroup() %>%
+    filter(is_winner) %>%
+    group_by(team.team_actual_name) %>%
+    summarise(wins = n(), .groups = "drop")
+
   temp <- df %>%
     group_by(team.team_actual_name) %>%
     summarise(across(all_of(BOXSCORE_COLUMNS), \(x) sum(x, na.rm = TRUE)), .groups = "drop") %>%
@@ -192,10 +205,12 @@ calculate_team_stats <- function(season_id,
       opp_ft_pct = T1A_opponent / T1I_opponent * 100
     )
 
-  # Select final columns
+  # Select final columns and add wins/losses
   final_stats <- stats %>%
+    left_join(wins_count, by = "team.team_actual_name") %>%
+    mutate(losses = ngames - wins) %>%
     select(
-      team.team_actual_name, ngames, year,
+      team.team_actual_name, ngames, wins, losses, year,
       # Team boxscore per-game stats
       ppg, rpg, orebpg, drebpg, apg, spg, bpg, topg, fpg,
       fgm_pg, fga_pg, fg3m_pg, fg3a_pg, ftm_pg, fta_pg,

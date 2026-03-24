@@ -51,13 +51,13 @@ const miscColumns = [
   { key: 'team', label: 'Equipo', align: 'left', sortable: true },
   positionCol,
   { key: 'games', label: 'PJ', align: 'right', sortable: true },
-  { key: 'mpg', label: 'MPP', align: 'right', sortable: true, pctKey: 'mpgPct' },
-  { key: 'ppg', label: 'PPP', align: 'right', sortable: true, pctKey: 'ppgPct' },
-  { key: 'offTo', label: 'Pts Robo%', align: 'right', sortable: true, pctKey: 'offToPct' },
-  { key: 'secondChance', label: '2da Op%', align: 'right', sortable: true, pctKey: 'secondChancePct' },
-  { key: 'assistedFgm', label: 'Pts Ast%', align: 'right', sortable: true, pctKey: 'assistedFgmPct' },
-  { key: 'assistedFgm2', label: 'Ast 2PT%', align: 'right', sortable: true, pctKey: 'assistedFgm2Pct' },
-  { key: 'assistedFgm3', label: 'Ast 3PT%', align: 'right', sortable: true, pctKey: 'assistedFgm3Pct' },
+  { key: 'mpg', label: 'MPP', align: 'right', sortable: true },
+  { key: 'ppg', label: 'PPP', align: 'right', sortable: true },
+  { key: 'offTo', label: 'Pts Robo%', align: 'right', sortable: true },
+  { key: 'secondChance', label: '2da Op%', align: 'right', sortable: true },
+  { key: 'assistedFgm', label: 'Pts Ast%', align: 'right', sortable: true },
+  { key: 'assistedFgm2', label: 'Ast 2PT%', align: 'right', sortable: true },
+  { key: 'assistedFgm3', label: 'Ast 3PT%', align: 'right', sortable: true },
 ]
 
 // Zone shooting frequency columns (% of shots from each zone)

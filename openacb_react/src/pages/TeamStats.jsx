@@ -91,6 +91,8 @@ const statOptions = [
 const basicColumns = [
   { key: 'team', label: 'Equipo', align: 'left' },
   { key: 'games', label: 'PJ', align: 'right' },
+  { key: 'wins', label: 'V', align: 'right' },
+  { key: 'losses', label: 'D', align: 'right' },
   { key: 'fgPct', label: 'TC%', align: 'right' },
   { key: 'threePct', label: '3P%', align: 'right' },
   { key: 'ftPct', label: 'TL%', align: 'right' },
@@ -296,7 +298,7 @@ export default function TeamStats({ teams, teamLogos = {} }) {
     const col = tableColumns.find(c => c.key === key) || statOptions.find(s => s.value === key)
 
     // Integer values
-    if (key === 'games') return Math.round(value).toString()
+    if (key === 'games' || key === 'wins' || key === 'losses') return Math.round(value).toString()
 
     // Percentages stored as decimals (0-1)
     if (key === 'efg' || key === 'ts' || key === 'threePct' || key === 'threeRate' ||
@@ -325,7 +327,7 @@ export default function TeamStats({ teams, teamLogos = {} }) {
   // Calculate rankings for each stat (1 = best)
   const rankings = useMemo(() => {
     const rankMap = {}
-    const numericCols = tableColumns.filter(c => c.key !== 'team' && c.key !== 'games')
+    const numericCols = tableColumns.filter(c => c.key !== 'team' && c.key !== 'games' && c.key !== 'wins' && c.key !== 'losses')
 
     numericCols.forEach(col => {
       const values = seasonFilteredTeams
@@ -588,7 +590,7 @@ export default function TeamStats({ teams, teamLogos = {} }) {
                 >
                   {tableColumns.map(col => {
                     const rank = rankings[team.team]?.[col.key]
-                    const showRank = col.key !== 'team' && col.key !== 'games' && rank != null
+                    const showRank = col.key !== 'team' && col.key !== 'games' && col.key !== 'wins' && col.key !== 'losses' && rank != null
                     const totalTeams = seasonFilteredTeams.length
 
                     return (

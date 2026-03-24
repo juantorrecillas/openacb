@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { getPlayerPhoto } from '../utils/playerPhotos'
 import { Users, Info, Plus, X, Search, ChevronDown, ChevronUp } from 'lucide-react'
 
 /**
@@ -320,8 +321,8 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
               <span className="text-sm text-acb-600 font-medium">Analizando:</span>
               {selectedPlayers.map(playerKey => (
                 <div key={playerKey} className="flex items-center gap-1 bg-accent-100 text-accent-800 rounded-full px-3 py-1">
-                  {playerPhotos[getIdFromKey(playerKey)] && (
-                    <img src={playerPhotos[getIdFromKey(playerKey)]} alt="" className="w-5 h-5 rounded-full object-cover object-top" />
+                  {getPlayerPhoto(playerPhotos, getIdFromKey(playerKey), selectedSeason) && (
+                    <img src={getPlayerPhoto(playerPhotos, getIdFromKey(playerKey), selectedSeason)} alt="" className="w-5 h-5 rounded-full object-cover object-top" />
                   )}
                   <span className="text-sm font-medium">{getPlayerDisplayName(playerKey)}</span>
                   <button onClick={() => removePlayer(playerKey)} className="hover:text-accent-600">
@@ -352,8 +353,8 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
                           : 'bg-white hover:bg-accent-50 text-acb-700 hover:text-accent-700 border border-acb-200'
                     }`}
                   >
-                    {playerPhotos[getIdFromKey(playerKey)] && (
-                      <img src={playerPhotos[getIdFromKey(playerKey)]} alt="" className="w-5 h-5 rounded-full object-cover object-top" />
+                    {getPlayerPhoto(playerPhotos, getIdFromKey(playerKey), selectedSeason) && (
+                      <img src={getPlayerPhoto(playerPhotos, getIdFromKey(playerKey), selectedSeason)} alt="" className="w-5 h-5 rounded-full object-cover object-top" />
                     )}
                     {getPlayerDisplayName(playerKey)}
                   </button>
@@ -635,8 +636,8 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
                   >
                     <td className="px-4 py-2 font-medium text-acb-900">
                       <span className="flex items-center gap-2">
-                        {playerPhotos[String(player.id)] && (
-                          <img src={playerPhotos[String(player.id)]} alt="" className="w-6 h-6 rounded-full object-cover object-top" />
+                        {getPlayerPhoto(playerPhotos, player.id, selectedSeason) && (
+                          <img src={getPlayerPhoto(playerPhotos, player.id, selectedSeason)} alt="" className="w-6 h-6 rounded-full object-cover object-top" />
                         )}
                         {player.name}
                       </span>
@@ -764,11 +765,7 @@ const StatRow = ({ label, onValue, offValue, unit, goodThreshold, inverse = fals
         {label}
       </td>
       <td className="px-4 py-3 text-center">
-        <span className={`font-mono font-medium ${
-          inverse
-            ? (onValue < goodThreshold ? 'text-positive' : 'text-negative')
-            : (onValue > goodThreshold ? 'text-positive' : 'text-negative')
-        }`}>
+        <span className={`font-mono font-medium ${isGood ? 'text-positive' : 'text-negative'}`}>
           {onValue?.toFixed(1)}
         </span>
       </td>

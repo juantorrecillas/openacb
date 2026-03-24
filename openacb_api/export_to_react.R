@@ -130,6 +130,8 @@ export_team_data <- function() {
         team = t$team.team_actual_name,
         season = t$season,
         games = t$ngames,
+        wins = safe_val(t$wins, 0),
+        losses = safe_val(t$losses, 0),
 
         # Team boxscore per-game stats
         ppg = safe_val(t$ppg, 1),

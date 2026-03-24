@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Search, Loader2, Filter, GitCompareArrows } from 'lucide-react'
+import { getPlayerPhoto } from '../utils/playerPhotos'
 
 
 // ─── Helpers ───────────────────────────────────────────────────
@@ -260,6 +261,7 @@ const careerAdvancedCols = [
   { key: 'season', label: 'Temp.', fmtFn: v => seasonLabel(v), left: true },
   { key: 'team', label: 'Equipo', left: true },
   { key: 'games', label: 'PJ', integer: true },
+  { key: 'ppg', label: 'PPP' },
   { key: 'ortg', label: 'ORtg' },
   { key: 'usg', label: 'USG%', suffix: '%' },
   { key: 'efg', label: 'eFG%', suffix: '%' },
@@ -269,6 +271,9 @@ const careerAdvancedCols = [
   { key: 'drbPct', label: 'RD%', suffix: '%' },
   { key: 'trbPct', label: 'REB%', suffix: '%' },
   { key: 'astPct', label: 'AST%', suffix: '%' },
+  { key: 'assistedFgm', label: 'Pts Ast%', fmtFn: v => `${(v * 100).toFixed(1)}%` },
+  { key: 'assistedFgm2', label: 'Ast 2P%', fmtFn: v => `${(v * 100).toFixed(1)}%` },
+  { key: 'assistedFgm3', label: 'Ast 3P%', fmtFn: v => `${(v * 100).toFixed(1)}%` },
   { key: 'stlPct', label: 'ROB%', suffix: '%' },
   { key: 'blkPct', label: 'TAP%', suffix: '%' },
   { key: 'tovPct', label: 'PER%', suffix: '%' },
@@ -405,7 +410,7 @@ const profileSections = [
       { label: 'APP', value: 'apg', pctKey: 'apgPct', posPctKey: 'apgPosPct' },
       { label: 'AST%', value: 'astPct', pctKey: 'astPctPct', posPctKey: 'astPctPosPct', fmtKey: 'astPct' },
       { label: 'PER', value: 'topg', pctKey: 'topgPct', posPctKey: 'topgPosPct', inverse: true },
-      { label: 'TOV%', value: 'tovPct', pctKey: 'tovPctPct', posPctKey: 'tovPctPosPct', fmtKey: 'tovPct', inverse: true },
+      { label: 'TOV%', value: 'tovPct', pctKey: 'tovPctPct', posPctKey: 'tovPctPosPct', fmtKey: 'tovPct' },
     ],
   },
   {
@@ -976,36 +981,87 @@ const zones = [
 ]
 
 function ShootingStatsCard({ player }) {
+  const [shotTab, setShotTab] = useState('own')
+  const hasRivalData = zones.some(z => player[`oppOnFgpct${z.key}`] != null)
+
   return (
     <div className="bg-white rounded-lg border border-acb-200 p-5">
-      <h3 className="font-semibold text-acb-900 mb-1">Tiro por Zona</h3>
+      <div className="flex items-center justify-between mb-1">
+        <h3 className="font-semibold text-acb-900">Tiro por Zona</h3>
+        {hasRivalData && (
+          <div className="flex rounded-md border border-acb-200 overflow-hidden text-xs">
+            <button
+              onClick={() => setShotTab('own')}
+              className={`px-3 py-1 transition-colors ${shotTab === 'own' ? 'bg-acb-900 text-white' : 'bg-white text-acb-600 hover:bg-acb-50'}`}
+            >
+              Tiro Propio
+            </button>
+            <button
+              onClick={() => setShotTab('rival')}
+              className={`px-3 py-1 transition-colors ${shotTab === 'rival' ? 'bg-acb-900 text-white' : 'bg-white text-acb-600 hover:bg-acb-50'}`}
+            >
+              Tiro Rival
+            </button>
+          </div>
+        )}
+      </div>
       <p className="text-xs text-acb-500 mb-3">{player.team} - {player.games} partidos</p>
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-acb-200">
-              <th className="text-left py-2 text-xs font-semibold text-acb-600 uppercase">Zona</th>
-              <th className="text-right py-2 text-xs font-semibold text-acb-600 uppercase">Freq%</th>
-              <th className="text-right py-2 text-xs font-semibold text-acb-600 uppercase">FG%</th>
-              <th className="text-right py-2 text-xs font-semibold text-acb-600 uppercase">FGA</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-acb-100">
-            {zones.map(z => {
-              const freq = player[`freq${z.key}`]
-              const fgpct = player[`fgpct${z.key}`]
-              const fga = player[`fga${z.key}`]
-              return (
-                <tr key={z.key} className="hover:bg-acb-50">
-                  <td className="py-2 text-acb-700">{z.label}</td>
-                  <td className="py-2 text-right font-mono text-acb-900">{freq != null ? `${freq.toFixed(1)}%` : '-'}</td>
-                  <td className="py-2 text-right font-mono text-acb-900">{fgpct != null ? `${fgpct.toFixed(1)}%` : '-'}</td>
-                  <td className="py-2 text-right font-mono text-acb-500">{fga ?? '-'}</td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
+        {shotTab === 'own' ? (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-acb-200">
+                <th className="text-left py-2 text-xs font-semibold text-acb-600 uppercase">Zona</th>
+                <th className="text-right py-2 text-xs font-semibold text-acb-600 uppercase">Freq%</th>
+                <th className="text-right py-2 text-xs font-semibold text-acb-600 uppercase">FG%</th>
+                <th className="text-right py-2 text-xs font-semibold text-acb-600 uppercase">FGA</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-acb-100">
+              {zones.map(z => {
+                const freq = player[`freq${z.key}`]
+                const fgpct = player[`fgpct${z.key}`]
+                const fga = player[`fga${z.key}`]
+                return (
+                  <tr key={z.key} className="hover:bg-acb-50">
+                    <td className="py-2 text-acb-700">{z.label}</td>
+                    <td className="py-2 text-right font-mono text-acb-900">{freq != null ? `${freq.toFixed(1)}%` : '-'}</td>
+                    <td className="py-2 text-right font-mono text-acb-900">{fgpct != null ? `${fgpct.toFixed(1)}%` : '-'}</td>
+                    <td className="py-2 text-right font-mono text-acb-500">{fga ?? '-'}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-acb-200">
+                <th className="text-left py-2 text-xs font-semibold text-acb-600 uppercase">Zona</th>
+                <th className="text-right py-2 text-xs font-semibold text-acb-600 uppercase">Diff</th>
+                <th className="text-right py-2 text-xs font-semibold text-acb-600 uppercase">FG% Rival</th>
+                <th className="text-right py-2 text-xs font-semibold text-acb-600 uppercase">FGA Rival</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-acb-100">
+              {zones.map(z => {
+                const diff = player[`oppDiff${z.key}`]
+                const fgpct = player[`oppOnFgpct${z.key}`]
+                const fga = player[`oppFga${z.key}`]
+                return (
+                  <tr key={z.key} className="hover:bg-acb-50">
+                    <td className="py-2 text-acb-700">{z.label}</td>
+                    <td className={`py-2 text-right font-mono font-medium ${diff == null ? 'text-acb-400' : diff < 0 ? 'text-positive' : diff > 0 ? 'text-negative' : 'text-acb-700'}`}>
+                      {diff != null ? `${diff > 0 ? '+' : ''}${diff.toFixed(1)}` : '-'}
+                    </td>
+                    <td className="py-2 text-right font-mono text-acb-900">{fgpct != null ? `${fgpct.toFixed(1)}%` : '-'}</td>
+                    <td className="py-2 text-right font-mono text-acb-500">{fga ?? '-'}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   )
@@ -1202,7 +1258,7 @@ export default function PlayerProfile({ players, playerPhotos = {}, playerBio = 
           {/* Player Header */}
           <PlayerHeader
             records={playerRecords}
-            photoUrl={playerPhotos[String(selectedLicenseId)]}
+            photoUrl={getPlayerPhoto(playerPhotos, selectedLicenseId, selectedSeason)}
             bio={bio}
             selectedSeason={selectedSeason}
           />

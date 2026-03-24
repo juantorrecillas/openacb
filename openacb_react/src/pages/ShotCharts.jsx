@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
+import { getPlayerPhoto } from '../utils/playerPhotos'
 import Court, { ShotMarker } from '../components/Court'
 import ZoneHeatmap from '../components/ZoneHeatmap'
 import DensityHeatmap from '../components/DensityHeatmap'
@@ -18,7 +19,7 @@ const getPlayerAbbrev = (players, playerId) => {
 export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShots, teams, players, playerPhotos = {} }) {
   // Get available seasons from teams data (since we don't load all shots upfront)
   const availableSeasons = useMemo(() => {
-    const seasons = [...new Set(teams.map(t => t.season))].sort((a, b) => b - a)
+    const seasons = [...new Set(teams.map(t => t.season))].filter(s => s >= 2021).sort((a, b) => b - a)
     return seasons
   }, [teams])
 
@@ -334,9 +335,9 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
         <div className="lg:col-span-2 bg-white rounded-lg border border-acb-200 p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-medium text-acb-900 flex items-center gap-2">
-              {filterType === 'player' && selectedPlayer && playerPhotos[String(selectedPlayer)] && (
+              {filterType === 'player' && selectedPlayer && getPlayerPhoto(playerPhotos, selectedPlayer, selectedSeason) && (
                 <img
-                  src={playerPhotos[String(selectedPlayer)]}
+                  src={getPlayerPhoto(playerPhotos, selectedPlayer, selectedSeason)}
                   alt=""
                   className="w-8 h-8 rounded-full object-cover object-top border border-acb-200"
                 />
