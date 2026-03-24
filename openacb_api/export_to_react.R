@@ -28,7 +28,7 @@ SHINY_DATA_DIR <- "../openacb_api/data/processed"
 REACT_APP_DIR <- "../openacb_react/"
 
 # Which seasons to include (add/remove as needed)
-SEASONS <- c(2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026)
+SEASONS <- c(2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026)
 
 # ============================================================================
 # Don't edit below this line unless you know what you're doing :)
@@ -110,7 +110,7 @@ export_team_data <- function() {
       if (file.exists(file_path)) {
         teams <- read.csv(file_path, encoding = "UTF-8", stringsAsFactors = FALSE)
         teams$season <- year
-        all_teams <- rbind(all_teams, teams)
+        all_teams <- dplyr::bind_rows(all_teams, teams)
         cat(sprintf("  - Loaded %d teams from %s\n", nrow(teams), pattern))
         break
       }
@@ -247,7 +247,7 @@ load_all_player_data <- function() {
         } else {
           players <- read.csv(file_path, encoding = "UTF-8", stringsAsFactors = FALSE)
         }
-        all_players <- rbind(all_players, players)
+        all_players <- dplyr::bind_rows(all_players, players)
         cat(sprintf("  - Loaded %d players from %s\n", nrow(players), pattern))
         break
       }
@@ -425,59 +425,60 @@ export_player_data <- function(all_players) {
         tovPctPosPct = pct_val(p$tov_pct_pos_pctile, 1),
 
         # Zone Shooting Frequency (% of shots from each zone)
-        freqRim = safe_val(p$freq_rim, 1),
-        freqShortMid = safe_val(p$freq_short_mid, 1),
-        freqLongMid = safe_val(p$freq_long_mid, 1),
-        freqAllMid = safe_val(p$freq_all_mid, 1),
-        freqCornerThree = safe_val(p$freq_corner_three, 1),
-        freqNcThree = safe_val(p$freq_nc_three, 1),
-        freqAllThree = safe_val(p$freq_all_three, 1),
+        # pct_val: returns NULL for NA so UI can show "N/D" for pre-2021 seasons
+        freqRim = pct_val(p$freq_rim, 1),
+        freqShortMid = pct_val(p$freq_short_mid, 1),
+        freqLongMid = pct_val(p$freq_long_mid, 1),
+        freqAllMid = pct_val(p$freq_all_mid, 1),
+        freqCornerThree = pct_val(p$freq_corner_three, 1),
+        freqNcThree = pct_val(p$freq_nc_three, 1),
+        freqAllThree = pct_val(p$freq_all_three, 1),
 
         # Zone Shooting Accuracy (FG% per zone)
-        fgpctRim = safe_val(p$fgpct_rim, 1),
-        fgpctShortMid = safe_val(p$fgpct_short_mid, 1),
-        fgpctLongMid = safe_val(p$fgpct_long_mid, 1),
-        fgpctAllMid = safe_val(p$fgpct_all_mid, 1),
-        fgpctCornerThree = safe_val(p$fgpct_corner_three, 1),
-        fgpctNcThree = safe_val(p$fgpct_nc_three, 1),
-        fgpctAllThree = safe_val(p$fgpct_all_three, 1),
+        fgpctRim = pct_val(p$fgpct_rim, 1),
+        fgpctShortMid = pct_val(p$fgpct_short_mid, 1),
+        fgpctLongMid = pct_val(p$fgpct_long_mid, 1),
+        fgpctAllMid = pct_val(p$fgpct_all_mid, 1),
+        fgpctCornerThree = pct_val(p$fgpct_corner_three, 1),
+        fgpctNcThree = pct_val(p$fgpct_nc_three, 1),
+        fgpctAllThree = pct_val(p$fgpct_all_three, 1),
 
         # Zone Attempts (for display as # in table)
-        fgaRim = safe_val(p$fga_rim, 0),
-        fgaShortMid = safe_val(p$fga_short_mid, 0),
-        fgaLongMid = safe_val(p$fga_long_mid, 0),
-        fgaAllMid = safe_val(p$fga_all_mid, 0),
-        fgaCornerThree = safe_val(p$fga_corner_three, 0),
-        fgaNcThree = safe_val(p$fga_nc_three, 0),
-        fgaAllThree = safe_val(p$fga_all_three, 0),
+        fgaRim = pct_val(p$fga_rim, 0),
+        fgaShortMid = pct_val(p$fga_short_mid, 0),
+        fgaLongMid = pct_val(p$fga_long_mid, 0),
+        fgaAllMid = pct_val(p$fga_all_mid, 0),
+        fgaCornerThree = pct_val(p$fga_corner_three, 0),
+        fgaNcThree = pct_val(p$fga_nc_three, 0),
+        fgaAllThree = pct_val(p$fga_all_three, 0),
 
         # Opponent Zone Shooting (Defensive Impact)
         # FG% allowed when player is ON court
-        oppOnFgpctRim = safe_val(p$opp_on_fgpct_rim, 1),
-        oppOnFgpctShortMid = safe_val(p$opp_on_fgpct_short_mid, 1),
-        oppOnFgpctLongMid = safe_val(p$opp_on_fgpct_long_mid, 1),
-        oppOnFgpctAllMid = safe_val(p$opp_on_fgpct_all_mid, 1),
-        oppOnFgpctCornerThree = safe_val(p$opp_on_fgpct_corner_three, 1),
-        oppOnFgpctNcThree = safe_val(p$opp_on_fgpct_nc_three, 1),
-        oppOnFgpctAllThree = safe_val(p$opp_on_fgpct_all_three, 1),
+        oppOnFgpctRim = pct_val(p$opp_on_fgpct_rim, 1),
+        oppOnFgpctShortMid = pct_val(p$opp_on_fgpct_short_mid, 1),
+        oppOnFgpctLongMid = pct_val(p$opp_on_fgpct_long_mid, 1),
+        oppOnFgpctAllMid = pct_val(p$opp_on_fgpct_all_mid, 1),
+        oppOnFgpctCornerThree = pct_val(p$opp_on_fgpct_corner_three, 1),
+        oppOnFgpctNcThree = pct_val(p$opp_on_fgpct_nc_three, 1),
+        oppOnFgpctAllThree = pct_val(p$opp_on_fgpct_all_three, 1),
 
         # Differential (ON - OFF, negative is good defense)
-        oppDiffRim = safe_val(p$opp_diff_rim, 1),
-        oppDiffShortMid = safe_val(p$opp_diff_short_mid, 1),
-        oppDiffLongMid = safe_val(p$opp_diff_long_mid, 1),
-        oppDiffAllMid = safe_val(p$opp_diff_all_mid, 1),
-        oppDiffCornerThree = safe_val(p$opp_diff_corner_three, 1),
-        oppDiffNcThree = safe_val(p$opp_diff_nc_three, 1),
-        oppDiffAllThree = safe_val(p$opp_diff_all_three, 1),
+        oppDiffRim = pct_val(p$opp_diff_rim, 1),
+        oppDiffShortMid = pct_val(p$opp_diff_short_mid, 1),
+        oppDiffLongMid = pct_val(p$opp_diff_long_mid, 1),
+        oppDiffAllMid = pct_val(p$opp_diff_all_mid, 1),
+        oppDiffCornerThree = pct_val(p$opp_diff_corner_three, 1),
+        oppDiffNcThree = pct_val(p$opp_diff_nc_three, 1),
+        oppDiffAllThree = pct_val(p$opp_diff_all_three, 1),
 
         # Opponent attempts when player ON court
-        oppFgaRim = safe_val(p$opp_fga_rim, 0),
-        oppFgaShortMid = safe_val(p$opp_fga_short_mid, 0),
-        oppFgaLongMid = safe_val(p$opp_fga_long_mid, 0),
-        oppFgaAllMid = safe_val(p$opp_fga_all_mid, 0),
-        oppFgaCornerThree = safe_val(p$opp_fga_corner_three, 0),
-        oppFgaNcThree = safe_val(p$opp_fga_nc_three, 0),
-        oppFgaAllThree = safe_val(p$opp_fga_all_three, 0)
+        oppFgaRim = pct_val(p$opp_fga_rim, 0),
+        oppFgaShortMid = pct_val(p$opp_fga_short_mid, 0),
+        oppFgaLongMid = pct_val(p$opp_fga_long_mid, 0),
+        oppFgaAllMid = pct_val(p$opp_fga_all_mid, 0),
+        oppFgaCornerThree = pct_val(p$opp_fga_corner_three, 0),
+        oppFgaNcThree = pct_val(p$opp_fga_nc_three, 0),
+        oppFgaAllThree = pct_val(p$opp_fga_all_three, 0)
       )
     })
 
@@ -635,7 +636,7 @@ export_similarity_data(all_players)
 export_gameflow_data()
 export_teampace_data()
 
-# Player bio: position, height, birth date (scraped from acb.com — incremental)
+# Player bio: position, height, birth date 
 source("etl/12_player_positions.R")
 generate_player_bio(
   data_dir   = SHINY_DATA_DIR,

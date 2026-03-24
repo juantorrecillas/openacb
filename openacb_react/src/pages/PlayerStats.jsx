@@ -258,7 +258,12 @@ export default function PlayerStats({ players, playerBio = {} }) {
   }
 
   const formatValue = (value, key, player) => {
-    if (value === undefined || value === null) return '-'
+    if (value === undefined || value === null) {
+      const isZoneStat = key.startsWith('freq') || key.startsWith('fgpct') ||
+        (key.startsWith('fga') && key.length > 3) ||
+        key.startsWith('oppOnFgpct') || key.startsWith('oppDiff') || key.startsWith('oppFga')
+      return isZoneStat ? 'N/D' : '-'
+    }
     if (key === 'playerFull') return player?.playerAbbrev || value
     if (key === 'team') return typeof value === 'string' ? value : '-'
     if (key === 'position') return typeof value === 'string' && value ? value : '-'
@@ -503,6 +508,19 @@ export default function PlayerStats({ players, playerBio = {} }) {
           <span className="text-acb-400"> ({filteredOutCount} filtrados al no cumplir mínimos en partidos y minutos)</span>
         )}
       </div>
+
+      {/* Zone data unavailability notice */}
+      {(viewMode === 'frequency' || viewMode === 'accuracy' || viewMode === 'defense') && (
+        selectedSeason !== 'all' && selectedSeason < 2021
+          ? <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-4 py-2">
+              Los datos de tiro por zonas no están disponibles para temporadas anteriores a 2020-21.
+            </div>
+          : selectedSeason === 'all' && (
+            <div className="text-sm text-acb-500 bg-acb-50 border border-acb-200 rounded-md px-4 py-2">
+              Los datos de tiro por zonas están disponibles desde la temporada 2020-21. Las temporadas anteriores muestran <span className="font-medium">N/D</span>.
+            </div>
+          )
+      )}
 
       {/* Table */}
       <div className="bg-white rounded-lg border border-acb-200 overflow-hidden">

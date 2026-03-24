@@ -86,91 +86,109 @@ scrape_season <- function(season_id,
   pb <- txtProgressBar(min = 0, max = length(match_ids), style = 3)
 
   errors <- c()
-  
+  saved  <- 0L
+
   for (i in seq_along(match_ids)) {
     match_id <- match_ids[i]
-    
+
     tryCatch({
       # Build PBP URL
       pbp_url <- paste0(API_CONFIG$pbp_url, "?idMatch=", match_id, "&jvFilter=true")
-      
+
       # Fetch PBP data
       pbp_response <- GET(pbp_url, add_headers(Authorization = API_CONFIG$bearer_token))
-      
+
       if (status_code(pbp_response) != 200) {
-        errors <- c(errors, paste("Match", match_id, "- Status:", status_code(pbp_response)))
+        errors <<- c(errors, paste("Match", match_id, "- Status:", status_code(pbp_response)))
         next
       }
-      
-      pbp_data <- fromJSON(content(pbp_response, type = "text", encoding = "UTF-8"), flatten = TRUE)
-      
+
+      pbp_raw <- fromJSON(content(pbp_response, type = "text", encoding = "UTF-8"), flatten = TRUE)
+
+      # Older API seasons return a named list wrapping the events; newer seasons return a data.frame directly
+      if (is.data.frame(pbp_raw)) {
+        pbp_data <- pbp_raw
+      } else if (is.list(pbp_raw)) {
+        df_elements <- Filter(is.data.frame, pbp_raw)
+        if (length(df_elements) == 0) stop("API response is a list but contains no data.frame")
+        pbp_data <- df_elements[[1]]
+      } else {
+        stop("Unexpected API response type: ", class(pbp_raw))
+      }
+
       # Remove media columns if they exist
       cols_to_remove <- intersect(c("license.media", "team.media"), names(pbp_data))
       if (length(cols_to_remove) > 0) {
         pbp_data <- pbp_data[, !names(pbp_data) %in% cols_to_remove]
       }
-      
+
       # Get match info
       match_info <- all_matches[all_matches$match_id == match_id, ]
       jornada <- match_info$jornada[1]
-      
+
       # Determine local/visitor teams
       team_summary <- pbp_data %>%
+        filter(!is.na(team.team_actual_name), !is.na(local)) %>%
         group_by(team.team_actual_name, local) %>%
         summarise(n = n(), .groups = "drop") %>%
-        filter(!is.na(team.team_actual_name))
-      
+        slice_max(n, n = 1, by = local, with_ties = FALSE)
+
       team_local <- as.character(team_summary$team.team_actual_name[team_summary$local == TRUE][1])
       team_visitor <- as.character(team_summary$team.team_actual_name[team_summary$local == FALSE][1])
-      
+
+      # Use most-frequent abbreviation per side; drop the n > 1 guard that caused NA filenames
       team_abbrev <- pbp_data %>%
-        group_by(team.team_abbrev_name, local) %>%
-        summarise(n = n(), .groups = "drop") %>%
-        filter(!is.na(team.team_abbrev_name), n > 1)
-      
+        filter(!is.na(team.team_abbrev_name), !is.na(local)) %>%
+        count(team.team_abbrev_name, local) %>%
+        slice_max(n, n = 1, by = local, with_ties = FALSE)
+
       team_local_abb <- as.character(team_abbrev$team.team_abbrev_name[team_abbrev$local == TRUE][1])
       team_visitor_abb <- as.character(team_abbrev$team.team_abbrev_name[team_abbrev$local == FALSE][1])
-      
+
       # Add metadata columns
       pbp_data$jornada <- jornada
       pbp_data$team <- ifelse(pbp_data$local == TRUE, team_local, team_visitor)
       pbp_data$opponent <- ifelse(pbp_data$local == TRUE, team_visitor, team_local)
-      
-      # Merge final scores
-      pbp_data <- pbp_data %>%
-        merge(
-          all_matches %>% 
-            select(match_id, score_local, score_visitor) %>%
-            rename(score_local_final = score_local, score_visitor_final = score_visitor),
-          by.x = "id_match", 
-          by.y = "match_id"
-        )
-      
+
+      # Merge final scores — defensive: older API responses may lack 'id_match'
+      if ("id_match" %in% names(pbp_data)) {
+        score_lut <- all_matches %>%
+          select(match_id, score_local, score_visitor) %>%
+          rename(score_local_final = score_local, score_visitor_final = score_visitor)
+        pbp_data <- left_join(pbp_data, score_lut, by = c("id_match" = "match_id"))
+      } else {
+        pbp_data$score_local_final   <- NA_real_
+        pbp_data$score_visitor_final <- NA_real_
+      }
+
       # Save to CSV
       filename <- paste0("J", jornada, "_", team_local_abb, "_", team_visitor_abb, "_PBP.csv")
       filepath <- file.path(output_dir, filename)
       write.csv(pbp_data, filepath, row.names = FALSE, fileEncoding = "UTF-8")
-      
+      saved <<- saved + 1L
+
     }, error = function(e) {
-      errors <- c(errors, paste("Match", match_id, "-", e$message))
+      errors <<- c(errors, paste("Match", match_id, "-", e$message))
     })
-    
+
     setTxtProgressBar(pb, i)
     Sys.sleep(0.1)  # Rate limiting
   }
-  
+
   close(pb)
-  
+
   # Report results
   cat("\n\n✓ Scraping complete!\n")
-  cat("  Matches processed:", length(match_ids), "\n")
+  cat("  Matches fetched:", length(match_ids), "\n")
+  cat("  Files saved:    ", saved, "\n")
   cat("  Output directory:", output_dir, "\n")
-  
+
   if (length(errors) > 0) {
-    cat("\n⚠ Errors encountered:\n")
-    for (err in errors) {
+    cat("\n⚠ Errors encountered (", length(errors), "):\n", sep = "")
+    for (err in head(errors, 20)) {
       cat("  -", err, "\n")
     }
+    if (length(errors) > 20) cat("  ... and", length(errors) - 20, "more\n")
   }
   
   invisible(all_matches)

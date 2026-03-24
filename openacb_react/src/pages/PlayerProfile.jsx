@@ -595,6 +595,9 @@ function RadarChart({ player, usePos }) {
 
 // ─── Archetype Classifier ──────────────────────────────────────
 function classifyArchetype(player, bio) {
+  if (player.qualified === false)
+    return { name: 'Datos insuficientes', desc: 'No cumple el mínimo de partidos o minutos para calcular el arquetipo', color: 'text-acb-400 bg-acb-50 border-acb-200' }
+
   const ppg = player.ppgPct ?? 50
   const ts  = player.tsPct ?? 50
   const usg = player.usgPct ?? 50

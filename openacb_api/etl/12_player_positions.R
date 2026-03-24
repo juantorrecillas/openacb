@@ -23,7 +23,7 @@ library(jsonlite)
 generate_player_bio <- function(
     data_dir    = "./data/processed",
     output_dir  = "../openacb_react/public/data",
-    seasons     = c(2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026),
+    seasons     = c(2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026),
     incremental = TRUE,
     sleep_sec   = 1
 ) {

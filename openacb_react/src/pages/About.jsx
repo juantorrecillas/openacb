@@ -1,4 +1,4 @@
-import { Mail, Globe, Code, Info, Heart } from 'lucide-react'
+import { Mail, Globe, Code, Info, Heart, Twitter, Github } from 'lucide-react'
 
 function About() {
   const contactInfo = {
@@ -10,15 +10,46 @@ function About() {
 
   return (
     <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-lg shadow-sm border border-acb-200 p-8 mb-6">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="p-3 bg-acb-100 rounded-lg">
-          <Info className="w-8 h-8 text-acb-700" />
-            </div>
-            <div>
-          <h1 className="text-3xl font-bold text-acb-900">¿Qué es OpenACB?</h1>
-            </div>
+
+{/* Sobre mí */}
+      <div className="bg-white rounded-lg shadow-sm border border-acb-200 p-8 mb-6">
+        <h2 className="text-2xl font-semibold text-acb-900 mb-4">Sobre mí</h2>
+        <div className="text-base text-acb-700 space-y-2">
+          <p>
+            <strong> juan torrecillas.</strong> Soy Analista de Política Económica en el Joint Research Centre de la Comisión Europea. Como académico y aficionado al baloncesto, me alegra ver que el uso de la analítica y la estadística avanzada se hace más común. Con esta herramienta, tanto para aficionados como para amantes del dato, quiero hacer la perspectiva analítica accesible para todo el mundo. Que cada vez que alguien entre al sitio consiga llevarse algo nuevo aprendido en su mochila.
+          </p>
+        </div>
+        <div className="flex items-center gap-4 mt-4 pt-4 border-t border-acb-200">
+          <a href="https://x.com/juan_torrec" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-acb-600 hover:text-accent-500 transition-colors">
+            {/* Replaced <Twitter /> with the official X SVG logo */}
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 22.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+            </svg>
+            <span className="text-sm"></span>
+          </a>
+          <a href={contactInfo.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-acb-600 hover:text-lemon transition-colors">
+            <Globe className="w-5 h-5" />
+            <span className="text-sm">Web personal</span>
+          </a>
+          <a href={contactInfo.GitHub} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-acb-600 hover:text-accent-500 transition-colors">
+            <Github className="w-5 h-5" />
+            <span className="text-sm">GitHub</span>
+          </a>
+          <a href={`mailto:${contactInfo.email}`} className="flex items-center gap-2 text-acb-600 hover:text-accent-500 transition-colors">
+            <Mail className="w-5 h-5" />
+            <span className="text-sm">Email</span>
+          </a>
+        </div>
+      </div>
+      <div className="bg-white rounded-lg shadow-sm border border-acb-200 p-8 mb-6">
+        <div className="flex items-center gap-4 mb-4">
+          <div className="p-3 bg-acb-100 rounded-lg">
+            <Info className="w-8 h-8 text-acb-700" />
           </div>
+          <div>
+            <h1 className="text-3xl font-bold text-acb-900">¿Qué es OpenACB?</h1>
+          </div>
+        </div>
 
           <div className="prose prose-slate max-w-none">
             <p className="text-acb-700 leading-relaxed">
@@ -30,15 +61,7 @@ function About() {
           </div>
         </div>
 
-      {/* Sobre mí */}
-      <div className="bg-white rounded-lg shadow-sm border border-acb-200 p-8 mb-6">
-        <h2 className="text-2xl font-semibold text-acb-900 mb-4">Sobre mí</h2>
-        <div className="text-base text-acb-700 space-y-2">
-          <p>
-            <strong> juan torrecillas.</strong> Soy Analista de Política Económica en el Joint Research Centre de la Comisión Europea. Como académico y aficionado al baloncesto, me alegra ver que el uso de la analítica y la estadística avanzada se hace más común. Este deporte se está haciendo más familiar con el mundo del dato; eso es positivo. Podéis seguirme en <a href="https://twitter.com/juan_torrec" target="_blank" rel="noopener noreferrer" className="text-acb-600 hover:text-accent-500 underline">Twitter</a>. También podéis ver más sobre mi trabajo académico en mi <a href={contactInfo.website} target="_blank" rel="noopener noreferrer" className="text-acb-600 hover:text-lemon underline">web personal</a>.
-          </p>
-        </div>
-      </div>
+      
 
       {/* Contacto */}
       <div className="bg-white rounded-lg shadow-sm border border-acb-200 p-8 mb-6">
