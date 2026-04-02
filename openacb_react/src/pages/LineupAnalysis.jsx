@@ -394,62 +394,81 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
                 </tr>
               </thead>
               <tbody className="divide-y divide-acb-100">
-                {/* Ratings */}
+                {/* ATAQUE */}
+                <tr className="bg-acb-50">
+                  <td colSpan={5} className="px-4 py-2 text-xs font-bold text-acb-600 uppercase tracking-wider">Ataque</td>
+                </tr>
                 <StatRow
                   label="Ef. Ofensiva"
                   onValue={currentLineupData.onORtg}
                   offValue={currentLineupData.offORtg}
-                  unit="pts/100"
                   goodThreshold={110}
                 />
-                <StatRow
-                  label="Ef. Defensiva"
-                  onValue={currentLineupData.onDRtg}
-                  offValue={currentLineupData.offDRtg}
-                  unit="pts/100"
-                  goodThreshold={105}
-                  inverse
-                />
-                <StatRow
-                  label="Ef. Neta"
-                  onValue={currentLineupData.onNetRtg}
-                  offValue={currentLineupData.offNetRtg}
-                  unit="pts/100"
-                  goodThreshold={0}
-                  highlight
-                />
-                {/* Four Factors - Shooting */}
                 <StatRow
                   label="eFG%"
                   onValue={currentLineupData.onEFG}
                   offValue={currentLineupData.offEFG}
-                  unit="%"
                   goodThreshold={50}
                 />
-                {/* Four Factors - Turnovers */}
                 <StatRow
                   label="TOV%"
                   onValue={currentLineupData.onTOV}
                   offValue={currentLineupData.offTOV}
-                  unit="%"
                   goodThreshold={15}
                   inverse
                 />
-                {/* Four Factors - Rebounding */}
                 <StatRow
-                  label="DRB%"
-                  onValue={currentLineupData.onDRB}
-                  offValue={currentLineupData.offDRB}
-                  unit="%"
-                  goodThreshold={70}
+                  label="ORB%"
+                  onValue={currentLineupData.onORB}
+                  offValue={currentLineupData.offORB}
+                  goodThreshold={30}
                 />
-                {/* Assist Rate */}
                 <StatRow
                   label="AST%"
                   onValue={currentLineupData.onAST}
                   offValue={currentLineupData.offAST}
-                  unit="%"
                   goodThreshold={50}
+                />
+                {/* DEFENSA */}
+                <tr className="bg-acb-50">
+                  <td colSpan={5} className="px-4 py-2 text-xs font-bold text-acb-600 uppercase tracking-wider">Defensa (estadísticas del rival)</td>
+                </tr>
+                <StatRow
+                  label="Ef. Defensiva"
+                  onValue={currentLineupData.onDRtg}
+                  offValue={currentLineupData.offDRtg}
+                  goodThreshold={105}
+                  inverse
+                />
+                <StatRow
+                  label="eFG% Rival"
+                  onValue={currentLineupData.onOppEFG}
+                  offValue={currentLineupData.offOppEFG}
+                  goodThreshold={50}
+                  inverse
+                />
+                <StatRow
+                  label="TOV% Rival"
+                  onValue={currentLineupData.onOppTOV}
+                  offValue={currentLineupData.offOppTOV}
+                  goodThreshold={14}
+                />
+                <StatRow
+                  label="DRB%"
+                  onValue={currentLineupData.onDRB}
+                  offValue={currentLineupData.offDRB}
+                  goodThreshold={70}
+                />
+                {/* BALANCE */}
+                <tr className="bg-acb-50">
+                  <td colSpan={5} className="px-4 py-2 text-xs font-bold text-acb-600 uppercase tracking-wider">Balance</td>
+                </tr>
+                <StatRow
+                  label="Ef. Neta"
+                  onValue={currentLineupData.onNetRtg}
+                  offValue={currentLineupData.offNetRtg}
+                  goodThreshold={0}
+                  highlight
                 />
               </tbody>
             </table>
@@ -537,33 +556,53 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
             )}
           </div>
 
-          {/* Four Factors */}
-          <div className="grid grid-cols-4 divide-x divide-acb-200 border-t border-acb-200 bg-acb-50">
-            <div className="p-3 text-center">
-              <div className="text-xs text-acb-500 uppercase tracking-wider mb-1">eFG%</div>
-              <div className="text-lg font-semibold font-mono text-acb-700">
-                {currentLineupData.onEFG?.toFixed(1)}%
+          {/* Ataque */}
+          {(() => {
+            const stats = [
+              { label: 'eFG%',  val: currentLineupData.onEFG,  fmt: v => `${v.toFixed(1)}%`, color: 'text-acb-700' },
+              { label: 'TOV%',  val: currentLineupData.onTOV,  fmt: v => `${v.toFixed(1)}%`, color: 'text-acb-700' },
+              { label: 'ORB%',  val: currentLineupData.onORB,  fmt: v => `${v.toFixed(1)}%`, color: 'text-acb-700' },
+              { label: 'AST%',  val: currentLineupData.onAST,  fmt: v => `${v.toFixed(1)}%`, color: 'text-acb-700' },
+            ].filter(s => s.val != null)
+            if (stats.length === 0) return null
+            return (
+              <div className="border-t border-acb-200">
+                <div className="px-4 py-2 bg-acb-50 text-xs font-bold text-acb-600 uppercase tracking-wider">Ataque</div>
+                <div className="grid divide-x divide-acb-200 bg-acb-50" style={{ gridTemplateColumns: `repeat(${stats.length}, 1fr)` }}>
+                  {stats.map(s => (
+                    <div key={s.label} className="p-3 text-center">
+                      <div className="text-xs text-acb-500 uppercase tracking-wider mb-1">{s.label}</div>
+                      <div className={`text-lg font-semibold font-mono ${s.color}`}>{s.fmt(s.val)}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-            <div className="p-3 text-center">
-              <div className="text-xs text-acb-500 uppercase tracking-wider mb-1">TOV%</div>
-              <div className="text-lg font-semibold font-mono text-acb-700">
-                {currentLineupData.onTOV?.toFixed(1)}%
+            )
+          })()}
+
+          {/* Defensa */}
+          {(() => {
+            const stats = [
+              { label: 'DRtg',       val: currentLineupData.onDRtg,   fmt: v => v.toFixed(1),        color: currentLineupData.onDRtg   < 105 ? 'text-positive' : 'text-negative' },
+              { label: 'eFG% Rival', val: currentLineupData.onOppEFG, fmt: v => `${v.toFixed(1)}%`,  color: currentLineupData.onOppEFG < 50  ? 'text-positive' : 'text-negative' },
+              { label: 'TOV% Rival', val: currentLineupData.onOppTOV, fmt: v => `${v.toFixed(1)}%`,  color: currentLineupData.onOppTOV > 14  ? 'text-positive' : 'text-negative' },
+              { label: 'DRB%',       val: currentLineupData.onDRB,    fmt: v => `${v.toFixed(1)}%`,  color: currentLineupData.onDRB    > 70  ? 'text-positive' : 'text-negative' },
+            ].filter(s => s.val != null)
+            if (stats.length === 0) return null
+            return (
+              <div className="border-t border-acb-200">
+                <div className="px-4 py-2 bg-acb-50 text-xs font-bold text-acb-600 uppercase tracking-wider">Defensa (rival)</div>
+                <div className="grid divide-x divide-acb-200 bg-acb-50" style={{ gridTemplateColumns: `repeat(${stats.length}, 1fr)` }}>
+                  {stats.map(s => (
+                    <div key={s.label} className="p-3 text-center">
+                      <div className="text-xs text-acb-500 uppercase tracking-wider mb-1">{s.label}</div>
+                      <div className={`text-lg font-semibold font-mono ${s.color}`}>{s.fmt(s.val)}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-            <div className="p-3 text-center">
-              <div className="text-xs text-acb-500 uppercase tracking-wider mb-1">DRB%</div>
-              <div className="text-lg font-semibold font-mono text-acb-700">
-                {currentLineupData.onDRB?.toFixed(1)}%
-              </div>
-            </div>
-            <div className="p-3 text-center">
-              <div className="text-xs text-acb-500 uppercase tracking-wider mb-1">AST%</div>
-              <div className="text-lg font-semibold font-mono text-acb-700">
-                {currentLineupData.onAST?.toFixed(1)}%
-              </div>
-            </div>
-          </div>
+            )
+          })()}
         </div>
       )}
 
@@ -603,20 +642,36 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-acb-50 text-left text-xs text-acb-600 uppercase tracking-wider">
-                  <th className="px-4 py-3 font-semibold">Jugador</th>
-                  <SortableHeader label="ORtg On" sortKey="onORtg" current={sortConfig} onSort={handleSort} />
-                  <SortableHeader label="ORtg Off" sortKey="offORtg" current={sortConfig} onSort={handleSort} />
-                  <SortableHeader label="DRtg On" sortKey="onDRtg" current={sortConfig} onSort={handleSort} />
-                  <SortableHeader label="DRtg Off" sortKey="offDRtg" current={sortConfig} onSort={handleSort} />
-                  <SortableHeader label="Net On" sortKey="onNetRtg" current={sortConfig} onSort={handleSort} />
-                  <SortableHeader label="Net Off" sortKey="offNetRtg" current={sortConfig} onSort={handleSort} />
-                  <SortableHeader label="Impacto" sortKey="netDiff" current={sortConfig} onSort={handleSort} highlight />
-                  <SortableHeader label="eFG%" sortKey="onEFG" current={sortConfig} onSort={handleSort} />
-                  <SortableHeader label="TOV%" sortKey="onTOV" current={sortConfig} onSort={handleSort} />
-                  <SortableHeader label="DRB%" sortKey="onDRB" current={sortConfig} onSort={handleSort} />
-                  <SortableHeader label="AST%" sortKey="onAST" current={sortConfig} onSort={handleSort} />
-                  <SortableHeader label="Min" sortKey="onMin" current={sortConfig} onSort={handleSort} />
+                <tr className="text-xs uppercase tracking-wider border-b border-acb-200">
+                  <th className="px-4 py-1 bg-acb-50 text-left font-semibold text-acb-600" rowSpan={2}>Jugador</th>
+                  <th colSpan={2} className="px-2 py-1 text-center bg-acb-50 text-acb-500 font-semibold">Ratings (Δ)</th>
+                  <th colSpan={2} className="px-2 py-1 text-center bg-acb-50 text-acb-500 font-semibold">Ef. Neta</th>
+                  <th className="px-2 py-1 bg-accent-50 text-accent-700 font-semibold text-center cursor-pointer hover:bg-acb-100 transition-colors" rowSpan={2} onClick={() => handleSort('netDiff')}>
+                    <div className="flex items-center justify-center gap-1">
+                      Impacto
+                      {sortConfig.key === 'netDiff' && (
+                        sortConfig.direction === 'desc'
+                          ? <ChevronDown className="w-3 h-3" />
+                          : <ChevronUp className="w-3 h-3" />
+                      )}
+                    </div>
+                  </th>
+                  <th colSpan={5} className="px-2 py-1 text-center bg-acb-50 text-acb-600 font-semibold">Ataque (Δ)</th>
+                  <th colSpan={3} className="px-2 py-1 text-center bg-acb-50 text-acb-600 font-semibold">Defensa Rival (Δ)</th>
+                  <th className="px-2 py-1 bg-acb-50 text-acb-500 font-semibold text-center" rowSpan={2}>Min</th>
+                </tr>
+                <tr className="text-xs text-acb-600 uppercase tracking-wider">
+                  <SortableHeader label="ORtg" sortKey="onORtg" current={sortConfig} onSort={handleSort} />
+                  <SortableHeader label="DRtg" sortKey="onDRtg" current={sortConfig} onSort={handleSort} />
+                  <SortableHeader label="On" sortKey="onNetRtg" current={sortConfig} onSort={handleSort} />
+                  <SortableHeader label="Off" sortKey="offNetRtg" current={sortConfig} onSort={handleSort} />
+                  <SortableHeader label="eFG%" sortKey="onEFG" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
+                  <SortableHeader label="TOV%" sortKey="onTOV" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
+                  <SortableHeader label="ORB%" sortKey="onORB" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
+                  <SortableHeader label="AST%" sortKey="onAST" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
+                  <SortableHeader label="eFG% Rv" sortKey="onOppEFG" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
+                  <SortableHeader label="TOV% Rv" sortKey="onOppTOV" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
+                  <SortableHeader label="DRB%" sortKey="onDRB" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-acb-100">
@@ -642,18 +697,22 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
                         {player.name}
                       </span>
                     </td>
-                    <td className="px-4 py-2 text-center font-mono text-acb-600">
-                      {player.onORtg?.toFixed(1)}
-                    </td>
-                    <td className="px-4 py-2 text-center font-mono text-acb-500">
-                      {player.offORtg?.toFixed(1)}
-                    </td>
-                    <td className="px-4 py-2 text-center font-mono text-acb-600">
-                      {player.onDRtg?.toFixed(1)}
-                    </td>
-                    <td className="px-4 py-2 text-center font-mono text-acb-500">
-                      {player.offDRtg?.toFixed(1)}
-                    </td>
+                    {(() => {
+                      const ortgD = (player.onORtg ?? 0) - (player.offORtg ?? 0)
+                      return (
+                        <td className={`px-4 py-2 text-center font-mono ${ortgD > 0 ? 'text-positive' : ortgD < 0 ? 'text-negative' : 'text-acb-500'}`}>
+                          {ortgD > 0 ? '+' : ''}{ortgD.toFixed(1)}
+                        </td>
+                      )
+                    })()}
+                    {(() => {
+                      const drtgD = (player.onDRtg ?? 0) - (player.offDRtg ?? 0)
+                      return (
+                        <td className={`px-4 py-2 text-center font-mono ${drtgD < 0 ? 'text-positive' : drtgD > 0 ? 'text-negative' : 'text-acb-500'}`}>
+                          {drtgD > 0 ? '+' : ''}{drtgD.toFixed(1)}
+                        </td>
+                      )
+                    })()}
                     <td className={`px-4 py-2 text-center font-mono ${
                       player.onNetRtg > 0 ? 'text-positive' : 'text-negative'
                     }`}>
@@ -669,18 +728,34 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
                       <span className="mr-1">{getPerformanceIndicator(player.netDiff).emoji}</span>
                       {player.netDiff > 0 ? '+' : ''}{player.netDiff?.toFixed(1)}
                     </td>
-                    <td className="px-4 py-2 text-center font-mono text-acb-600">
-                      {player.onEFG?.toFixed(1)}
-                    </td>
-                    <td className="px-4 py-2 text-center font-mono text-acb-600">
-                      {player.onTOV?.toFixed(1)}
-                    </td>
-                    <td className="px-4 py-2 text-center font-mono text-acb-600">
-                      {player.onDRB?.toFixed(1)}
-                    </td>
-                    <td className="px-4 py-2 text-center font-mono text-acb-600">
-                      {player.onAST?.toFixed(1)}
-                    </td>
+                    {(() => {
+                      const d = (player.onEFG ?? 0) - (player.offEFG ?? 0)
+                      return <td className={`px-4 py-2 text-center font-mono ${d > 0 ? 'text-positive' : d < 0 ? 'text-negative' : 'text-acb-500'}`}>{d > 0 ? '+' : ''}{d.toFixed(1)}</td>
+                    })()}
+                    {(() => {
+                      const d = (player.onTOV ?? 0) - (player.offTOV ?? 0)
+                      return <td className={`px-4 py-2 text-center font-mono ${d < 0 ? 'text-positive' : d > 0 ? 'text-negative' : 'text-acb-500'}`}>{d > 0 ? '+' : ''}{d.toFixed(1)}</td>
+                    })()}
+                    {(() => {
+                      const d = (player.onORB ?? 0) - (player.offORB ?? 0)
+                      return <td className={`px-4 py-2 text-center font-mono ${d > 0 ? 'text-positive' : d < 0 ? 'text-negative' : 'text-acb-500'}`}>{d > 0 ? '+' : ''}{d.toFixed(1)}</td>
+                    })()}
+                    {(() => {
+                      const d = (player.onAST ?? 0) - (player.offAST ?? 0)
+                      return <td className={`px-4 py-2 text-center font-mono ${d > 0 ? 'text-positive' : d < 0 ? 'text-negative' : 'text-acb-500'}`}>{d > 0 ? '+' : ''}{d.toFixed(1)}</td>
+                    })()}
+                    {(() => {
+                      const d = (player.onOppEFG ?? 0) - (player.offOppEFG ?? 0)
+                      return <td className={`px-4 py-2 text-center font-mono ${d < 0 ? 'text-positive' : d > 0 ? 'text-negative' : 'text-acb-500'}`}>{d > 0 ? '+' : ''}{d.toFixed(1)}</td>
+                    })()}
+                    {(() => {
+                      const d = (player.onOppTOV ?? 0) - (player.offOppTOV ?? 0)
+                      return <td className={`px-4 py-2 text-center font-mono ${d > 0 ? 'text-positive' : d < 0 ? 'text-negative' : 'text-acb-500'}`}>{d > 0 ? '+' : ''}{d.toFixed(1)}</td>
+                    })()}
+                    {(() => {
+                      const d = (player.onDRB ?? 0) - (player.offDRB ?? 0)
+                      return <td className={`px-4 py-2 text-center font-mono ${d > 0 ? 'text-positive' : d < 0 ? 'text-negative' : 'text-acb-500'}`}>{d > 0 ? '+' : ''}{d.toFixed(1)}</td>
+                    })()}
                     <td className="px-4 py-2 text-center font-mono text-acb-400 text-xs">
                       {player.onMin?.toFixed(0)}
                     </td>
@@ -785,14 +860,14 @@ const StatRow = ({ label, onValue, offValue, unit, goodThreshold, inverse = fals
 }
 
 // Sortable Header Component
-const SortableHeader = ({ label, sortKey, current, onSort, highlight = false }) => {
+const SortableHeader = ({ label, sortKey, current, onSort, highlight = false, thClassName = '' }) => {
   const isActive = current.key === sortKey
 
   return (
     <th
       className={`px-4 py-3 font-semibold text-center cursor-pointer hover:bg-acb-100 transition-colors ${
         highlight ? 'bg-accent-50' : ''
-      } ${isActive ? 'text-accent-600' : ''}`}
+      } ${isActive ? 'text-accent-600' : ''} ${thClassName}`}
       onClick={() => onSort(sortKey)}
     >
       <div className="flex items-center justify-center gap-1">

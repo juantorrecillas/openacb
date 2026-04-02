@@ -1133,40 +1133,57 @@ function OnOffCard({ records, loadLineupsForSeason, lineupsCache, loadingLineups
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-acb-200">
-                <th className="text-left py-2 text-xs font-semibold text-acb-600 uppercase">Temp.</th>
-                <th className="text-left py-2 text-xs font-semibold text-acb-600 uppercase">Equipo</th>
-                <th className="text-right py-2 text-xs font-semibold text-acb-600 uppercase">ORtg On</th>
-                <th className="text-right py-2 text-xs font-semibold text-acb-600 uppercase">ORtg Off</th>
-                <th className="text-right py-2 text-xs font-semibold text-acb-600 uppercase">DRtg On</th>
-                <th className="text-right py-2 text-xs font-semibold text-acb-600 uppercase">DRtg Off</th>
-                <th className="text-right py-2 text-xs font-semibold text-acb-600 uppercase">Net On</th>
-                <th className="text-right py-2 text-xs font-semibold text-acb-600 uppercase">Net Off</th>
-                <th className="text-right py-2 text-xs font-semibold text-acb-600 uppercase">Impacto</th>
-                <th className="text-right py-2 text-xs font-semibold text-acb-600 uppercase">Min</th>
+              <tr className="text-xs font-semibold text-acb-600 uppercase border-b border-acb-200">
+                <th className="text-left py-1" rowSpan={2}>Temp.</th>
+                <th className="text-left py-1" rowSpan={2}>Equipo</th>
+                <th colSpan={3} className="text-center py-1 border-b border-acb-100">Ataque</th>
+                <th colSpan={3} className="text-center py-1 border-b border-acb-100">Defensa</th>
+                <th colSpan={2} className="text-center py-1 border-b border-acb-100">Neto</th>
+                <th className="text-right py-1" rowSpan={2}>Impacto</th>
+                <th className="text-right py-1" rowSpan={2}>Min</th>
+              </tr>
+              <tr className="text-xs font-semibold text-acb-500 uppercase">
+                <th className="text-right py-1">On</th>
+                <th className="text-right py-1">Off</th>
+                <th className="text-right py-1">Δ</th>
+                <th className="text-right py-1">On</th>
+                <th className="text-right py-1">Off</th>
+                <th className="text-right py-1">Δ</th>
+                <th className="text-right py-1">On</th>
+                <th className="text-right py-1">Off</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-acb-100">
-              {rows.filter(r => r.found).map(r => (
-                <tr key={`${r.season}-${r.team}`} className="hover:bg-acb-50">
-                  <td className="py-2 font-medium text-acb-900">{seasonLabel(r.season)}</td>
-                  <td className="py-2 text-acb-700">{r.team}</td>
-                  <td className={`py-2 text-right font-mono ${ratingColor(r.onORtg)}`}>{r.onORtg?.toFixed(1) ?? '-'}</td>
-                  <td className="py-2 text-right font-mono text-acb-500">{r.offORtg?.toFixed(1) ?? '-'}</td>
-                  <td className={`py-2 text-right font-mono ${ratingColor(r.onDRtg, true)}`}>{r.onDRtg?.toFixed(1) ?? '-'}</td>
-                  <td className="py-2 text-right font-mono text-acb-500">{r.offDRtg?.toFixed(1) ?? '-'}</td>
-                  <td className={`py-2 text-right font-mono ${r.onNetRtg > 0 ? 'text-positive' : 'text-negative'}`}>
-                    {r.onNetRtg != null ? `${r.onNetRtg > 0 ? '+' : ''}${r.onNetRtg.toFixed(1)}` : '-'}
-                  </td>
-                  <td className="py-2 text-right font-mono text-acb-500">
-                    {r.offNetRtg != null ? `${r.offNetRtg > 0 ? '+' : ''}${r.offNetRtg.toFixed(1)}` : '-'}
-                  </td>
-                  <td className={`py-2 text-right font-mono ${diffColor(r.netDiff)}`}>
-                    {r.netDiff != null ? `${r.netDiff > 0 ? '+' : ''}${r.netDiff.toFixed(1)}` : '-'}
-                  </td>
-                  <td className="py-2 text-right font-mono text-acb-500">{r.onMin?.toFixed(0) ?? '-'}</td>
-                </tr>
-              ))}
+              {rows.filter(r => r.found).map(r => {
+                const ortgD = r.onORtg != null && r.offORtg != null ? r.onORtg - r.offORtg : null
+                const drtgD = r.onDRtg != null && r.offDRtg != null ? r.onDRtg - r.offDRtg : null
+                return (
+                  <tr key={`${r.season}-${r.team}`} className="hover:bg-acb-50">
+                    <td className="py-2 font-medium text-acb-900">{seasonLabel(r.season)}</td>
+                    <td className="py-2 text-acb-700">{r.team}</td>
+                    <td className="py-2 text-right font-mono text-acb-700">{r.onORtg?.toFixed(1) ?? '-'}</td>
+                    <td className="py-2 text-right font-mono text-acb-500">{r.offORtg?.toFixed(1) ?? '-'}</td>
+                    <td className={`py-2 text-right font-mono font-medium ${ortgD == null ? 'text-acb-400' : ortgD > 0 ? 'text-positive' : ortgD < 0 ? 'text-negative' : 'text-acb-500'}`}>
+                      {ortgD != null ? `${ortgD > 0 ? '+' : ''}${ortgD.toFixed(1)}` : '-'}
+                    </td>
+                    <td className="py-2 text-right font-mono text-acb-700">{r.onDRtg?.toFixed(1) ?? '-'}</td>
+                    <td className="py-2 text-right font-mono text-acb-500">{r.offDRtg?.toFixed(1) ?? '-'}</td>
+                    <td className={`py-2 text-right font-mono font-medium ${drtgD == null ? 'text-acb-400' : drtgD < 0 ? 'text-positive' : drtgD > 0 ? 'text-negative' : 'text-acb-500'}`}>
+                      {drtgD != null ? `${drtgD > 0 ? '+' : ''}${drtgD.toFixed(1)}` : '-'}
+                    </td>
+                    <td className="py-2 text-right font-mono text-acb-700">
+                      {r.onNetRtg != null ? `${r.onNetRtg > 0 ? '+' : ''}${r.onNetRtg.toFixed(1)}` : '-'}
+                    </td>
+                    <td className="py-2 text-right font-mono text-acb-500">
+                      {r.offNetRtg != null ? `${r.offNetRtg > 0 ? '+' : ''}${r.offNetRtg.toFixed(1)}` : '-'}
+                    </td>
+                    <td className={`py-2 text-right font-mono ${diffColor(r.netDiff)}`}>
+                      {r.netDiff != null ? `${r.netDiff > 0 ? '+' : ''}${r.netDiff.toFixed(1)}` : '-'}
+                    </td>
+                    <td className="py-2 text-right font-mono text-acb-500">{r.onMin?.toFixed(0) ?? '-'}</td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
