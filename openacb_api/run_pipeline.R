@@ -27,6 +27,7 @@ load_pipeline_modules <- function(base_dir = ".") {
   source(file.path(base_dir, "etl/07_player_stats.R"))
   source(file.path(base_dir, "etl/08_game_flow.R"))
   source(file.path(base_dir, "etl/09_team_pace.R"))
+  source(file.path(base_dir, "etl/clutch_stats.R"))
 
   # Load ETL modules (cross-season, run once)
   source(file.path(base_dir, "etl/10_team_logos.R"))
@@ -63,7 +64,7 @@ load_pipeline_modules <- function(base_dir = ".") {
 run_season_pipeline <- function(
     season_id,
     steps = c("scrape", "clean", "variables", "team_stats", "shot_charts",
-              "lineup_analysis", "player_stats", "game_flow", "team_pace"),
+              "lineup_analysis", "player_stats", "game_flow", "team_pace", "clutch"),
     data_dir = "./data",
     config_path = "./config/seasons.R"
 ) {
@@ -120,6 +121,9 @@ run_season_pipeline <- function(
 
   step_run("team_pace",       "Calculating team pace/quarter splits",
     generate_team_pace(season_id, data_dir = data_dir, config_path = config_path))
+
+  step_run("clutch",          "Calculating clutch statistics",
+    generate_clutch_stats(season_id, data_dir = data_dir, config_path = config_path))
 
   # Summary
   end_time <- Sys.time()
@@ -245,7 +249,7 @@ quick_update <- function(
   run_season_pipeline(
     season_id,
     steps = c("clean", "variables", "team_stats", "shot_charts",
-              "lineup_analysis", "player_stats", "game_flow", "team_pace")
+              "lineup_analysis", "player_stats", "game_flow", "team_pace", "clutch")
   )
 
   if (export) {
@@ -286,6 +290,7 @@ if (interactive()) {
   cat("  calculate_player_stats(2025)        - Player statistics\n")
   cat("  generate_game_flow(2025)            - Game flow data\n")
   cat("  generate_team_pace(2025)            - Team pace/quarter splits\n")
+  cat("  generate_clutch_stats(2025)         - Clutch statistics (last 5 min, ≤5 pts)\n")
   cat("  generate_team_logos()               - Team logos (cross-season)\n")
   cat("  generate_player_photos()            - Player photos (cross-season)\n")
   cat("  generate_player_bio()               - Player bio data (cross-season)\n")

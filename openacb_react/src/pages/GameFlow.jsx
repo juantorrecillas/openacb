@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
+import { ArrowUp, ArrowDown, Loader2 } from 'lucide-react'
 import TeamPace from './TeamPace'
 
 // ─── Helpers ──────────────────────────────────────────────────
@@ -31,9 +32,175 @@ function typeLabel(type) {
   return type
 }
 
+// ─── Clutch Teams View ────────────────────────────────────────
+
+function getRankColor(rank, total) {
+  if (!rank || !total) return 'bg-acb-100 text-acb-600'
+  const pct = rank / total
+  if (pct <= 0.25) return 'bg-positive-100 text-positive-700'
+  if (pct <= 0.5)  return 'bg-info-100 text-info-700'
+  if (pct <= 0.75) return 'bg-info-100 text-info-600'
+  return 'bg-negative-100 text-negative-700'
+}
+
+function ClutchTeamsView({ tabBar, teams, selectedSeason, setSelectedSeason, availableSeasons, clutchCache, loadingClutch }) {
+  const [sortCol, setSortCol] = useState('plusMinus')
+  const [sortDir, setSortDir] = useState('desc')
+
+  const clutchData = clutchCache[selectedSeason] || null
+  const isLoading  = loadingClutch[selectedSeason] || false
+
+  const enriched = useMemo(() => {
+    const raw = clutchData?.teams || []
+    const withDerived = raw.map(t => {
+      const fga    = (t.fg2Apg || 0) + (t.fg3Apg || 0)
+      const tsPct  = fga + (t.ftApg || 0) > 0
+        ? Math.round(t.ptsScoredAvg / (2 * (fga + 0.44 * (t.ftApg || 0))) * 1000) / 10
+        : null
+      const fg3Rate = fga > 0 ? Math.round((t.fg3Apg || 0) / fga * 1000) / 10 : null
+      const winPct  = (t.games || 0) > 0 ? t.wins / t.games : 0
+      return { ...t, tsPct, fg3Rate, winPct }
+    })
+    const copy = withDerived.map(t => ({ ...t }))
+    const rankDesc = ['ptsScoredAvg','efgPct','tsPct','fg2Pct','fg3Pct','ftPct','plusMinus','winPct']
+    rankDesc.forEach(key => {
+      const s = [...copy].filter(t => t[key] != null).sort((a, b) => (b[key] || 0) - (a[key] || 0))
+      s.forEach((t, i) => { const o = copy.find(x => x.team === t.team); if (o) o[`${key}Rank`] = i + 1 })
+    })
+    const s = [...copy].filter(t => t.ptsAllowedAvg != null).sort((a, b) => (a.ptsAllowedAvg || 0) - (b.ptsAllowedAvg || 0))
+    s.forEach((t, i) => { const o = copy.find(x => x.team === t.team); if (o) o.ptsAllowedAvgRank = i + 1 })
+    return copy
+  }, [clutchData])
+
+  const sorted = useMemo(() => {
+    return [...enriched].sort((a, b) => {
+      const av = a[sortCol] ?? (sortDir === 'desc' ? -Infinity : Infinity)
+      const bv = b[sortCol] ?? (sortDir === 'desc' ? -Infinity : Infinity)
+      return sortDir === 'desc' ? bv - av : av - bv
+    })
+  }, [enriched, sortCol, sortDir])
+
+  const n = sorted.length
+  const handleSort = col => {
+    if (sortCol === col) setSortDir(d => d === 'desc' ? 'asc' : 'desc')
+    else { setSortCol(col); setSortDir('desc') }
+  }
+
+  const sl = s => `${s - 1}-${String(s).slice(-2)}`
+  const fmt = (v, pct) => v == null || isNaN(v) ? '-' : pct ? `${Number(v).toFixed(1)}%` : Number(v).toFixed(1)
+  const thCls = key => `px-2 py-3 text-center text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-acb-100 whitespace-nowrap select-none ${sortCol === key ? 'bg-acb-100 text-acb-800' : 'text-acb-600'}`
+  const sortIcon = key => sortCol === key
+    ? (sortDir === 'desc' ? <ArrowDown className="inline w-3 h-3 ml-0.5" /> : <ArrowUp className="inline w-3 h-3 ml-0.5" />)
+    : <span className="ml-0.5 opacity-20">↕</span>
+
+  const StatCell = ({ t, k, pct = false, signed = false }) => {
+    const v = t[k]
+    const rank = t[`${k}Rank`]
+    let display, colorClass = 'text-acb-700'
+    if (v == null || isNaN(v)) display = '-'
+    else if (signed) { display = v > 0 ? `+${v.toFixed(1)}` : v.toFixed(1); colorClass = v > 0 ? 'text-green-700' : v < 0 ? 'text-red-600' : 'text-acb-700' }
+    else display = pct ? `${Number(v).toFixed(1)}%` : Number(v).toFixed(1)
+    return (
+      <td className={`px-2 py-3 text-sm text-center ${sortCol === k ? 'bg-acb-50/60' : ''}`}>
+        <div className="flex flex-col items-center gap-1">
+          <span className={`font-mono ${colorClass}`}>{display}</span>
+          {rank != null && <span className={`text-xs px-1.5 py-0.5 rounded ${getRankColor(rank, n)}`}>#{rank}</span>}
+        </div>
+      </td>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      {tabBar('clutch')}
+
+      <div>
+        <h2 className="text-2xl font-semibold text-acb-900">Clutch por Equipo</h2>
+        <p className="text-acb-500 text-sm mt-1">
+          Últimos 5 minutos con diferencia ≤ 5 pts (Q4 o prórroga) · {sl(selectedSeason)}
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-1 w-fit">
+        <label className="text-xs text-acb-500 font-medium">Temporada</label>
+        <select
+          value={selectedSeason}
+          onChange={e => setSelectedSeason(Number(e.target.value))}
+          className="px-3 py-2.5 border border-acb-200 rounded-lg text-sm bg-white"
+        >
+          {availableSeasons.map(s => <option key={s} value={s}>{sl(s)}</option>)}
+        </select>
+      </div>
+
+      {isLoading ? (
+        <div className="flex items-center justify-center py-16 text-acb-400">
+          <Loader2 className="w-5 h-5 animate-spin mr-2" />Cargando…
+        </div>
+      ) : !clutchData ? (
+        <div className="text-center py-12 text-acb-400">No hay datos disponibles.</div>
+      ) : (
+        <div className="bg-white rounded-lg border border-acb-200 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-acb-100 border-b border-acb-300">
+                  <th className="px-4 py-2 text-left text-xs font-semibold text-acb-700 uppercase tracking-wider" rowSpan="2">Equipo</th>
+                  <th className="px-2 py-2 text-center text-xs font-semibold text-acb-700 uppercase tracking-wider" rowSpan="2">PJ</th>
+                  <th className="px-2 py-2 text-center text-xs font-semibold text-acb-700 uppercase tracking-wider border-l border-acb-300" colSpan="4">Marcador</th>
+                  <th className="px-2 py-2 text-center text-xs font-semibold text-acb-700 uppercase tracking-wider border-l border-acb-300" colSpan="6">Tiro</th>
+                </tr>
+                <tr className="bg-acb-50 border-b border-acb-200">
+                  <th className={`${thCls('winPct')} border-l border-acb-200`} onClick={() => handleSort('winPct')}>W-L {sortIcon('winPct')}</th>
+                  <th className={thCls('plusMinus')} onClick={() => handleSort('plusMinus')}>+/- {sortIcon('plusMinus')}</th>
+                  <th className={thCls('ptsScoredAvg')} onClick={() => handleSort('ptsScoredAvg')}>Pts/G {sortIcon('ptsScoredAvg')}</th>
+                  <th className={thCls('ptsAllowedAvg')} onClick={() => handleSort('ptsAllowedAvg')}>Pts Riv/G {sortIcon('ptsAllowedAvg')}</th>
+                  <th className={`${thCls('efgPct')} border-l border-acb-200`} onClick={() => handleSort('efgPct')}>eFG% {sortIcon('efgPct')}</th>
+                  <th className={thCls('tsPct')} onClick={() => handleSort('tsPct')}>TS% {sortIcon('tsPct')}</th>
+                  <th className={thCls('fg2Pct')} onClick={() => handleSort('fg2Pct')}>T2% {sortIcon('fg2Pct')}</th>
+                  <th className={thCls('fg3Pct')} onClick={() => handleSort('fg3Pct')}>3P% {sortIcon('fg3Pct')}</th>
+                  <th className={thCls('ftPct')} onClick={() => handleSort('ftPct')}>TL% {sortIcon('ftPct')}</th>
+                  <th className={thCls('fg3Rate')} onClick={() => handleSort('fg3Rate')}>3PAr {sortIcon('fg3Rate')}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-acb-100">
+                {sorted.map(t => (
+                  <tr key={t.team} className="border-b border-acb-100 hover:bg-acb-50 transition-colors">
+                    <td className="px-4 py-3 text-sm font-medium text-acb-900 whitespace-nowrap">{t.team}</td>
+                    <td className="px-2 py-3 text-sm text-center font-mono text-acb-600">{t.games}</td>
+                    <td className={`px-2 py-3 text-sm text-center border-l border-acb-100 ${sortCol === 'winPct' ? 'bg-acb-50/60' : ''}`}>
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="font-mono text-acb-700">{t.wins}-{t.losses}</span>
+                        {t.winPctRank != null && <span className={`text-xs px-1.5 py-0.5 rounded ${getRankColor(t.winPctRank, n)}`}>#{t.winPctRank}</span>}
+                      </div>
+                    </td>
+                    <StatCell t={t} k="plusMinus" signed />
+                    <StatCell t={t} k="ptsScoredAvg" />
+                    <StatCell t={t} k="ptsAllowedAvg" />
+                    <StatCell t={t} k="efgPct" pct />
+                    <StatCell t={t} k="tsPct" pct />
+                    <StatCell t={t} k="fg2Pct" pct />
+                    <StatCell t={t} k="fg3Pct" pct />
+                    <StatCell t={t} k="ftPct" pct />
+                    <td className={`px-2 py-3 text-sm text-center ${sortCol === 'fg3Rate' ? 'bg-acb-50/60' : ''}`}>
+                      <span className="font-mono text-acb-700">{fmt(t.fg3Rate, true)}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="px-4 py-2 border-t border-acb-100 bg-acb-50 text-xs text-acb-400">
+            {n} equipos · Stats por partido clutch · {sl(selectedSeason)}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Main Component ───────────────────────────────────────────
 
-export default function GameFlow({ teams, loadGameFlowForSeason, gameFlowCache, loadingGameFlow, loadTeamPaceForSeason, teamPaceCache, loadingTeamPace }) {
+export default function GameFlow({ teams, loadGameFlowForSeason, gameFlowCache, loadingGameFlow, loadTeamPaceForSeason, teamPaceCache, loadingTeamPace, loadClutchForSeason, clutchCache, loadingClutch }) {
   const [view, setView] = useState('gameflow')
 
   const availableSeasons = useMemo(() => {
@@ -49,6 +216,10 @@ export default function GameFlow({ teams, loadGameFlowForSeason, gameFlowCache, 
   useEffect(() => {
     if (selectedSeason) loadGameFlowForSeason(selectedSeason)
   }, [selectedSeason, loadGameFlowForSeason])
+
+  useEffect(() => {
+    if (selectedSeason && view === 'clutch') loadClutchForSeason(selectedSeason)
+  }, [selectedSeason, view, loadClutchForSeason])
 
   const games = useMemo(() => {
     return gameFlowCache[selectedSeason] || []
@@ -247,13 +418,18 @@ export default function GameFlow({ teams, loadGameFlowForSeason, gameFlowCache, 
 
   // ─── Render ───────────────────────────────────────────────────
 
+  const tabBar = (active) => (
+    <div className="flex gap-2 flex-wrap">
+      <button onClick={() => setView('gameflow')} className={`px-4 py-1.5 rounded-full text-sm font-medium ${active === 'gameflow' ? 'bg-acb-900 text-white' : 'border border-acb-200 text-acb-500 hover:bg-acb-50'}`}>Flujo de Partido</button>
+      <button onClick={() => setView('teampace')} className={`px-4 py-1.5 rounded-full text-sm font-medium ${active === 'teampace' ? 'bg-acb-900 text-white' : 'border border-acb-200 text-acb-500 hover:bg-acb-50'}`}>Rendimiento por Cuarto</button>
+      <button onClick={() => setView('clutch')}   className={`px-4 py-1.5 rounded-full text-sm font-medium ${active === 'clutch'   ? 'bg-acb-900 text-white' : 'border border-acb-200 text-acb-500 hover:bg-acb-50'}`}>Clutch</button>
+    </div>
+  )
+
   if (view === 'teampace') {
     return (
       <div className="space-y-6">
-        <div className="flex gap-2">
-          <button onClick={() => setView('gameflow')} className="px-4 py-1.5 rounded-full text-sm font-medium border border-acb-200 text-acb-500 hover:bg-acb-50">Flujo de Partido</button>
-          <button className="px-4 py-1.5 rounded-full text-sm font-medium bg-acb-900 text-white">Rendimiento por Cuarto</button>
-        </div>
+        {tabBar('teampace')}
         <TeamPace
           teams={teams}
           loadTeamPaceForSeason={loadTeamPaceForSeason}
@@ -264,13 +440,24 @@ export default function GameFlow({ teams, loadGameFlowForSeason, gameFlowCache, 
     )
   }
 
+  if (view === 'clutch') {
+    return (
+      <ClutchTeamsView
+        tabBar={tabBar}
+        teams={teams}
+        selectedSeason={selectedSeason}
+        setSelectedSeason={setSelectedSeason}
+        availableSeasons={availableSeasons}
+        clutchCache={clutchCache}
+        loadingClutch={loadingClutch}
+      />
+    )
+  }
+
   return (
     <div className="space-y-6">
       {/* Tab switcher */}
-      <div className="flex gap-2">
-        <button className="px-4 py-1.5 rounded-full text-sm font-medium bg-acb-900 text-white">Flujo de Partido</button>
-        <button onClick={() => setView('teampace')} className="px-4 py-1.5 rounded-full text-sm font-medium border border-acb-200 text-acb-500 hover:bg-acb-50">Rendimiento por Cuarto</button>
-      </div>
+      {tabBar('gameflow')}
 
       {/* Header */}
       <div>

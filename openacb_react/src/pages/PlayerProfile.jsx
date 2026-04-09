@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Search, Loader2, Filter, GitCompareArrows } from 'lucide-react'
+import { Search, Loader2, Filter, GitCompareArrows, Flame } from 'lucide-react'
 import { getPlayerPhoto } from '../utils/playerPhotos'
 
 
@@ -1192,8 +1192,97 @@ function OnOffCard({ records, loadLineupsForSeason, lineupsCache, loadingLineups
   )
 }
 
+// ─── Clutch Card ───────────────────────────────────────────────
+function ClutchCard({ records, loadClutchForSeason, clutchCache, loadingClutch }) {
+  const seasons = useMemo(() => records.map(r => r.season), [records])
+  const licenseId = records[0]?.licenseId
+
+  // Load clutch data for all seasons this player played in
+  useEffect(() => {
+    seasons.forEach(s => loadClutchForSeason(s))
+  }, [seasons, loadClutchForSeason])
+
+  const clutchRows = useMemo(() => {
+    return seasons
+      .map(season => {
+        const data = clutchCache[season]
+        if (!data) return null
+        const entry = data.players?.find(p => String(p.licenseId) === String(licenseId))
+        if (!entry) return null
+        const team = records.find(r => r.season === season)?.team || entry.team
+        return { season, team, ...entry }
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.season - a.season)
+  }, [seasons, clutchCache, licenseId, records])
+
+  const anyLoading = seasons.some(s => loadingClutch[s])
+  const seasonLabel = s => `${s - 1}-${String(s).slice(-2)}`
+  const fmt = (v, pct) => {
+    if (v == null || isNaN(v)) return '-'
+    return pct ? `${Number(v).toFixed(1)}%` : Number(v).toFixed(1)
+  }
+
+  if (!anyLoading && clutchRows.length === 0) return null
+
+  return (
+    <div className="bg-white rounded-lg border border-acb-200 overflow-hidden">
+      <div className="px-5 py-3 border-b border-acb-100 flex items-center gap-2">
+        <Flame className="w-4 h-4 text-orange-500" />
+        <h3 className="font-semibold text-acb-900 text-sm">Estadísticas Clutch</h3>
+        <span className="text-xs text-acb-400 ml-1">últimos 5 min, diferencia ≤ 5 pts</span>
+      </div>
+      {anyLoading && clutchRows.length === 0 ? (
+        <div className="flex items-center justify-center py-6 text-acb-400">
+          <Loader2 className="w-4 h-4 animate-spin mr-2" />Cargando…
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-acb-50 border-b border-acb-200">
+                {['Temporada','Equipo','PJ','Pts','Reb','Ast','Rob','Tap','Pér','T2%','3P%','TL%','eFG%','TS%','3PAr'].map(h => (
+                  <th key={h} className={`px-3 py-2 text-xs font-semibold text-acb-500 uppercase tracking-wider whitespace-nowrap ${h === 'Temporada' || h === 'Equipo' ? 'text-left' : 'text-right'}`}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-acb-100">
+              {clutchRows.map(r => {
+                const fga    = (r.fg2A || 0) + (r.fg3A || 0)
+                const tsPct  = fga + (r.ftA || 0) > 0
+                  ? (r.pts * r.games) / (2 * (fga + 0.44 * (r.ftA || 0))) * 100
+                  : null
+                const fg3Rate = fga > 0 ? (r.fg3A || 0) / fga * 100 : null
+                return (
+                  <tr key={r.season} className="hover:bg-acb-50">
+                    <td className="px-3 py-2 text-left font-medium text-acb-900 whitespace-nowrap">{seasonLabel(r.season)}</td>
+                    <td className="px-3 py-2 text-left text-acb-600 whitespace-nowrap text-xs">{r.team}</td>
+                    <td className="px-3 py-2 text-right font-mono text-acb-700">{r.games}</td>
+                    <td className="px-3 py-2 text-right font-mono text-acb-700">{fmt(r.pts)}</td>
+                    <td className="px-3 py-2 text-right font-mono text-acb-700">{fmt(r.reb)}</td>
+                    <td className="px-3 py-2 text-right font-mono text-acb-700">{fmt(r.ast)}</td>
+                    <td className="px-3 py-2 text-right font-mono text-acb-700">{fmt(r.stl)}</td>
+                    <td className="px-3 py-2 text-right font-mono text-acb-700">{fmt(r.blk)}</td>
+                    <td className="px-3 py-2 text-right font-mono text-acb-700">{fmt(r.tov)}</td>
+                    <td className="px-3 py-2 text-right font-mono text-acb-700">{fmt(r.fg2Pct, true)}</td>
+                    <td className="px-3 py-2 text-right font-mono text-acb-700">{fmt(r.fg3Pct, true)}</td>
+                    <td className="px-3 py-2 text-right font-mono text-acb-700">{fmt(r.ftPct, true)}</td>
+                    <td className="px-3 py-2 text-right font-mono text-acb-700">{fmt(r.efgPct, true)}</td>
+                    <td className="px-3 py-2 text-right font-mono text-acb-700">{fmt(tsPct, true)}</td>
+                    <td className="px-3 py-2 text-right font-mono text-acb-700">{fmt(fg3Rate, true)}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Main Page ─────────────────────────────────────────────────
-export default function PlayerProfile({ players, playerPhotos = {}, playerBio = {}, loadLineupsForSeason, lineupsCache, loadingLineups }) {
+export default function PlayerProfile({ players, playerPhotos = {}, playerBio = {}, loadLineupsForSeason, lineupsCache, loadingLineups, loadClutchForSeason, clutchCache, loadingClutch }) {
   const { licenseId: urlLicenseId } = useParams()
   const navigate = useNavigate()
   const [selectedLicenseId, setSelectedLicenseId] = useState(null)
@@ -1320,6 +1409,16 @@ export default function PlayerProfile({ players, playerPhotos = {}, playerBio = 
             lineupsCache={lineupsCache}
             loadingLineups={loadingLineups}
           />
+
+          {/* Clutch Stats */}
+          {loadClutchForSeason && (
+            <ClutchCard
+              records={playerRecords}
+              loadClutchForSeason={loadClutchForSeason}
+              clutchCache={clutchCache}
+              loadingClutch={loadingClutch}
+            />
+          )}
         </>
       )}
 

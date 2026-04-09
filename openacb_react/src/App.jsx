@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Routes, Route, useNavigate, useLocation, Link } from 'react-router-dom'
 import { Analytics } from '@vercel/analytics/react'
-import { BarChart3, Target, Users, TrendingUp, Percent, Trophy, Info, UserCircle, Menu, X, GitCompareArrows, Fingerprint, ChevronDown, Activity, Crown } from 'lucide-react'
+import { BarChart3, Target, Users, TrendingUp, Percent, Trophy, Info, UserCircle, Menu, X, GitCompareArrows, Fingerprint, ChevronDown, Activity, Crown, Flame } from 'lucide-react'
 import Home from './pages/Home'
 import ShotCharts from './pages/ShotCharts'
 import TeamStats from './pages/TeamStats'
@@ -16,6 +16,7 @@ import TeamFingerprint from './pages/TeamFingerprint'
 import GameFlow from './pages/GameFlow'
 import TeamPace from './pages/TeamPace'
 import ZoneLeaders from './pages/ZoneLeaders'
+import ClutchStats from './pages/ClutchStats'
 
 // Tab id → URL path mapping
 const TAB_PATHS = {
@@ -27,6 +28,7 @@ const TAB_PATHS = {
   players: '/jugadores',
   profile: '/jugador',
   similarity: '/similitud',
+  clutch: '/estadisticas-clutch',
   lineups: '/alineaciones',
   rankings: '/mejores-alineaciones',
   shots: '/cartas-tiro',
@@ -50,7 +52,8 @@ const NAV = [
     tabs: [
       { id: 'players',    label: 'Estadísticas de Jugador',  icon: Users },
       { id: 'profile',    label: 'Perfil de Jugador',        icon: UserCircle },
-      { id: 'similarity', label: 'Similitud',   icon: GitCompareArrows },
+      { id: 'similarity', label: 'Similitud',                icon: GitCompareArrows },
+      { id: 'clutch',     label: 'Estadísticas Clutch',      icon: Flame },
     ],
   },
   {
@@ -119,6 +122,8 @@ function App() {
   const [loadingGameFlow, setLoadingGameFlow] = useState({})
   const [teamPaceCache, setTeamPaceCache] = useState({})
   const [loadingTeamPace, setLoadingTeamPace] = useState({})
+  const [clutchCache, setClutchCache] = useState({})
+  const [loadingClutch, setLoadingClutch] = useState({})
 
   useEffect(() => {
     async function loadData() {
@@ -217,6 +222,24 @@ function App() {
       console.error(`Error loading team pace for season ${season}:`, error)
       setLoadingTeamPace(prev => ({ ...prev, [season]: false }))
       return []
+    }
+  }
+
+  const loadClutchForSeason = async (season) => {
+    if (clutchCache[season]) return clutchCache[season]
+    if (loadingClutch[season]) return null
+    try {
+      setLoadingClutch(prev => ({ ...prev, [season]: true }))
+      const response = await fetch(`/data/clutch-${season}.json`)
+      if (!response.ok) throw new Error('Clutch data not found')
+      const clutchData = await response.json()
+      setClutchCache(prev => ({ ...prev, [season]: clutchData }))
+      setLoadingClutch(prev => ({ ...prev, [season]: false }))
+      return clutchData
+    } catch (error) {
+      console.error(`Error loading clutch data for season ${season}:`, error)
+      setLoadingClutch(prev => ({ ...prev, [season]: false }))
+      return null
     }
   }
 
@@ -401,6 +424,9 @@ function App() {
                 loadTeamPaceForSeason={loadTeamPaceForSeason}
                 teamPaceCache={teamPaceCache}
                 loadingTeamPace={loadingTeamPace}
+                loadClutchForSeason={loadClutchForSeason}
+                clutchCache={clutchCache}
+                loadingClutch={loadingClutch}
               />
             } />
             <Route path="/cuatro-factores" element={<FourFactors teams={data.teams} />} />
@@ -418,6 +444,9 @@ function App() {
                 loadLineupsForSeason={loadLineupsForSeason}
                 lineupsCache={lineupsCache}
                 loadingLineups={loadingLineups}
+                loadClutchForSeason={loadClutchForSeason}
+                clutchCache={clutchCache}
+                loadingClutch={loadingClutch}
               />
             } />
             <Route path="/jugador/:licenseId" element={
@@ -428,6 +457,9 @@ function App() {
                 loadLineupsForSeason={loadLineupsForSeason}
                 lineupsCache={lineupsCache}
                 loadingLineups={loadingLineups}
+                loadClutchForSeason={loadClutchForSeason}
+                clutchCache={clutchCache}
+                loadingClutch={loadingClutch}
               />
             } />
             <Route path="/similitud" element={
@@ -496,6 +528,14 @@ function App() {
                 teams={data.teams}
                 players={data.players}
                 playerPhotos={data.playerPhotos}
+              />
+            } />
+            <Route path="/estadisticas-clutch" element={
+              <ClutchStats
+                teams={data.teams}
+                loadClutchForSeason={loadClutchForSeason}
+                clutchCache={clutchCache}
+                loadingClutch={loadingClutch}
               />
             } />
             <Route path="/info" element={<About />} />
