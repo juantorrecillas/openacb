@@ -11,6 +11,7 @@
 # =============================================================================
 
 library(dplyr)
+library(tidyr)
 library(jsonlite)
 
 # ─── Main function ───────────────────────────────────────────────────────────
@@ -85,10 +86,6 @@ generate_team_pace <- function(
   # For each match and team, we compute points scored per quarter.
   # Points allowed = points scored by the opponent in that match-quarter.
 
-  match_team_quarter <- scoring %>%
-    group_by(id_match, team, period) %>%
-    summarise(scored = sum(pts, na.rm = TRUE), .groups = "drop")
-
   # Build opponent mapping: for each match, pair each team with its opponent
   match_teams <- pbp %>%
     filter(!is.na(team) & team != "") %>%
@@ -107,6 +104,20 @@ generate_team_pace <- function(
   )
 
   match_teams <- match_teams %>% select(id_match, team)
+
+  # Scored per match-team-period (only from scoring events)
+  scored_per_quarter_raw <- scoring %>%
+    group_by(id_match, team, period) %>%
+    summarise(scored = sum(pts, na.rm = TRUE), .groups = "drop")
+
+  # Complete grid: every match × team × period 1-4, filling 0 for scoreless quarters.
+  # Without this, games where a team scored 0 in a quarter are missing, which means
+  # the opponent's points in those quarters are never counted as "allowed", inflating avg_diff.
+  match_team_quarter <- match_opponents %>%
+    distinct(id_match, team) %>%
+    crossing(period = 1L:4L) %>%
+    left_join(scored_per_quarter_raw, by = c("id_match", "team", "period")) %>%
+    mutate(scored = ifelse(is.na(scored), 0L, scored))
 
   # Join to get allowed (= opponent scored)
   quarter_stats <- match_team_quarter %>%
@@ -140,9 +151,20 @@ generate_team_pace <- function(
 
   # ─── Per-segment breakdown (2-min segments) ─────────────────────────────
 
-  segment_stats <- scoring %>%
+  # Scored per match-team-period-segment (only from scoring events)
+  scored_per_segment_raw <- scoring %>%
     group_by(id_match, team, period, segment) %>%
     summarise(scored = sum(pts, na.rm = TRUE), .groups = "drop")
+
+  # Complete grid: every match × team × period × segment, filling 0 for scoreless segments.
+  # Teams frequently score 0 in a 2-min segment. Without the complete grid those games
+  # are excluded, meaning the opponent's points in those segments are never counted as
+  # "allowed", inflating avg_diff and making segment sums inconsistent with quarter totals.
+  segment_stats <- match_opponents %>%
+    distinct(id_match, team) %>%
+    crossing(period = 1L:4L, segment = 1L:5L) %>%
+    left_join(scored_per_segment_raw, by = c("id_match", "team", "period", "segment")) %>%
+    mutate(scored = ifelse(is.na(scored), 0L, scored))
 
   # Add opponent allowed per segment
   segment_stats <- segment_stats %>%
