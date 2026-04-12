@@ -9,7 +9,7 @@ OpenACB2.0/
 ├── openacb_api/
 │   ├── config/
 │   │   └── seasons.R
-│   ├── etl/
+│   ├── etl/                          # Módulos ETL — ejecutar en orden por temporada
 │   │   ├── 01_scrape.R
 │   │   ├── 02_clean.R
 │   │   ├── 03_variables.R
@@ -21,13 +21,20 @@ OpenACB2.0/
 │   │   ├── 09_team_pace.R
 │   │   ├── 10_team_logos.R
 │   │   ├── 11_player_photos.R
-│   │   └── 12_player_positions.R
-│   ├── data/
-│   │   ├── raw/
-│   │   └── processed/
-│   ├── run_pipeline.R
-│   ├── export_to_react.R
-│   └── export_lineup_data.R
+│   │   ├── 12_player_positions.R
+│   │   └── 13_clutch_stats.R
+│   ├── runners/                      # Scripts de ejecución — hacer source desde aquí
+│   │   ├── run_pipeline.R            # Pipeline completo para una o todas las temporadas
+│   │   ├── update.R                  # Actualización semanal rápida (temporada actual)
+│   │   ├── export_to_react.R         # Exportar todos los datos a JSON para React
+│   │   ├── export_lineup_data.R      # Exportar datos de quintetos a JSON para React
+│   │   ├── regen_team_stats.R        # Regenerar estadísticas de equipo
+│   │   ├── regen_photos.R            # Regenerar fotos de jugadores
+│   │   ├── run_clutch.R              # Regenerar estadísticas clutch
+│   │   └── run_team_pace.R           # Regenerar splits por cuarto
+│   └── data/
+│       ├── raw/
+│       └── processed/
 │
 └── openacb_react/
     ├── src/
@@ -46,6 +53,7 @@ OpenACB2.0/
     │   │   ├── LineupRankings.jsx
     │   │   ├── ShotCharts.jsx
     │   │   ├── ZoneLeaders.jsx
+    │   │   ├── ClutchStats.jsx
     │   │   └── About.jsx
     │   └── components/
     │       ├── Court.jsx
@@ -57,7 +65,7 @@ OpenACB2.0/
 
 ## Pipeline de Procesamiento (R)
 
-El backend procesa los datos en 12 pasos:
+El backend procesa los datos en 13 pasos:
 
 ### 01_scrape.R - Descarga de datos
 
@@ -107,22 +115,28 @@ Genera un JSON con las URLs de fotos de perfil de cada jugador.
 
 Scrapea el HTML de acb.com para extraer información básica sobre cada jugador: altura, posición y edad.
 
+### 13_clutch_stats.R - Estadísticas clutch
+
+Calcula estadísticas de equipos y jugadores en situaciones clutch: últimos 5 minutos del 4º cuarto o prórroga con diferencia de puntos ≤ 5. Incluye balance de victorias/derrotas en esos partidos, puntos anotados y encajados de media, y estadísticas de tiro en esos momentos.
+
 ## Frontend
 
-Aplicación web interactiva con 13 páginas organizadas en 4 secciones:
+Aplicación web interactiva con 13 páginas organizadas en 5 secciones:
 
 **Equipos**
 
 - Estadísticas de Equipo: scatter plot con ORtg vs DRtg y métricas avanzadas
-- Perfil de Equipo: Estilo de juego de cada equipo
-- Análisis de Partido: Evolución del marcador dentro del partido
-- Four Factors: Análisis de los cuatro factores por equipo
+- Perfil de Equipo: estilo de juego y huella táctica de cada equipo
+- Análisis de Partido: evolución del marcador dentro del partido y tabla clutch por equipos
+- Four Factors: análisis de los cuatro factores por equipo
+- Splits por Cuarto: estadísticas desagregadas por cuarto
 
 **Jugadores**
 
 - Estadísticas de Jugador: tablas ordenables con métricas avanzadas y percentiles
-- Perfil de Jugador: Estilo de juego y estadísticas históricas del jugador
-- Similitud: cálculo de similitud estadística de jugadores
+- Perfil de Jugador: estilo de juego y estadísticas históricas del jugador
+- Similitud de Jugadores: cálculo de similitud estadística entre jugadores
+- Estadísticas Clutch: rendimiento de jugadores en situaciones de alta presión
 
 **Alineaciones**
 
@@ -131,7 +145,7 @@ Aplicación web interactiva con 13 páginas organizadas en 4 secciones:
 
 **Tiro**
 
-- Cartas de Tiro: Todos los tiros de un jugador o equipo presentados de diversas formas
+- Cartas de Tiro: todos los tiros de un jugador o equipo presentados de diversas formas
 - Líderes por Zona: mejores anotadores por zona de la cancha
 
 ## Archivos de Datos Generados
