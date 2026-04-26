@@ -46,6 +46,7 @@ function getRankColor(rank, total) {
 function ClutchTeamsView({ tabBar, teams, selectedSeason, setSelectedSeason, availableSeasons, clutchCache, loadingClutch }) {
   const [sortCol, setSortCol] = useState('plusMinus')
   const [sortDir, setSortDir] = useState('desc')
+  const [viewTab, setViewTab] = useState('basico')
 
   const clutchData = clutchCache[selectedSeason] || null
   const isLoading  = loadingClutch[selectedSeason] || false
@@ -53,22 +54,45 @@ function ClutchTeamsView({ tabBar, teams, selectedSeason, setSelectedSeason, ava
   const enriched = useMemo(() => {
     const raw = clutchData?.teams || []
     const withDerived = raw.map(t => {
-      const fga    = (t.fg2Apg || 0) + (t.fg3Apg || 0)
-      const tsPct  = fga + (t.ftApg || 0) > 0
+      const fga     = (t.fg2Apg || 0) + (t.fg3Apg || 0)
+      const tsPct   = fga + (t.ftApg || 0) > 0
         ? Math.round(t.ptsScoredAvg / (2 * (fga + 0.44 * (t.ftApg || 0))) * 1000) / 10
         : null
       const fg3Rate = fga > 0 ? Math.round((t.fg3Apg || 0) / fga * 1000) / 10 : null
       const winPct  = (t.games || 0) > 0 ? t.wins / t.games : 0
-      return { ...t, tsPct, fg3Rate, winPct }
+      const opp_fga = (t.opp_fg2Apg || 0) + (t.opp_fg3Apg || 0)
+      const opp_tsPct = opp_fga + (t.opp_ftApg || 0) > 0
+        ? Math.round((t.ptsAllowedAvg || 0) / (2 * (opp_fga + 0.44 * (t.opp_ftApg || 0))) * 1000) / 10
+        : null
+      const opp_fg3Rate = opp_fga > 0 ? Math.round((t.opp_fg3Apg || 0) / opp_fga * 1000) / 10 : null
+      const opp_orbPct = (t.opp_orebAvg || 0) + (t.drebAvg || 0) > 0
+        ? Math.round((t.opp_orebAvg || 0) / ((t.opp_orebAvg || 0) + (t.drebAvg || 0)) * 1000) / 10 : null
+      const opp_drbPct = (t.opp_drebAvg || 0) + (t.orebAvg || 0) > 0
+        ? Math.round((t.opp_drebAvg || 0) / ((t.opp_drebAvg || 0) + (t.orebAvg || 0)) * 1000) / 10 : null
+      return { ...t, tsPct, fg3Rate, winPct, opp_tsPct, opp_fg3Rate, opp_orbPct, opp_drbPct }
     })
     const copy = withDerived.map(t => ({ ...t }))
-    const rankDesc = ['ptsScoredAvg','efgPct','tsPct','fg2Pct','fg3Pct','ftPct','plusMinus','winPct']
+    const rankDesc = [
+      'ptsScoredAvg','fgPct','fg2Pct','fg3Pct','ftPct','efgPct','tsPct','fg3Rate',
+      'plusMinus','winPct','netRtg','ortg','apg','spg','bpg',
+      'orebAvg','drebAvg','rebAvg','orbPct','drbPct',
+      'astRate','blkRate','stlRate','astToRatio',
+    ]
     rankDesc.forEach(key => {
       const s = [...copy].filter(t => t[key] != null).sort((a, b) => (b[key] || 0) - (a[key] || 0))
       s.forEach((t, i) => { const o = copy.find(x => x.team === t.team); if (o) o[`${key}Rank`] = i + 1 })
     })
-    const s = [...copy].filter(t => t.ptsAllowedAvg != null).sort((a, b) => (a.ptsAllowedAvg || 0) - (b.ptsAllowedAvg || 0))
-    s.forEach((t, i) => { const o = copy.find(x => x.team === t.team); if (o) o.ptsAllowedAvgRank = i + 1 })
+    const rankAsc = [
+      'ptsAllowedAvg','drtg','topg','tovRate',
+      'opp_fgPct','opp_fg2Pct','opp_fg3Pct','opp_ftPct','opp_efgPct','opp_tsPct',
+      'opp_orebAvg','opp_drebAvg','opp_apg','opp_spg','opp_bpg','opp_topg',
+      'opp_astRate','opp_stlRate','opp_blkRate','opp_tovRate','opp_astToRatio',
+      'opp_orbPct','opp_drbPct',
+    ]
+    rankAsc.forEach(key => {
+      const s = [...copy].filter(t => t[key] != null).sort((a, b) => (a[key] || 0) - (b[key] || 0))
+      s.forEach((t, i) => { const o = copy.find(x => x.team === t.team); if (o) o[`${key}Rank`] = i + 1 })
+    })
     return copy
   }, [clutchData])
 
@@ -132,6 +156,18 @@ function ClutchTeamsView({ tabBar, teams, selectedSeason, setSelectedSeason, ava
         </select>
       </div>
 
+      <div className="flex items-center gap-1 bg-acb-100 rounded-md p-1 w-fit">
+        {[['basico','Básico'],['avanzado','Avanzado'],['rival','Rival'],['rivalAvanzado','Riv. Avanzado']].map(([id, label]) => (
+          <button key={id} onClick={() => {
+            setViewTab(id)
+            setSortCol(id === 'avanzado' ? 'netRtg' : id === 'rival' ? 'opp_efgPct' : id === 'rivalAvanzado' ? 'drtg' : 'plusMinus')
+          }}
+            className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${viewTab === id ? 'bg-white text-acb-900 shadow-sm' : 'text-acb-600 hover:text-acb-900'}`}>
+            {label}
+          </button>
+        ))}
+      </div>
+
       {isLoading ? (
         <div className="flex items-center justify-center py-16 text-acb-400">
           <Loader2 className="w-5 h-5 animate-spin mr-2" />Cargando…
@@ -146,20 +182,95 @@ function ClutchTeamsView({ tabBar, teams, selectedSeason, setSelectedSeason, ava
                 <tr className="bg-acb-100 border-b border-acb-300">
                   <th className="px-4 py-2 text-left text-xs font-semibold text-acb-700 uppercase tracking-wider" rowSpan="2">Equipo</th>
                   <th className="px-2 py-2 text-center text-xs font-semibold text-acb-700 uppercase tracking-wider" rowSpan="2">PJ</th>
-                  <th className="px-2 py-2 text-center text-xs font-semibold text-acb-700 uppercase tracking-wider border-l border-acb-300" colSpan="4">Marcador</th>
-                  <th className="px-2 py-2 text-center text-xs font-semibold text-acb-700 uppercase tracking-wider border-l border-acb-300" colSpan="6">Tiro</th>
+                  {viewTab === 'basico' && <>
+                    <th className="px-2 py-2 text-center text-xs font-semibold text-acb-700 uppercase tracking-wider border-l border-acb-300" colSpan="4">Marcador</th>
+                    <th className="px-2 py-2 text-center text-xs font-semibold text-acb-700 uppercase tracking-wider border-l border-acb-300" colSpan="5">Tiro</th>
+                    <th className="px-2 py-2 text-center text-xs font-semibold text-acb-700 uppercase tracking-wider border-l border-acb-300" colSpan="3">Rebotes</th>
+                    <th className="px-2 py-2 text-center text-xs font-semibold text-acb-700 uppercase tracking-wider border-l border-acb-300" colSpan="4">Misc</th>
+                  </>}
+                  {viewTab === 'avanzado' && <>
+                    <th className="px-2 py-2 text-center text-xs font-semibold text-acb-700 uppercase tracking-wider border-l border-acb-300" colSpan="4">Rating</th>
+                    <th className="px-2 py-2 text-center text-xs font-semibold text-acb-700 uppercase tracking-wider border-l border-acb-300" colSpan="3">Tiro Avanzado</th>
+                    <th className="px-2 py-2 text-center text-xs font-semibold text-acb-700 uppercase tracking-wider border-l border-acb-300" colSpan="2">Rebotes</th>
+                    <th className="px-2 py-2 text-center text-xs font-semibold text-acb-700 uppercase tracking-wider border-l border-acb-300" colSpan="5">Ratios</th>
+                  </>}
+                  {viewTab === 'rival' && <>
+                    <th className="px-2 py-2 text-center text-xs font-semibold text-acb-700 uppercase tracking-wider border-l border-acb-300" colSpan="1">Pts</th>
+                    <th className="px-2 py-2 text-center text-xs font-semibold text-acb-700 uppercase tracking-wider border-l border-acb-300" colSpan="5">Tiro Rival</th>
+                    <th className="px-2 py-2 text-center text-xs font-semibold text-acb-700 uppercase tracking-wider border-l border-acb-300" colSpan="2">Reb. Rival</th>
+                    <th className="px-2 py-2 text-center text-xs font-semibold text-acb-700 uppercase tracking-wider border-l border-acb-300" colSpan="4">Misc Rival</th>
+                  </>}
+                  {viewTab === 'rivalAvanzado' && <>
+                    <th className="px-2 py-2 text-center text-xs font-semibold text-acb-700 uppercase tracking-wider border-l border-acb-300" colSpan="3">Rating Rival</th>
+                    <th className="px-2 py-2 text-center text-xs font-semibold text-acb-700 uppercase tracking-wider border-l border-acb-300" colSpan="3">Tiro Rival Avz</th>
+                    <th className="px-2 py-2 text-center text-xs font-semibold text-acb-700 uppercase tracking-wider border-l border-acb-300" colSpan="2">Reb. Rival</th>
+                    <th className="px-2 py-2 text-center text-xs font-semibold text-acb-700 uppercase tracking-wider border-l border-acb-300" colSpan="5">Ratios Rival</th>
+                  </>}
                 </tr>
                 <tr className="bg-acb-50 border-b border-acb-200">
-                  <th className={`${thCls('winPct')} border-l border-acb-200`} onClick={() => handleSort('winPct')}>W-L {sortIcon('winPct')}</th>
-                  <th className={thCls('plusMinus')} onClick={() => handleSort('plusMinus')}>+/- {sortIcon('plusMinus')}</th>
-                  <th className={thCls('ptsScoredAvg')} onClick={() => handleSort('ptsScoredAvg')}>Pts/G {sortIcon('ptsScoredAvg')}</th>
-                  <th className={thCls('ptsAllowedAvg')} onClick={() => handleSort('ptsAllowedAvg')}>Pts Riv/G {sortIcon('ptsAllowedAvg')}</th>
-                  <th className={`${thCls('efgPct')} border-l border-acb-200`} onClick={() => handleSort('efgPct')}>eFG% {sortIcon('efgPct')}</th>
-                  <th className={thCls('tsPct')} onClick={() => handleSort('tsPct')}>TS% {sortIcon('tsPct')}</th>
-                  <th className={thCls('fg2Pct')} onClick={() => handleSort('fg2Pct')}>T2% {sortIcon('fg2Pct')}</th>
-                  <th className={thCls('fg3Pct')} onClick={() => handleSort('fg3Pct')}>3P% {sortIcon('fg3Pct')}</th>
-                  <th className={thCls('ftPct')} onClick={() => handleSort('ftPct')}>TL% {sortIcon('ftPct')}</th>
-                  <th className={thCls('fg3Rate')} onClick={() => handleSort('fg3Rate')}>3PAr {sortIcon('fg3Rate')}</th>
+                  {viewTab === 'basico' && <>
+                    <th className={`${thCls('winPct')} border-l border-acb-200`} onClick={() => handleSort('winPct')}>W-L {sortIcon('winPct')}</th>
+                    <th className={thCls('plusMinus')} onClick={() => handleSort('plusMinus')}>+/- {sortIcon('plusMinus')}</th>
+                    <th className={thCls('ptsScoredAvg')} onClick={() => handleSort('ptsScoredAvg')}>Pts/G {sortIcon('ptsScoredAvg')}</th>
+                    <th className={thCls('ptsAllowedAvg')} onClick={() => handleSort('ptsAllowedAvg')}>Pts Riv/G {sortIcon('ptsAllowedAvg')}</th>
+                    <th className={`${thCls('fgPct')} border-l border-acb-200`} onClick={() => handleSort('fgPct')}>TC% {sortIcon('fgPct')}</th>
+                    <th className={thCls('fg3Pct')} onClick={() => handleSort('fg3Pct')}>3P% {sortIcon('fg3Pct')}</th>
+                    <th className={thCls('ftPct')} onClick={() => handleSort('ftPct')}>TL% {sortIcon('ftPct')}</th>
+                    <th className={thCls('fg3Rate')} onClick={() => handleSort('fg3Rate')}>3PAr {sortIcon('fg3Rate')}</th>
+                    <th className={thCls('efgPct')} onClick={() => handleSort('efgPct')}>eFG% {sortIcon('efgPct')}</th>
+                    <th className={`${thCls('orebAvg')} border-l border-acb-200`} onClick={() => handleSort('orebAvg')}>RO {sortIcon('orebAvg')}</th>
+                    <th className={thCls('drebAvg')} onClick={() => handleSort('drebAvg')}>RD {sortIcon('drebAvg')}</th>
+                    <th className={thCls('rebAvg')} onClick={() => handleSort('rebAvg')}>RT {sortIcon('rebAvg')}</th>
+                    <th className={`${thCls('apg')} border-l border-acb-200`} onClick={() => handleSort('apg')}>APP {sortIcon('apg')}</th>
+                    <th className={thCls('spg')} onClick={() => handleSort('spg')}>RBP {sortIcon('spg')}</th>
+                    <th className={thCls('bpg')} onClick={() => handleSort('bpg')}>TPP {sortIcon('bpg')}</th>
+                    <th className={thCls('topg')} onClick={() => handleSort('topg')}>PER {sortIcon('topg')}</th>
+                  </>}
+                  {viewTab === 'avanzado' && <>
+                    <th className={`${thCls('ortg')} border-l border-acb-200`} onClick={() => handleSort('ortg')}>ORtg {sortIcon('ortg')}</th>
+                    <th className={thCls('drtg')} onClick={() => handleSort('drtg')}>DRtg {sortIcon('drtg')}</th>
+                    <th className={thCls('netRtg')} onClick={() => handleSort('netRtg')}>Neto {sortIcon('netRtg')}</th>
+                    <th className={thCls('plusMinus')} onClick={() => handleSort('plusMinus')}>+/- {sortIcon('plusMinus')}</th>
+                    <th className={`${thCls('efgPct')} border-l border-acb-200`} onClick={() => handleSort('efgPct')}>eFG% {sortIcon('efgPct')}</th>
+                    <th className={thCls('tsPct')} onClick={() => handleSort('tsPct')}>TS% {sortIcon('tsPct')}</th>
+                    <th className={thCls('fg3Rate')} onClick={() => handleSort('fg3Rate')}>3PAr {sortIcon('fg3Rate')}</th>
+                    <th className={`${thCls('orbPct')} border-l border-acb-200`} onClick={() => handleSort('orbPct')}>RO% {sortIcon('orbPct')}</th>
+                    <th className={thCls('drbPct')} onClick={() => handleSort('drbPct')}>RD% {sortIcon('drbPct')}</th>
+                    <th className={`${thCls('astRate')} border-l border-acb-200`} onClick={() => handleSort('astRate')}>AST% {sortIcon('astRate')}</th>
+                    <th className={thCls('stlRate')} onClick={() => handleSort('stlRate')}>ROB% {sortIcon('stlRate')}</th>
+                    <th className={thCls('blkRate')} onClick={() => handleSort('blkRate')}>TAP% {sortIcon('blkRate')}</th>
+                    <th className={thCls('tovRate')} onClick={() => handleSort('tovRate')}>PER% {sortIcon('tovRate')}</th>
+                    <th className={thCls('astToRatio')} onClick={() => handleSort('astToRatio')}>AST/PER {sortIcon('astToRatio')}</th>
+                  </>}
+                  {viewTab === 'rivalAvanzado' && <>
+                    <th className={`${thCls('drtg')} border-l border-acb-200`} onClick={() => handleSort('drtg')}>DRtg {sortIcon('drtg')}</th>
+                    <th className={thCls('netRtg')} onClick={() => handleSort('netRtg')}>Neto {sortIcon('netRtg')}</th>
+                    <th className={thCls('plusMinus')} onClick={() => handleSort('plusMinus')}>+/- {sortIcon('plusMinus')}</th>
+                    <th className={`${thCls('opp_efgPct')} border-l border-acb-200`} onClick={() => handleSort('opp_efgPct')}>eFG% {sortIcon('opp_efgPct')}</th>
+                    <th className={thCls('opp_tsPct')} onClick={() => handleSort('opp_tsPct')}>TS% {sortIcon('opp_tsPct')}</th>
+                    <th className={thCls('opp_fg3Rate')} onClick={() => handleSort('opp_fg3Rate')}>3PAr {sortIcon('opp_fg3Rate')}</th>
+                    <th className={`${thCls('opp_orbPct')} border-l border-acb-200`} onClick={() => handleSort('opp_orbPct')}>RO% {sortIcon('opp_orbPct')}</th>
+                    <th className={thCls('opp_drbPct')} onClick={() => handleSort('opp_drbPct')}>RD% {sortIcon('opp_drbPct')}</th>
+                    <th className={`${thCls('opp_astRate')} border-l border-acb-200`} onClick={() => handleSort('opp_astRate')}>AST% {sortIcon('opp_astRate')}</th>
+                    <th className={thCls('opp_stlRate')} onClick={() => handleSort('opp_stlRate')}>ROB% {sortIcon('opp_stlRate')}</th>
+                    <th className={thCls('opp_blkRate')} onClick={() => handleSort('opp_blkRate')}>TAP% {sortIcon('opp_blkRate')}</th>
+                    <th className={thCls('opp_tovRate')} onClick={() => handleSort('opp_tovRate')}>PER% {sortIcon('opp_tovRate')}</th>
+                    <th className={thCls('opp_astToRatio')} onClick={() => handleSort('opp_astToRatio')}>AST/PER {sortIcon('opp_astToRatio')}</th>
+                  </>}
+                  {viewTab === 'rival' && <>
+                    <th className={`${thCls('ptsAllowedAvg')} border-l border-acb-200`} onClick={() => handleSort('ptsAllowedAvg')}>Pts/G {sortIcon('ptsAllowedAvg')}</th>
+                    <th className={`${thCls('opp_fgPct')} border-l border-acb-200`} onClick={() => handleSort('opp_fgPct')}>TC% {sortIcon('opp_fgPct')}</th>
+                    <th className={thCls('opp_fg3Pct')} onClick={() => handleSort('opp_fg3Pct')}>3P% {sortIcon('opp_fg3Pct')}</th>
+                    <th className={thCls('opp_ftPct')} onClick={() => handleSort('opp_ftPct')}>TL% {sortIcon('opp_ftPct')}</th>
+                    <th className={thCls('opp_fg3Rate')} onClick={() => handleSort('opp_fg3Rate')}>3PAr {sortIcon('opp_fg3Rate')}</th>
+                    <th className={thCls('opp_efgPct')} onClick={() => handleSort('opp_efgPct')}>eFG% {sortIcon('opp_efgPct')}</th>
+                    <th className={`${thCls('opp_orebAvg')} border-l border-acb-200`} onClick={() => handleSort('opp_orebAvg')}>RO {sortIcon('opp_orebAvg')}</th>
+                    <th className={thCls('opp_drebAvg')} onClick={() => handleSort('opp_drebAvg')}>RD {sortIcon('opp_drebAvg')}</th>
+                    <th className={`${thCls('opp_apg')} border-l border-acb-200`} onClick={() => handleSort('opp_apg')}>APP {sortIcon('opp_apg')}</th>
+                    <th className={thCls('opp_spg')} onClick={() => handleSort('opp_spg')}>RBP {sortIcon('opp_spg')}</th>
+                    <th className={thCls('opp_bpg')} onClick={() => handleSort('opp_bpg')}>TPP {sortIcon('opp_bpg')}</th>
+                    <th className={thCls('opp_topg')} onClick={() => handleSort('opp_topg')}>PER {sortIcon('opp_topg')}</th>
+                  </>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-acb-100">
@@ -167,23 +278,92 @@ function ClutchTeamsView({ tabBar, teams, selectedSeason, setSelectedSeason, ava
                   <tr key={t.team} className="border-b border-acb-100 hover:bg-acb-50 transition-colors">
                     <td className="px-4 py-3 text-sm font-medium text-acb-900 whitespace-nowrap">{t.team}</td>
                     <td className="px-2 py-3 text-sm text-center font-mono text-acb-600">{t.games}</td>
-                    <td className={`px-2 py-3 text-sm text-center border-l border-acb-100 ${sortCol === 'winPct' ? 'bg-acb-50/60' : ''}`}>
-                      <div className="flex flex-col items-center gap-1">
-                        <span className="font-mono text-acb-700">{t.wins}-{t.losses}</span>
-                        {t.winPctRank != null && <span className={`text-xs px-1.5 py-0.5 rounded ${getRankColor(t.winPctRank, n)}`}>#{t.winPctRank}</span>}
-                      </div>
-                    </td>
-                    <StatCell t={t} k="plusMinus" signed />
-                    <StatCell t={t} k="ptsScoredAvg" />
-                    <StatCell t={t} k="ptsAllowedAvg" />
-                    <StatCell t={t} k="efgPct" pct />
-                    <StatCell t={t} k="tsPct" pct />
-                    <StatCell t={t} k="fg2Pct" pct />
-                    <StatCell t={t} k="fg3Pct" pct />
-                    <StatCell t={t} k="ftPct" pct />
-                    <td className={`px-2 py-3 text-sm text-center ${sortCol === 'fg3Rate' ? 'bg-acb-50/60' : ''}`}>
-                      <span className="font-mono text-acb-700">{fmt(t.fg3Rate, true)}</span>
-                    </td>
+                    {viewTab === 'basico' && <>
+                      <td className={`px-2 py-3 text-sm text-center border-l border-acb-100 ${sortCol === 'winPct' ? 'bg-acb-50/60' : ''}`}>
+                        <div className="flex flex-col items-center gap-1">
+                          <span className="font-mono text-acb-700">{t.wins}-{t.losses}</span>
+                          {t.winPctRank != null && <span className={`text-xs px-1.5 py-0.5 rounded ${getRankColor(t.winPctRank, n)}`}>#{t.winPctRank}</span>}
+                        </div>
+                      </td>
+                      <StatCell t={t} k="plusMinus" signed />
+                      <StatCell t={t} k="ptsScoredAvg" />
+                      <StatCell t={t} k="ptsAllowedAvg" />
+                      <StatCell t={t} k="fgPct" pct />
+                      <StatCell t={t} k="fg3Pct" pct />
+                      <StatCell t={t} k="ftPct" pct />
+                      <td className={`px-2 py-3 text-sm text-center ${sortCol === 'fg3Rate' ? 'bg-acb-50/60' : ''}`}>
+                        <span className="font-mono text-acb-700">{fmt(t.fg3Rate, true)}</span>
+                      </td>
+                      <StatCell t={t} k="efgPct" pct />
+                      <StatCell t={t} k="orebAvg" />
+                      <StatCell t={t} k="drebAvg" />
+                      <StatCell t={t} k="rebAvg" />
+                      <StatCell t={t} k="apg" />
+                      <StatCell t={t} k="spg" />
+                      <StatCell t={t} k="bpg" />
+                      <StatCell t={t} k="topg" />
+                    </>}
+                    {viewTab === 'avanzado' && <>
+                      <StatCell t={t} k="ortg" />
+                      <StatCell t={t} k="drtg" />
+                      <StatCell t={t} k="netRtg" signed />
+                      <StatCell t={t} k="plusMinus" signed />
+                      <StatCell t={t} k="efgPct" pct />
+                      <StatCell t={t} k="tsPct" pct />
+                      <td className={`px-2 py-3 text-sm text-center ${sortCol === 'fg3Rate' ? 'bg-acb-50/60' : ''}`}>
+                        <span className="font-mono text-acb-700">{fmt(t.fg3Rate, true)}</span>
+                      </td>
+                      <StatCell t={t} k="orbPct" pct />
+                      <StatCell t={t} k="drbPct" pct />
+                      <StatCell t={t} k="astRate" pct />
+                      <StatCell t={t} k="stlRate" pct />
+                      <StatCell t={t} k="blkRate" pct />
+                      <StatCell t={t} k="tovRate" pct />
+                      <td className={`px-2 py-3 text-sm text-center ${sortCol === 'astToRatio' ? 'bg-acb-50/60' : ''}`}>
+                        <div className="flex flex-col items-center gap-1">
+                          <span className="font-mono text-acb-700">{fmt(t.astToRatio, false)}</span>
+                          {t.astToRatioRank != null && <span className={`text-xs px-1.5 py-0.5 rounded ${getRankColor(t.astToRatioRank, n)}`}>#{t.astToRatioRank}</span>}
+                        </div>
+                      </td>
+                    </>}
+                    {viewTab === 'rivalAvanzado' && <>
+                      <StatCell t={t} k="drtg" />
+                      <StatCell t={t} k="netRtg" signed />
+                      <StatCell t={t} k="plusMinus" signed />
+                      <StatCell t={t} k="opp_efgPct" pct />
+                      <StatCell t={t} k="opp_tsPct" pct />
+                      <td className={`px-2 py-3 text-sm text-center ${sortCol === 'opp_fg3Rate' ? 'bg-acb-50/60' : ''}`}>
+                        <span className="font-mono text-acb-700">{fmt(t.opp_fg3Rate, true)}</span>
+                      </td>
+                      <StatCell t={t} k="opp_orbPct" pct />
+                      <StatCell t={t} k="opp_drbPct" pct />
+                      <StatCell t={t} k="opp_astRate" pct />
+                      <StatCell t={t} k="opp_stlRate" pct />
+                      <StatCell t={t} k="opp_blkRate" pct />
+                      <StatCell t={t} k="opp_tovRate" pct />
+                      <td className={`px-2 py-3 text-sm text-center ${sortCol === 'opp_astToRatio' ? 'bg-acb-50/60' : ''}`}>
+                        <div className="flex flex-col items-center gap-1">
+                          <span className="font-mono text-acb-700">{fmt(t.opp_astToRatio, false)}</span>
+                          {t.opp_astToRatioRank != null && <span className={`text-xs px-1.5 py-0.5 rounded ${getRankColor(t.opp_astToRatioRank, n)}`}>#{t.opp_astToRatioRank}</span>}
+                        </div>
+                      </td>
+                    </>}
+                    {viewTab === 'rival' && <>
+                      <StatCell t={t} k="ptsAllowedAvg" />
+                      <StatCell t={t} k="opp_fgPct" pct />
+                      <StatCell t={t} k="opp_fg3Pct" pct />
+                      <StatCell t={t} k="opp_ftPct" pct />
+                      <td className={`px-2 py-3 text-sm text-center ${sortCol === 'opp_fg3Rate' ? 'bg-acb-50/60' : ''}`}>
+                        <span className="font-mono text-acb-700">{fmt(t.opp_fg3Rate, true)}</span>
+                      </td>
+                      <StatCell t={t} k="opp_efgPct" pct />
+                      <StatCell t={t} k="opp_orebAvg" />
+                      <StatCell t={t} k="opp_drebAvg" />
+                      <StatCell t={t} k="opp_apg" />
+                      <StatCell t={t} k="opp_spg" />
+                      <StatCell t={t} k="opp_bpg" />
+                      <StatCell t={t} k="opp_topg" />
+                    </>}
                   </tr>
                 ))}
               </tbody>

@@ -173,6 +173,11 @@ const oppAdvancedColumns = [
   { key: 'opp_assistedFgm', label: 'Pts Ast%', align: 'right', inverse: true },
 ]
 
+const basicGroups      = [{ label:'Marcador', span:3 },{ label:'Tiro', span:4 },{ label:'Rebotes', span:3 },{ label:'Misc', span:4 }]
+const advancedGroups   = [{ label:'Rating', span:4 },{ label:'Tiro Avanzado', span:3 },{ label:'Rebotes', span:3 },{ label:'Ratios', span:5 },{ label:'Tipo', span:3 }]
+const oppBasicGroups   = [{ label:'Pts', span:1 },{ label:'Tiro Rival', span:4 },{ label:'Reb. Rival', span:3 },{ label:'Misc Rival', span:4 }]
+const oppAdvancedGroups= [{ label:'Rating Rival', span:4 },{ label:'Tiro Rival Avz', span:3 },{ label:'Reb. Rival', span:3 },{ label:'Ratios Rival', span:5 },{ label:'Tipo Rival', span:3 }]
+
 // Custom scatter shape: logo image if available, else colored circle
 function TeamDot({ cx, cy, payload, teamLogos, color, highlighted }) {
   const url = teamLogos?.[payload?.team]
@@ -215,6 +220,21 @@ export default function TeamStats({ teams, teamLogos = {} }) {
     : viewMode === 'advanced' ? advancedColumns
     : viewMode === 'oppBasic' ? oppBasicColumns
     : oppAdvancedColumns
+
+  const columnGroups = viewMode === 'basic' ? basicGroups
+    : viewMode === 'advanced' ? advancedGroups
+    : viewMode === 'oppBasic' ? oppBasicGroups
+    : oppAdvancedGroups
+
+  // first key of each group in tableColumns (after identity cols) gets a left border
+  const groupBorderKeys = new Set(
+    columnGroups.reduce((acc, g, i) => {
+      const offset = columnGroups.slice(0, i).reduce((s, x) => s + x.span, 0)
+      const col = tableColumns[2 + offset]
+      if (col) acc.push(col.key)
+      return acc
+    }, [])
+  )
 
   // Filter teams by season
   const seasonFilteredTeams = useMemo(() => {
@@ -576,21 +596,27 @@ export default function TeamStats({ teams, teamLogos = {} }) {
         <div className="overflow-x-auto">
           <table className="min-w-full">
             <thead>
+              <tr className="bg-acb-100 border-b border-acb-300">
+                <th rowSpan={2} style={{ width:'10rem', minWidth:'10rem' }} className="px-4 py-2 text-left text-xs font-semibold text-acb-700 uppercase tracking-wider">Equipo</th>
+                <th rowSpan={2} onClick={() => handleSort('games')} style={{ width:'3.5rem', minWidth:'3.5rem' }} className="px-4 py-2 text-center text-xs font-semibold text-acb-700 uppercase tracking-wider cursor-pointer hover:bg-acb-100">
+                  <span className="inline-flex items-center gap-1">PJ {sortKey === 'games' && (sortDir === 'desc' ? <ArrowDown className="w-3 h-3"/> : <ArrowUp className="w-3 h-3"/>)}</span>
+                </th>
+                {columnGroups.map(g => (
+                  <th key={g.label} colSpan={g.span} className="px-2 py-2 text-center text-xs font-semibold text-acb-700 uppercase tracking-wider border-l border-acb-300">{g.label}</th>
+                ))}
+              </tr>
               <tr className="bg-acb-50 border-b border-acb-200">
-                {tableColumns.map(col => (
+                {tableColumns.slice(2).map(col => (
                   <th
                     key={col.key}
-                    onClick={() => col.key !== 'team' && handleSort(col.key)}
-                    style={{ width: col.key === 'team' ? '10rem' : col.key === 'games' ? '3.5rem' : '5.5rem', minWidth: col.key === 'team' ? '10rem' : col.key === 'games' ? '3.5rem' : '5.5rem' }}
-                    className={`px-4 py-3 text-xs font-semibold text-acb-600 uppercase tracking-wider
-                      ${col.align === 'right' ? 'text-right' : 'text-left'}
-                      ${col.key !== 'team' ? 'cursor-pointer hover:bg-acb-100' : ''}`}
+                    onClick={() => handleSort(col.key)}
+                    style={{ width:'5.5rem', minWidth:'5.5rem' }}
+                    className={`px-4 py-3 text-xs font-semibold text-acb-600 uppercase tracking-wider text-right cursor-pointer hover:bg-acb-100
+                      ${groupBorderKeys.has(col.key) ? 'border-l border-acb-200' : ''}`}
                   >
                     <span className="inline-flex items-center gap-1">
                       {col.label}
-                      {sortKey === col.key && (
-                        sortDir === 'desc' ? <ArrowDown className="w-3 h-3" /> : <ArrowUp className="w-3 h-3" />
-                      )}
+                      {sortKey === col.key && (sortDir === 'desc' ? <ArrowDown className="w-3 h-3"/> : <ArrowUp className="w-3 h-3"/>)}
                     </span>
                   </th>
                 ))}
