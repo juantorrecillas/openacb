@@ -533,6 +533,8 @@ function App() {
             <Route path="/estadisticas-clutch" element={
               <ClutchStats
                 teams={data.teams}
+                players={data.players}
+                playerBio={data.playerBio}
                 loadClutchForSeason={loadClutchForSeason}
                 clutchCache={clutchCache}
                 loadingClutch={loadingClutch}

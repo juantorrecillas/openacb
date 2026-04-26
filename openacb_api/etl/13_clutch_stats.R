@@ -206,37 +206,117 @@ generate_clutch_stats <- function(
     filter(!is.na(license.id), !is.na(license.licenseNick), license.licenseNick != "") %>%
     group_by(licenseId = as.character(license.id), nick = license.licenseNick, team) %>%
     summarise(
-      games = n_distinct(id_match),
-      pts   = sum(puntos,       na.rm = TRUE),
-      dreb  = sum(reb_def,      na.rm = TRUE),
-      oreb  = sum(reb_of,       na.rm = TRUE),
-      ast   = sum(asistencias,  na.rm = TRUE),
-      stl   = sum(recuperacion, na.rm = TRUE),
-      blk   = sum(tapon,        na.rm = TRUE),
-      tov   = sum(perdida,      na.rm = TRUE),
-      fg2M  = sum(T2A,          na.rm = TRUE),
-      fg2A  = sum(T2I,          na.rm = TRUE),
-      fg3M  = sum(T3A,          na.rm = TRUE),
-      fg3A  = sum(T3I,          na.rm = TRUE),
-      ftM   = sum(T1A,          na.rm = TRUE),
-      ftA   = sum(T1I,          na.rm = TRUE),
+      games  = n_distinct(id_match),
+      pts    = sum(puntos,       na.rm = TRUE),
+      dreb   = sum(reb_def,      na.rm = TRUE),
+      oreb   = sum(reb_of,       na.rm = TRUE),
+      ast    = sum(asistencias,  na.rm = TRUE),
+      stl    = sum(recuperacion, na.rm = TRUE),
+      blk    = sum(tapon,        na.rm = TRUE),
+      tov    = sum(perdida,      na.rm = TRUE),
+      fouls  = sum(falta,        na.rm = TRUE),
+      fg2M   = sum(T2A,          na.rm = TRUE),
+      fg2A   = sum(T2I,          na.rm = TRUE),
+      fg3M   = sum(T3A,          na.rm = TRUE),
+      fg3A   = sum(T3I,          na.rm = TRUE),
+      ftM    = sum(T1A,          na.rm = TRUE),
+      ftA    = sum(T1I,          na.rm = TRUE),
       .groups = "drop"
     ) %>%
     mutate(
       reb    = dreb + oreb,
-      ptsG   = round(pts / games, 1),
-      rebG   = round(reb / games, 1),
-      astG   = round(ast / games, 1),
-      stlG   = round(stl / games, 1),
-      blkG   = round(blk / games, 1),
-      tovG   = round(tov / games, 1),
+      ptsG   = round(pts   / games, 1),
+      rebG   = round(reb   / games, 1),
+      orebG  = round(oreb  / games, 1),
+      drebG  = round(dreb  / games, 1),
+      astG   = round(ast   / games, 1),
+      stlG   = round(stl   / games, 1),
+      blkG   = round(blk   / games, 1),
+      tovG   = round(tov   / games, 1),
+      foulsG = round(fouls / games, 1),
       fg2Pct = if_else(fg2A > 0, round(fg2M / fg2A * 100, 1), NA_real_),
       fg3Pct = if_else(fg3A > 0, round(fg3M / fg3A * 100, 1), NA_real_),
       ftPct  = if_else(ftA  > 0, round(ftM  / ftA  * 100, 1), NA_real_),
+      fgPct  = if_else((fg2A + fg3A) > 0,
+                       round((fg2M + fg3M) / (fg2A + fg3A) * 100, 1), NA_real_),
       efgPct = if_else((fg2A + fg3A) > 0,
                        round((fg2M + 1.5 * fg3M) / (fg2A + fg3A) * 100, 1), NA_real_)
     ) %>%
     arrange(desc(ptsG))
+
+  # ─── Per-player W/L in clutch games ──────────────────────────────────────
+  player_game_result <- clutch %>%
+    filter(!is.na(license.id), license.licenseNick != "") %>%
+    distinct(licenseId = as.character(license.id), nick = license.licenseNick, team, id_match) %>%
+    left_join(
+      bind_rows(
+        match_info %>% transmute(id_match, team = local_team,   won = final_local > final_visitor),
+        match_info %>% transmute(id_match, team = visitor_team, won = final_visitor > final_local)
+      ),
+      by = c("id_match", "team")
+    ) %>%
+    group_by(licenseId, nick, team) %>%
+    summarise(
+      wins   = sum(won == TRUE,  na.rm = TRUE),
+      losses = sum(won == FALSE, na.rm = TRUE),
+      .groups = "drop"
+    )
+
+  player_clutch <- player_clutch %>%
+    left_join(player_game_result, by = c("licenseId", "nick", "team"))
+
+  # ─── Clutch minutes ───────────────────────────────────────────────────────
+  # Same approach as calculate_minutes() in 07_player_stats.R but scoped to
+  # clutch-filtered rows. _pista columns (1 = on court) survive the filter.
+  pista_cols <- grep("_pista$", names(clutch), value = TRUE)
+
+  if (length(pista_cols) > 0) {
+    clutch_timed <- clutch %>%
+      group_by(id_match) %>%
+      arrange(period, desc(minute), desc(second), .by_group = TRUE) %>%
+      mutate(
+        cur_sec   = as.numeric(minute) * 60 + as.numeric(second),
+        nxt_sec   = lead(cur_sec),
+        nxt_per   = lead(period),
+        time_diff = cur_sec - nxt_sec
+      ) %>%
+      mutate(
+        time_diff = ifelse(period != nxt_per | is.na(nxt_per), 0, time_diff),
+        time_diff = ifelse(is.na(time_diff) | time_diff < 0 | time_diff > 300, 0, time_diff)
+      ) %>%
+      ungroup()
+
+    valid_pista <- pista_cols[pista_cols %in% names(clutch_timed)]
+
+    if (length(valid_pista) > 0) {
+      p_mat <- as.matrix(clutch_timed[, valid_pista])
+      p_mat[is.na(p_mat)] <- 0
+      clutch_sec <- colSums(p_mat * clutch_timed$time_diff, na.rm = TRUE)
+
+      clutch_min_df <- data.frame(
+        col     = names(clutch_sec),
+        total_s = as.numeric(clutch_sec),
+        stringsAsFactors = FALSE
+      ) %>%
+        filter(total_s > 0) %>%
+        mutate(
+          ident     = gsub("_pista$", "", col),
+          licenseId = as.character(sub(".*_([0-9]+)$", "\\1", ident))
+        ) %>%
+        group_by(licenseId) %>%
+        summarise(clutchMinutes = round(sum(total_s) / 60, 1), .groups = "drop")
+
+      cat(sprintf("  Clutch minutes for %d players\n", nrow(clutch_min_df)))
+      player_clutch <- player_clutch %>%
+        left_join(clutch_min_df, by = "licenseId") %>%
+        mutate(
+          clutchMpg = if_else(!is.na(clutchMinutes) & games > 0,
+                              round(clutchMinutes / games, 1), NA_real_)
+        )
+    }
+  } else {
+    cat("  No _pista columns found, clutch minutes skipped\n")
+  }
 
   cat(sprintf("  Teams: %d  Players: %d\n", nrow(team_stats), nrow(player_clutch)))
 
@@ -268,19 +348,43 @@ generate_clutch_stats <- function(
       licenseId = r$licenseId,
       team      = r$team,
       games     = r$games,
+      wins      = r$wins,
+      losses    = r$losses,
+      clutchMin = if (!is.null(r$clutchMinutes) && !is.na(r$clutchMinutes)) r$clutchMinutes else NULL,
+      clutchMpg = if (!is.null(r$clutchMpg)     && !is.na(r$clutchMpg))     r$clutchMpg     else NULL,
+      # per-game counting stats
       pts       = r$ptsG,
       reb       = r$rebG,
+      oreb      = r$orebG,
+      dreb      = r$drebG,
       ast       = r$astG,
       stl       = r$stlG,
       blk       = r$blkG,
       tov       = r$tovG,
+      fouls     = r$foulsG,
+      # shooting totals (used to derive per-game and percentages in frontend)
+      fg2M      = r$fg2M,
+      fg2A      = r$fg2A,
+      fg3M      = r$fg3M,
+      fg3A      = r$fg3A,
+      ftM       = r$ftM,
+      ftA       = r$ftA,
+      # shooting percentages
+      fgPct     = r$fgPct,
       fg2Pct    = r$fg2Pct,
       fg3Pct    = r$fg3Pct,
       ftPct     = r$ftPct,
       efgPct    = r$efgPct,
-      fg2A      = r$fg2A,
-      fg3A      = r$fg3A,
-      ftA       = r$ftA
+      # raw counting totals for Absolutos tab
+      ptsT   = r$pts,
+      rebT   = r$reb,
+      orebT  = r$oreb,
+      drebT  = r$dreb,
+      astT   = r$ast,
+      stlT   = r$stl,
+      blkT   = r$blk,
+      tovT   = r$tov,
+      foulsT = r$fouls
     )
   })
 

@@ -11,13 +11,19 @@ const basicColumns = [
   positionCol,
   { key: 'games', label: 'PJ', align: 'right', sortable: true },
   { key: 'mpg', label: 'MPP', align: 'right', sortable: true, pctKey: 'mpgPct', posPctKey: 'mpgPosPct' },
-  { key: 'fgPct', label: 'TC%', align: 'right', sortable: true, pctKey: 'fgPctPct', posPctKey: 'fgPctPosPct' },
-  { key: 'fg3Pct', label: '3P%', align: 'right', sortable: true, pctKey: 'fg3PctPct', posPctKey: 'fg3PctPosPct' },
-  { key: 'ftPct', label: 'TL%', align: 'right', sortable: true, pctKey: 'ftPctPct', posPctKey: 'ftPctPosPct' },
   { key: 'ppg', label: 'PPP', align: 'right', sortable: true, highlight: true, pctKey: 'ppgPct', posPctKey: 'ppgPosPct' },
-  { key: 'rpg', label: 'RPP', align: 'right', sortable: true, pctKey: 'rpgPct', posPctKey: 'rpgPosPct' },
-  { key: 'drebpg', label: 'RD', align: 'right', sortable: true, pctKey: 'drebpgPct', posPctKey: 'drebpgPosPct' },
+  { key: 'fgmpg', label: 'TCA', align: 'right', sortable: true },
+  { key: 'fgapg', label: 'TCI', align: 'right', sortable: true },
+  { key: 'fgPct', label: 'TC%', align: 'right', sortable: true, pctKey: 'fgPctPct', posPctKey: 'fgPctPosPct' },
+  { key: 'fg3mpg', label: '3PA', align: 'right', sortable: true },
+  { key: 'fg3apg', label: '3PI', align: 'right', sortable: true },
+  { key: 'fg3Pct', label: '3P%', align: 'right', sortable: true, pctKey: 'fg3PctPct', posPctKey: 'fg3PctPosPct' },
+  { key: 'ftmpg', label: 'TLA', align: 'right', sortable: true },
+  { key: 'ftapg', label: 'TLI', align: 'right', sortable: true },
+  { key: 'ftPct', label: 'TL%', align: 'right', sortable: true, pctKey: 'ftPctPct', posPctKey: 'ftPctPosPct' },
   { key: 'orebpg', label: 'RO', align: 'right', sortable: true, pctKey: 'orebpgPct', posPctKey: 'orebpgPosPct' },
+  { key: 'drebpg', label: 'RD', align: 'right', sortable: true, pctKey: 'drebpgPct', posPctKey: 'drebpgPosPct' },
+  { key: 'rpg', label: 'RPP', align: 'right', sortable: true, pctKey: 'rpgPct', posPctKey: 'rpgPosPct' },
   { key: 'apg', label: 'APP', align: 'right', sortable: true, pctKey: 'apgPct', posPctKey: 'apgPosPct' },
   { key: 'spg', label: 'RBP', align: 'right', sortable: true, pctKey: 'spgPct', posPctKey: 'spgPosPct' },
   { key: 'bpg', label: 'TPP', align: 'right', sortable: true, pctKey: 'bpgPct', posPctKey: 'bpgPosPct' },
@@ -90,6 +96,26 @@ const accuracyColumns = [
   { key: 'fgpctAllThree', label: 'Todo 3', align: 'right', sortable: true, zone: true, fgaKey: 'fgaAllThree' },
 ]
 
+// Raw counting totals — no per-game normalization
+const absolutesColumns = [
+  { key: 'playerFull', label: 'Jugador', align: 'left', sortable: true },
+  { key: 'team', label: 'Equipo', align: 'left', sortable: true },
+  positionCol,
+  { key: 'games', label: 'PJ', align: 'right', sortable: true },
+  { key: 'points', label: 'Pts', align: 'right', sortable: true },
+  { key: 'oreb', label: 'RO', align: 'right', sortable: true },
+  { key: 'dreb', label: 'RD', align: 'right', sortable: true },
+  { key: 'rebounds', label: 'Reb', align: 'right', sortable: true },
+  { key: 'assists', label: 'Ast', align: 'right', sortable: true },
+  { key: 'steals', label: 'Rob', align: 'right', sortable: true },
+  { key: 'blocks', label: 'Tap', align: 'right', sortable: true },
+  { key: 'turnovers', label: 'Pér', align: 'right', sortable: true },
+  { key: 'fouls', label: 'Fal', align: 'right', sortable: true },
+  { key: 'fgm3', label: '3PM', align: 'right', sortable: true },
+  { key: 'fgm', label: 'TCA', align: 'right', sortable: true },
+  { key: 'ftm', label: 'TLA', align: 'right', sortable: true },
+]
+
 // Opponent zone shooting columns (defensive impact - showing FG% allowed and differential)
 const defenseColumns = [
   { key: 'playerFull', label: 'Jugador', align: 'left', sortable: true },
@@ -107,13 +133,20 @@ const defenseColumns = [
 
 export default function PlayerStats({ players, playerBio = {} }) {
   const navigate = useNavigate()
-  // Enrich players with position from playerBio lookup (player-bio.json)
+  // Enrich players with position from playerBio lookup and derived per-game shooting fields
   const enrichedPlayers = useMemo(() => {
     return players.map(p => {
       const pos = typeof p.position === 'string' && p.position
         ? p.position
         : (playerBio[String(p.licenseId)]?.position || null)
-      return pos === p.position ? p : { ...p, position: pos }
+      const g = p.games || 1
+      const fgmpg  = p.fgm  != null ? Math.round(p.fgm  / g * 10) / 10 : null
+      const fgapg  = p.fga  != null ? Math.round(p.fga  / g * 10) / 10 : null
+      const fg3mpg = p.fgm3 != null ? Math.round(p.fgm3 / g * 10) / 10 : null
+      const fg3apg = p.fga3 != null ? Math.round(p.fga3 / g * 10) / 10 : null
+      const ftmpg  = p.ftm  != null ? Math.round(p.ftm  / g * 10) / 10 : null
+      const ftapg  = p.fta  != null ? Math.round(p.fta  / g * 10) / 10 : null
+      return { ...p, position: pos, fgmpg, fgapg, fg3mpg, fg3apg, ftmpg, ftapg }
     })
   }, [players, playerBio])
 
@@ -154,6 +187,7 @@ export default function PlayerStats({ players, playerBio = {} }) {
 
   const columns = viewMode === 'basic' ? basicColumns
     : viewMode === 'advanced' ? advancedColumns
+    : viewMode === 'absolutos' ? absolutesColumns
     : viewMode === 'misc' ? miscColumns
     : viewMode === 'frequency' ? frequencyColumns
     : viewMode === 'accuracy' ? accuracyColumns
@@ -270,6 +304,11 @@ export default function PlayerStats({ players, playerBio = {} }) {
 
     // Integer values
     if (key === 'games') return value
+
+    // Absolutos raw totals
+    if (['points','rebounds','oreb','dreb','assists','steals','blocks','turnovers','fouls',
+         'fgm','fga','fgm2','fga2','fgm3','fga3','ftm','fta'].includes(key))
+      return String(Math.round(value))
 
     // Shooting percentages (contain Pct in name)
     if (key === 'fgPct' || key === 'fg2Pct' || key === 'fg3Pct' || key === 'ftPct' ||
@@ -389,6 +428,15 @@ export default function PlayerStats({ players, playerBio = {} }) {
                   : 'text-acb-600 hover:text-acb-900'}`}
             >
               Avanzado
+            </button>
+            <button
+              onClick={() => { setViewMode('absolutos'); setSortKey('points'); setSortDir('desc') }}
+              className={`px-3 py-1.5 text-sm font-medium rounded transition-colors
+                ${viewMode === 'absolutos'
+                  ? 'bg-white text-acb-900 shadow-sm'
+                  : 'text-acb-600 hover:text-acb-900'}`}
+            >
+              Absolutos
             </button>
             <button
               onClick={() => setViewMode('misc')}

@@ -93,17 +93,18 @@ const basicColumns = [
   { key: 'games', label: 'PJ', align: 'right' },
   { key: 'wins', label: 'V', align: 'right' },
   { key: 'losses', label: 'D', align: 'right' },
+  { key: 'ppg', label: 'PPP', align: 'right', highlight: true },
   { key: 'fgPct', label: 'TC%', align: 'right' },
   { key: 'threePct', label: '3P%', align: 'right' },
   { key: 'ftPct', label: 'TL%', align: 'right' },
-  { key: 'ppg', label: 'PPP', align: 'right', highlight: true },
   { key: 'fg3mPg', label: '3PA', align: 'right' },
+  { key: 'orebpg', label: 'RO', align: 'right' },
+  { key: 'drebpg', label: 'RD', align: 'right' },
   { key: 'rpg', label: 'RPP', align: 'right' },
   { key: 'apg', label: 'APP', align: 'right' },
   { key: 'spg', label: 'RBP', align: 'right' },
   { key: 'bpg', label: 'TPP', align: 'right' },
   { key: 'topg', label: 'PER', align: 'right', inverse: true },
-
 ]
 
 // Advanced team stats columns - Ratings, pace, and rate stats
@@ -119,6 +120,7 @@ const advancedColumns = [
   { key: 'threeRate', label: '3PAr', align: 'right' },
   { key: 'orbPct', label: 'RO%', align: 'right' },
   { key: 'drbPct', label: 'RD%', align: 'right' },
+  { key: 'trbPct', label: 'RT%', align: 'right' },
   { key: 'astRate', label: 'AST%', align: 'right' },
   { key: 'stlRate', label: 'ROB%', align: 'right' },
   { key: 'blkRate', label: 'TAP%', align: 'right' },
@@ -133,11 +135,13 @@ const advancedColumns = [
 const oppBasicColumns = [
   { key: 'team', label: 'Equipo', align: 'left' },
   { key: 'games', label: 'PJ', align: 'right' },
+  { key: 'opp_ppg', label: 'PPP', align: 'right', highlight: true, inverse: true },
   { key: 'opp_fgPct', label: 'TC%', align: 'right', inverse: true },
   { key: 'opp_threePct', label: '3P%', align: 'right', inverse: true },
   { key: 'opp_ftPct', label: 'TL%', align: 'right', inverse: true },
-  { key: 'opp_ppg', label: 'PPP', align: 'right', highlight: true, inverse: true },
   { key: 'opp_fg3mPg', label: '3PA', align: 'right', inverse: true },
+  { key: 'opp_orebpg', label: 'RO', align: 'right', inverse: true },
+  { key: 'opp_drebpg', label: 'RD', align: 'right', inverse: true },
   { key: 'opp_rpg', label: 'RPP', align: 'right', inverse: true },
   { key: 'opp_apg', label: 'APP', align: 'right', inverse: true },
   { key: 'opp_spg', label: 'RBP', align: 'right', inverse: true },
@@ -158,6 +162,7 @@ const oppAdvancedColumns = [
   { key: 'opp_threeRate', label: '3PAr', align: 'right' },
   { key: 'opp_orbPct', label: 'RO%', align: 'right', inverse: true },
   { key: 'opp_drbPct', label: 'RD%', align: 'right', inverse: true },
+  { key: 'opp_trbPct', label: 'RT%', align: 'right', inverse: true },
   { key: 'opp_astRate', label: 'AST%', align: 'right', inverse: true },
   { key: 'opp_stlRate', label: 'ROB%', align: 'right', inverse: true },
   { key: 'opp_blkRate', label: 'TAP%', align: 'right', inverse: true },
@@ -217,6 +222,18 @@ export default function TeamStats({ teams, teamLogos = {} }) {
     return teams.filter(t => t.season === selectedSeason)
   }, [teams, selectedSeason])
 
+  // Derive trbPct / opp_trbPct from per-game rebound averages (not in JSON)
+  const enrichedTeams = useMemo(() => {
+    return seasonFilteredTeams.map(t => {
+      const totalReb = (t.orebpg || 0) + (t.drebpg || 0) + (t.opp_orebpg || 0) + (t.opp_drebpg || 0)
+      return {
+        ...t,
+        trbPct:     totalReb > 0 ? ((t.orebpg || 0) + (t.drebpg || 0)) / totalReb : null,
+        opp_trbPct: totalReb > 0 ? ((t.opp_orebpg || 0) + (t.opp_drebpg || 0)) / totalReb : null,
+      }
+    })
+  }, [seasonFilteredTeams])
+
   // Assign colors to teams
   const teamsWithColors = useMemo(() => {
     // Get unique team names across all seasons or just current season
@@ -232,7 +249,7 @@ export default function TeamStats({ teams, teamLogos = {} }) {
   }, [seasonFilteredTeams, teams])
 
   const sortedTeams = useMemo(() => {
-    return [...seasonFilteredTeams].sort((a, b) => {
+    return [...enrichedTeams].sort((a, b) => {
       const aVal = a[sortKey] || 0
       const bVal = b[sortKey] || 0
       return sortDir === 'desc' ? bVal - aVal : aVal - bVal
@@ -302,10 +319,10 @@ export default function TeamStats({ teams, teamLogos = {} }) {
 
     // Percentages stored as decimals (0-1)
     if (key === 'efg' || key === 'ts' || key === 'threePct' || key === 'threeRate' ||
-        key === 'astRate' || key === 'tovRate' || key === 'orbPct' || key === 'drbPct' ||
+        key === 'astRate' || key === 'tovRate' || key === 'orbPct' || key === 'drbPct' || key === 'trbPct' ||
         key === 'ftRate' || key === 'stlRate' || key === 'blkRate' ||
         key === 'opp_efg' || key === 'opp_ts' || key === 'opp_threePct' || key === 'opp_threeRate' ||
-        key === 'opp_astRate' || key === 'opp_tovRate' || key === 'opp_orbPct' || key === 'opp_drbPct' ||
+        key === 'opp_astRate' || key === 'opp_tovRate' || key === 'opp_orbPct' || key === 'opp_drbPct' || key === 'opp_trbPct' ||
         key === 'opp_ftRate' || key === 'opp_stlRate' || key === 'opp_blkRate') {
       return `${(value * 100).toFixed(1)}%`
     }
@@ -330,7 +347,7 @@ export default function TeamStats({ teams, teamLogos = {} }) {
     const numericCols = tableColumns.filter(c => c.key !== 'team' && c.key !== 'games' && c.key !== 'wins' && c.key !== 'losses')
 
     numericCols.forEach(col => {
-      const values = seasonFilteredTeams
+      const values = enrichedTeams
         .map(t => ({ team: t.team, value: t[col.key] }))
         .filter(v => v.value != null && !isNaN(v.value))
 
