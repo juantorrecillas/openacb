@@ -17,6 +17,7 @@ source("./etl/06_lineup_analysis.R")
 source("./etl/07_player_stats.R")
 source("./etl/08_game_flow.R")
 source("./etl/09_team_pace.R")
+source("./etl/13_clutch_stats.R")
 
 # Current season to update
 CURRENT_SEASON <- 2026
