@@ -198,13 +198,57 @@ function getPolygonCentroid(points) {
   return { x: sum.x / points.length, y: sum.y / points.length };
 }
 
-export default function ZoneHeatmap({ shots, leagueShots = [], width = 750, height = 705 }) {
+const TURBO_COLORS = [
+  [48, 18, 59],
+  [62, 84, 163],
+  [33, 145, 140],
+  [94, 201, 98],
+  [253, 231, 37],
+  [234, 151, 36],
+  [217, 72, 33],
+  [122, 4, 3]
+];
+
+function interpolateColors(colors, normalizedValue) {
+  const idx = Math.max(0, Math.min(1, normalizedValue)) * (colors.length - 1);
+  const lower = Math.floor(idx);
+  const upper = Math.ceil(idx);
+  const t = idx - lower;
+
+  if (upper >= colors.length) return colors[colors.length - 1];
+
+  const c1 = colors[lower];
+  const c2 = colors[upper];
+  return [
+    Math.round(c1[0] + (c2[0] - c1[0]) * t),
+    Math.round(c1[1] + (c2[1] - c1[1]) * t),
+    Math.round(c1[2] + (c2[2] - c1[2]) * t)
+  ];
+}
+
+function relativeTurboColor(normalizedValue, opacity = 0.7) {
+  const clamped = Math.max(-1, Math.min(1, normalizedValue));
+  const neutral = [255, 255, 255];
+  const paletteColor = clamped < 0
+    ? interpolateColors(TURBO_COLORS, Math.max(0.05, 0.32 * Math.abs(clamped)))
+    : interpolateColors(TURBO_COLORS, 0.45 + (0.55 * clamped));
+  const t = Math.abs(clamped);
+
+  const r = Math.round(neutral[0] + (paletteColor[0] - neutral[0]) * t);
+  const g = Math.round(neutral[1] + (paletteColor[1] - neutral[1]) * t);
+  const b = Math.round(neutral[2] + (paletteColor[2] - neutral[2]) * t);
+
+  return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+}
+
+export default function ZoneHeatmap({ shots, leagueShots = [], metric = 'efficiency', width = 750, height = 705 }) {
   // Get zone polygon definitions
   const zonePolygons = useMemo(() => getZonePolygons(), []);
 
   // Calculate zone statistics for filtered shots (team/player)
   const zoneStats = useMemo(() => {
     const stats = {};
+    const totalAttempts = shots.reduce((sum, shot) => (shot.zoned || shot.zone) ? sum + 1 : sum, 0);
 
     shots.forEach(shot => {
       const zone = shot.zoned || shot.zone;
@@ -229,6 +273,7 @@ export default function ZoneHeatmap({ shots, leagueShots = [], width = 750, heig
         attempts: s.attempts,
         makes: s.makes,
         fgPct: s.attempts > 0 ? (s.makes / s.attempts) * 100 : 0,
+        freqPct: totalAttempts > 0 ? (s.attempts / totalAttempts) * 100 : 0,
         pps: s.attempts > 0 ? s.points / s.attempts : 0
       };
     });
@@ -240,10 +285,12 @@ export default function ZoneHeatmap({ shots, leagueShots = [], width = 750, heig
   const leagueZoneAverages = useMemo(() => {
     const shotsToUse = leagueShots.length > 0 ? leagueShots : shots;
     const stats = {};
+    let totalAttempts = 0;
 
     shotsToUse.forEach(shot => {
       const zone = shot.zoned || shot.zone;
       if (!zone) return;
+      totalAttempts++;
 
       if (!stats[zone]) {
         stats[zone] = { attempts: 0, makes: 0 };
@@ -255,11 +302,14 @@ export default function ZoneHeatmap({ shots, leagueShots = [], width = 750, heig
       }
     });
 
-    // Calculate league FG% per zone
+    // Calculate league FG% and shot frequency per zone
     const result = {};
     Object.keys(stats).forEach(zone => {
       const s = stats[zone];
-      result[zone] = s.attempts > 0 ? (s.makes / s.attempts) * 100 : 0;
+      result[zone] = {
+        fgPct: s.attempts > 0 ? (s.makes / s.attempts) * 100 : 0,
+        freqPct: totalAttempts > 0 ? (s.attempts / totalAttempts) * 100 : 0
+      };
     });
 
     return result;
@@ -290,6 +340,7 @@ export default function ZoneHeatmap({ shots, leagueShots = [], width = 750, heig
 
   // Fixed font size for all labels
   const fontSize = 11;
+  const isFrequencyMetric = metric === 'frequency';
 
   if (shots.length === 0) {
     return (
@@ -301,6 +352,14 @@ export default function ZoneHeatmap({ shots, leagueShots = [], width = 750, heig
       </div>
     );
   }
+
+  const maxFrequencyDiff = Math.max(
+    ...Object.keys(zoneStats).map(zone => {
+      const leagueAvgForZone = leagueZoneAverages[zone] || { freqPct: 0 };
+      return Math.abs(zoneStats[zone].freqPct - leagueAvgForZone.freqPct);
+    }),
+    1
+  );
 
   const hasValidZones = shots.some(shot => shot.zoned || shot.zone);
   if (!hasValidZones) {
@@ -330,16 +389,20 @@ export default function ZoneHeatmap({ shots, leagueShots = [], width = 750, heig
           const stats = zoneStats[zoneName];
           if (!stats || stats.attempts === 0) return null;
 
-          const leagueAvgForZone = leagueZoneAverages[zoneName] || 0;
+          const leagueAvgForZone = leagueZoneAverages[zoneName] || { fgPct: 0, freqPct: 0 };
           const pathD = polygonToPath(points, scale, offsetX);
-          const color = getColor(stats.fgPct, leagueAvgForZone, 0.6);
+          const fgPctDiff = stats.fgPct - leagueAvgForZone.fgPct;
+          const freqPctDiff = stats.freqPct - leagueAvgForZone.freqPct;
+          const metricValue = isFrequencyMetric ? stats.freqPct : stats.fgPct;
+          const metricDiff = isFrequencyMetric ? freqPctDiff : fgPctDiff;
+          const color = isFrequencyMetric
+            ? relativeTurboColor(freqPctDiff / maxFrequencyDiff, 0.66)
+            : getColor(stats.fgPct, leagueAvgForZone.fgPct, 0.6);
 
           // Use custom position if available, otherwise use polygon centroid
           const customPos = CUSTOM_LABEL_POSITIONS[zoneName];
           const labelPos = customPos || getPolygonCentroid(points);
           const { x: labelX, y: labelY } = courtToSVG(labelPos.x, labelPos.y);
-
-          const fgPctDiff = stats.fgPct - leagueAvgForZone;
 
           return (
             <g key={zoneName}>
@@ -352,7 +415,7 @@ export default function ZoneHeatmap({ shots, leagueShots = [], width = 750, heig
                 strokeOpacity="0.5"
               />
 
-              {/* Zone label - FG% */}
+              {/* Zone label */}
               <text
                 x={labelX}
                 y={labelY - 4}
@@ -362,10 +425,10 @@ export default function ZoneHeatmap({ shots, leagueShots = [], width = 750, heig
                 fill="#111"
                 fontFamily="Consolas, monospace"
               >
-                {stats.fgPct.toFixed(1)}%
+                {metricValue.toFixed(1)}%
               </text>
 
-              {/* Makes/Attempts */}
+              {/* Detail line */}
               <text
                 x={labelX}
                 y={labelY + 10}
@@ -374,21 +437,21 @@ export default function ZoneHeatmap({ shots, leagueShots = [], width = 750, heig
                 fill="#333"
                 fontFamily="Consolas, monospace"
               >
-                {stats.makes}/{stats.attempts}
+                {isFrequencyMetric ? `${stats.attempts} tiros` : `${stats.makes}/${stats.attempts}`}
               </text>
 
               {/* Difference from league zone average */}
-              {Math.abs(fgPctDiff) > 2 && (
+              {Math.abs(metricDiff) > (isFrequencyMetric ? 1 : 2) && (
                 <text
                   x={labelX}
                   y={labelY + 22}
                   textAnchor="middle"
                   fontSize={fontSize * 0.85}
-                  fill={fgPctDiff > 0 ? '#166534' : '#991b1b'}
+                  fill={metricDiff > 0 ? '#7c2d12' : '#1e3a8a'}
                   fontFamily="Consolas, monospace"
                   fontWeight="bold"
                 >
-                  {fgPctDiff > 0 ? '+' : ''}{fgPctDiff.toFixed(1)}%
+                  {metricDiff > 0 ? '+' : ''}{metricDiff.toFixed(1)}%
                 </text>
               )}
             </g>
@@ -400,18 +463,26 @@ export default function ZoneHeatmap({ shots, leagueShots = [], width = 750, heig
       <div className="absolute bottom-2 left-2 right-2 bg-white/95 p-2 rounded border border-acb-300 text-xs">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="font-medium text-acb-700">Carta de tiro por zonas de tiro</span>
+            <span className="font-medium text-acb-700">
+              {isFrequencyMetric ? 'Distribucion por zonas de tiro' : 'Carta de tiro por zonas de tiro'}
+            </span>
             <span className="text-acb-500">
               (vs Media de la Liga)
             </span>
           </div>
           <div className="flex items-center gap-3 text-xs">
             <div className="flex items-center gap-1">
-              <div className="w-3 h-3 rounded" style={{ backgroundColor: 'rgba(34, 197, 94, 0.7)' }}></div>
+              <div
+                className="w-3 h-3 rounded"
+                style={{ backgroundColor: isFrequencyMetric ? relativeTurboColor(1, 0.9) : 'rgba(34, 197, 94, 0.7)' }}
+              ></div>
               <span>Por encima de la media</span>
             </div>
             <div className="flex items-center gap-1">
-              <div className="w-3 h-3 rounded" style={{ backgroundColor: 'rgba(220, 38, 38, 0.7)' }}></div>
+              <div
+                className="w-3 h-3 rounded"
+                style={{ backgroundColor: isFrequencyMetric ? relativeTurboColor(-1, 0.9) : 'rgba(220, 38, 38, 0.7)' }}
+              ></div>
               <span>Por debajo de la media</span>
             </div>
           </div>

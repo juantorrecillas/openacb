@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Routes, Route, useNavigate, useLocation, Link } from 'react-router-dom'
 import { Analytics } from '@vercel/analytics/react'
-import { BarChart3, Target, Users, TrendingUp, Percent, Trophy, Info, UserCircle, Menu, X, GitCompareArrows, Fingerprint, ChevronDown, Activity, Crown, Flame } from 'lucide-react'
+import { BarChart3, Target, Users, TrendingUp, Percent, Trophy, Info, UserCircle, Menu, X, GitCompareArrows, Fingerprint, ChevronDown, Activity, Crown, Flame, Scale, Sparkles } from 'lucide-react'
 import Home from './pages/Home'
 import ShotCharts from './pages/ShotCharts'
 import TeamStats from './pages/TeamStats'
@@ -12,7 +12,9 @@ import FourFactors from './pages/FourFactors'
 import PlayerProfile from './pages/PlayerProfile'
 import About from './pages/About'
 import PlayerSimilarity from './pages/PlayerSimilarity'
+import PlayerComparison from './pages/PlayerComparison'
 import TeamFingerprint from './pages/TeamFingerprint'
+import TeamMatchup from './pages/TeamMatchup'
 import GameFlow from './pages/GameFlow'
 import TeamPace from './pages/TeamPace'
 import ZoneLeaders from './pages/ZoneLeaders'
@@ -23,11 +25,13 @@ const TAB_PATHS = {
   home: '/',
   teams: '/equipos',
   fingerprint: '/perfil-equipo',
+  matchup: '/matchup-equipos',
   gameflow: '/flujo-partido',
   factors: '/cuatro-factores',
   players: '/jugadores',
   profile: '/jugador',
   similarity: '/similitud',
+  comparison: '/comparar',
   clutch: '/estadisticas-clutch',
   lineups: '/alineaciones',
   rankings: '/mejores-alineaciones',
@@ -43,6 +47,7 @@ const NAV = [
     tabs: [
       { id: 'teams',       label: 'Estadísticas de Equipo', icon: BarChart3 },
       { id: 'fingerprint', label: 'Perfil de Equipo',       icon: Fingerprint },
+      { id: 'matchup',     label: 'Cara a Cara',             icon: Scale },
       { id: 'gameflow',    label: 'Análisis de Partido',      icon: Activity },
       { id: 'factors',     label: 'Four Factors',        icon: Percent },
     ],
@@ -52,7 +57,8 @@ const NAV = [
     tabs: [
       { id: 'players',    label: 'Estadísticas de Jugador',  icon: Users },
       { id: 'profile',    label: 'Perfil de Jugador',        icon: UserCircle },
-      { id: 'similarity', label: 'Similitud',                icon: GitCompareArrows },
+      { id: 'similarity', label: 'Similitud',                icon: Sparkles },
+      { id: 'comparison', label: 'Comparar Jugadores',       icon: GitCompareArrows },
       { id: 'clutch',     label: 'Estadísticas Clutch',      icon: Flame },
     ],
   },
@@ -415,6 +421,36 @@ function App() {
             <Route path="/equipos" element={<TeamStats teams={data.teams} teamLogos={data.teamLogos} />} />
             <Route path="/perfil-equipo" element={<TeamFingerprint teams={data.teams} teamLogos={data.teamLogos} />} />
             <Route path="/perfil-equipo/:season/:team" element={<TeamFingerprint teams={data.teams} teamLogos={data.teamLogos} />} />
+            <Route path="/matchup-equipos" element={
+              <TeamMatchup
+                teams={data.teams}
+                teamLogos={data.teamLogos}
+                loadTeamPaceForSeason={loadTeamPaceForSeason}
+                teamPaceCache={teamPaceCache}
+                loadingTeamPace={loadingTeamPace}
+                loadClutchForSeason={loadClutchForSeason}
+                clutchCache={clutchCache}
+                loadingClutch={loadingClutch}
+                loadShotsForSeason={loadShotsForSeason}
+                shotsCache={shotsCache}
+                loadingShots={loadingShots}
+              />
+            } />
+            <Route path="/matchup-equipos/:season/:teamA/:teamB" element={
+              <TeamMatchup
+                teams={data.teams}
+                teamLogos={data.teamLogos}
+                loadTeamPaceForSeason={loadTeamPaceForSeason}
+                teamPaceCache={teamPaceCache}
+                loadingTeamPace={loadingTeamPace}
+                loadClutchForSeason={loadClutchForSeason}
+                clutchCache={clutchCache}
+                loadingClutch={loadingClutch}
+                loadShotsForSeason={loadShotsForSeason}
+                shotsCache={shotsCache}
+                loadingShots={loadingShots}
+              />
+            } />
             <Route path="/flujo-partido" element={
               <GameFlow
                 teams={data.teams}
@@ -472,6 +508,26 @@ function App() {
               <PlayerSimilarity
                 players={data.players}
                 similarity={data.similarity}
+              />
+            } />
+            <Route path="/comparar" element={
+              <PlayerComparison
+                players={data.players}
+                playerPhotos={data.playerPhotos}
+                playerBio={data.playerBio}
+                loadLineupsForSeason={loadLineupsForSeason}
+                lineupsCache={lineupsCache}
+                loadingLineups={loadingLineups}
+              />
+            } />
+            <Route path="/comparar/:aId/:aSeason/:bId/:bSeason" element={
+              <PlayerComparison
+                players={data.players}
+                playerPhotos={data.playerPhotos}
+                playerBio={data.playerBio}
+                loadLineupsForSeason={loadLineupsForSeason}
+                lineupsCache={lineupsCache}
+                loadingLineups={loadingLineups}
               />
             } />
             <Route path="/alineaciones" element={

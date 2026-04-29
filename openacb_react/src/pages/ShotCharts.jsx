@@ -30,6 +30,8 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
   const [playerSearch, setPlayerSearch] = useState('') // Search input for players
   const [shotFilter, setShotFilter] = useState('all') // 'all', 'made', 'missed'
   const [displayMode, setDisplayMode] = useState('shots') // 'shots', 'zones', 'heatmap'
+  const [heatmapMode, setHeatmapMode] = useState('frequency') // 'frequency', 'density'
+  const [zoneMode, setZoneMode] = useState('efficiency') // 'efficiency', 'frequency'
 
   // Load shots when season changes
   useEffect(() => {
@@ -154,6 +156,16 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
       return true
     })
   }, [seasonFilteredShots, filterType, selectedTeam, selectedPlayer, shotFilter])
+
+  const heatmapReferenceShots = useMemo(() => {
+    if (!seasonFilteredShots || !Array.isArray(seasonFilteredShots)) return []
+    if (shotFilter === 'all') return seasonFilteredShots
+
+    return seasonFilteredShots.filter(shot => {
+      const isMade = shot.made === true || shot.made === 'true' || shot.made === 1 || shot.made === '1'
+      return shotFilter === 'made' ? isMade : !isMade
+    })
+  }, [seasonFilteredShots, shotFilter])
   
   const stats = useMemo(() => {
     const total = filteredShots.length
@@ -218,7 +230,7 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
           <span className="text-sm font-medium text-acb-700">Filtros</span>
         </div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-4">
           {/* Season Filter */}
           <div>
             <label className="block text-xs font-medium text-acb-600 mb-1">Temporada</label>
@@ -246,6 +258,34 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
               <option value="zones">Zona del Campo</option>
             </select>
           </div>
+
+          {displayMode === 'heatmap' && (
+            <div>
+              <label className="block text-xs font-medium text-acb-600 mb-1">Tipo Mapa</label>
+              <select
+                value={heatmapMode}
+                onChange={(e) => setHeatmapMode(e.target.value)}
+                className="w-full px-3 py-2 border border-acb-200 rounded-md text-sm bg-white"
+              >
+                <option value="frequency">Frecuencia</option>
+                <option value="density">Densidad</option>
+              </select>
+            </div>
+          )}
+
+          {displayMode === 'zones' && (
+            <div>
+              <label className="block text-xs font-medium text-acb-600 mb-1">Tipo Zona</label>
+              <select
+                value={zoneMode}
+                onChange={(e) => setZoneMode(e.target.value)}
+                className="w-full px-3 py-2 border border-acb-200 rounded-md text-sm bg-white"
+              >
+                <option value="efficiency">Eficiencia</option>
+                <option value="frequency">Frecuencia</option>
+              </select>
+            </div>
+          )}
 
           {/* Filter Type */}
           <div>
@@ -360,10 +400,14 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
                 </>
               )}
               {displayMode === 'heatmap' && (
-                <span>Mapa de Calor</span>
+                <span>
+                  {heatmapMode === 'frequency'
+                    ? 'Frecuencia'
+                    : 'Mapa de Calor'}
+                </span>
               )}
               {displayMode === 'zones' && (
-                <span>Zona del Campo</span>
+                <span>{zoneMode === 'frequency' ? 'Frecuencia por zona' : 'Zona del Campo'}</span>
               )}
 
             </div>
@@ -385,11 +429,23 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
           )}
 
           {displayMode === 'heatmap' && (
-            <DensityHeatmap shots={filteredShots} width={750} height={705} />
+            <DensityHeatmap
+              shots={filteredShots}
+              referenceShots={heatmapReferenceShots}
+              mode={heatmapMode}
+              width={750}
+              height={705}
+            />
           )}
 
           {displayMode === 'zones' && (
-            <ZoneHeatmap shots={filteredShots} leagueShots={seasonFilteredShots} width={750} height={705} />
+            <ZoneHeatmap
+              shots={filteredShots}
+              leagueShots={heatmapReferenceShots}
+              metric={zoneMode}
+              width={750}
+              height={705}
+            />
           )}
 
           <p className="text-xs text-acb-400 text-center mt-2">
