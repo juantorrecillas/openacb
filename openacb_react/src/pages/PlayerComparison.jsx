@@ -220,7 +220,7 @@ function PlayerSummary({ record, bio, photoUrl, colorClass, season, onSeasonChan
               <span className="font-medium text-accent-700">{record.position || bio.position}</span>
             )}
             {bio?.heightM && <span>{parseFloat(bio.heightM).toFixed(2).replace('.', ',')} m</span>}
-            {age != null && <span>{age} anos</span>}
+            {age != null && <span>{age} años</span>}
             <span>{record.games} PJ</span>
             <span>{fmt(record.mpg, 'mpg')} MPP</span>
           </div>
@@ -244,11 +244,11 @@ function PlayerSummary({ record, bio, photoUrl, colorClass, season, onSeasonChan
 }
 
 const radarAxes = [
-  { key: 'ppgPct', posKey: 'ppgPosPct', label: 'Anotacion' },
+  { key: 'ppgPct', posKey: 'ppgPosPct', label: 'Anotación' },
   { key: 'tsPct', posKey: 'tsPosPct', label: 'Eficiencia' },
   { key: 'usgPct', posKey: 'usgPosPct', label: 'Volumen' },
   { key: 'threeRatePct', posKey: 'threeRatePosPct', label: 'Vol 3%' },
-  { key: 'astPctPct', posKey: 'astPctPosPct', label: 'Creacion' },
+  { key: 'astPctPct', posKey: 'astPctPosPct', label: 'Creación' },
   { key: 'trbPctPct', posKey: 'trbPctPosPct', label: 'Rebote' },
   { key: 'blkPctPct', posKey: 'blkPctPosPct', label: 'Def. Interior' },
   { key: 'stlPctPct', posKey: 'stlPctPosPct', label: 'Def. Perimetro' },
@@ -299,7 +299,7 @@ function RadarOverlay({ playerA, playerB }) {
       <div className="flex items-start justify-between gap-3 mb-2">
         <div>
           <h3 className="font-semibold text-acb-900">Radar de Percentiles</h3>
-          <p className="text-xs text-acb-500">Comparacion visual del perfil estadistico</p>
+          <p className="text-xs text-acb-500">Comparación visual del perfil estadístico</p>
         </div>
         {canUsePos && (
           <div className="flex rounded-md border border-acb-200 text-xs overflow-hidden shrink-0">
@@ -313,7 +313,7 @@ function RadarOverlay({ playerA, playerB }) {
               onClick={() => setUsePos(true)}
               className={`px-3 py-1.5 font-medium transition-colors ${usePos ? 'bg-acb-800 text-white' : 'bg-white text-acb-600 hover:bg-acb-50'}`}
             >
-              Posicion
+              Posición
             </button>
           </div>
         )}
@@ -375,7 +375,7 @@ function RadarOverlay({ playerA, playerB }) {
 
 const metricGroups = [
   {
-    title: 'Produccion',
+    title: 'Producción',
     metrics: [
       { key: 'mpg', label: 'MPP' },
       { key: 'ppg', label: 'PPP' },
@@ -400,7 +400,7 @@ const metricGroups = [
     ],
   },
   {
-    title: 'Creacion y posesion',
+    title: 'Creación y posesión',
     metrics: [
       { key: 'possPg', label: 'Pos/PJ' },
       { key: 'astPct', label: 'AST%' },
@@ -441,13 +441,13 @@ function MetricComparison({ playerA, playerB }) {
   return (
     <div className="bg-white rounded-lg border border-acb-200 overflow-hidden">
       <div className="px-5 py-3 border-b border-acb-200">
-        <h3 className="font-semibold text-acb-900">Comparacion Estadistica</h3>
+        <h3 className="font-semibold text-acb-900">Comparación Estadística</h3>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-acb-50 border-b border-acb-200">
-              <th className="px-4 py-2 text-left text-xs font-semibold text-acb-600 uppercase">Metrica</th>
+              <th className="px-4 py-2 text-left text-xs font-semibold text-acb-600 uppercase">Métrica</th>
               <th className="px-4 py-2 text-right text-xs font-semibold text-accent-600 uppercase">{playerA.playerAbbrev || 'Jugador A'}</th>
               <th className="px-4 py-2 text-center text-xs font-semibold text-acb-500 uppercase">Diff</th>
               <th className="px-4 py-2 text-right text-xs font-semibold text-info-600 uppercase">{playerB.playerAbbrev || 'Jugador B'}</th>
@@ -713,9 +713,9 @@ export default function PlayerComparison({
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-semibold text-acb-900">Comparacion de Jugadores</h2>
+          <h2 className="text-2xl font-semibold text-acb-900">Comparación de Jugadores</h2>
           <p className="text-acb-500 text-sm mt-1">
-            Compara dos jugadores por produccion, eficiencia, perfil de tiro, percentiles y on/off
+            Compara dos jugadores por producción, eficiencia, perfil de tiro, percentiles y on/off
           </p>
         </div>
         {playerA && playerB && (
@@ -782,7 +782,7 @@ export default function PlayerComparison({
         </>
       ) : (
         <div className="text-center py-12 text-acb-400">
-          Selecciona dos jugadores para iniciar la comparacion
+          Selecciona dos jugadores para iniciar la comparación
         </div>
       )}
     </div>

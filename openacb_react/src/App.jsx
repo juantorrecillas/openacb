@@ -47,33 +47,38 @@ const NAV = [
     tabs: [
       { id: 'teams',       label: 'Estadísticas de Equipo', icon: BarChart3 },
       { id: 'fingerprint', label: 'Perfil de Equipo',       icon: Fingerprint },
-      { id: 'matchup',     label: 'Cara a Cara',             icon: Scale },
-      { id: 'gameflow',    label: 'Análisis de Partido',      icon: Activity },
-      { id: 'factors',     label: 'Four Factors',        icon: Percent },
+      { id: 'gameflow',    label: 'Análisis de Partido',    icon: Activity },
+      { id: 'factors',     label: 'Four Factors',           icon: Percent },
     ],
   },
   {
     id: 'jugadores', label: 'Jugadores', short: 'Jugadores', icon: Users,
     tabs: [
-      { id: 'players',    label: 'Estadísticas de Jugador',  icon: Users },
-      { id: 'profile',    label: 'Perfil de Jugador',        icon: UserCircle },
-      { id: 'similarity', label: 'Similitud',                icon: Sparkles },
-      { id: 'comparison', label: 'Comparar Jugadores',       icon: GitCompareArrows },
-      { id: 'clutch',     label: 'Estadísticas Clutch',      icon: Flame },
+      { id: 'players', label: 'Estadísticas de Jugador', icon: Users },
+      { id: 'profile', label: 'Perfil de Jugador',       icon: UserCircle },
+      { id: 'clutch',  label: 'Estadísticas Clutch',     icon: Flame },
+    ],
+  },
+  {
+    id: 'herramientas', label: 'Herramientas', short: 'Herramientas', icon: Sparkles,
+    tabs: [
+      { id: 'similarity', label: 'Similitud',          icon: Sparkles },
+      { id: 'comparison', label: 'Comparar Jugadores', icon: GitCompareArrows },
+      { id: 'matchup',    label: 'Cara a Cara',        icon: Scale },
     ],
   },
   {
     id: 'alineaciones', label: 'Alineaciones', short: 'Alineaciones', icon: TrendingUp,
     tabs: [
-      { id: 'lineups',  label: 'Análisis On/Off', icon: TrendingUp },
-      { id: 'rankings', label: 'Mejores Alineaciones',                  icon: Trophy },
+      { id: 'lineups',  label: 'Análisis On/Off',      icon: TrendingUp },
+      { id: 'rankings', label: 'Mejores Alineaciones', icon: Trophy },
     ],
   },
   {
     id: 'tiro', label: 'Tiro', short: 'Tiro', icon: Target,
     tabs: [
-      { id: 'shots',       label: 'Cartas de Tiro',    icon: Target },
-      { id: 'zoneleaders', label: 'Líderes por Zona',  icon: Crown },
+      { id: 'shots',       label: 'Cartas de Tiro',   icon: Target },
+      { id: 'zoneleaders', label: 'Líderes por Zona', icon: Crown },
     ],
   },
   { id: 'about', label: 'Info', short: 'Info', icon: Info, single: true },

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Target, BarChart3, Users, TrendingUp, Trophy, Percent, UserCircle, ArrowRight, GitCompareArrows, Fingerprint, Activity, Crown, Sparkles, Scale } from 'lucide-react'
+import { Target, BarChart3, Users, TrendingUp, Trophy, Percent, UserCircle, ArrowRight, GitCompareArrows, Fingerprint, Activity, Crown, Sparkles, Scale, Flame } from 'lucide-react'
 
 // Tab id → URL path mapping (must match App.jsx)
 const TAB_PATHS = {
@@ -10,6 +10,7 @@ const TAB_PATHS = {
   factors: '/cuatro-factores',
   players: '/jugadores',
   profile: '/jugador',
+  clutch: '/estadisticas-clutch',
   similarity: '/similitud',
   comparison: '/comparar',
   lineups: '/alineaciones',
@@ -25,8 +26,9 @@ const categories = [
     title: 'Jugadores',
     description: 'Estadísticas individuales y perfiles de jugador',
     tools: [
-      { id: 'players',  title: 'Estadísticas de Jugador', description: 'Estadísticas Básicas y Avanzadas de todos los jugadores de la liga.', icon: Users },
-      { id: 'profile',  title: 'Perfil de Jugador',       description: 'Perfil completo del jugador - estadísticas, arquetipos, evolución...', icon: UserCircle },
+      { id: 'players', title: 'Estadísticas de Jugador', description: 'Estadísticas Básicas y Avanzadas de todos los jugadores de la liga.', icon: Users },
+      { id: 'profile', title: 'Perfil de Jugador',       description: 'Perfil completo del jugador - estadísticas, arquetipos, evolución...', icon: UserCircle },
+      { id: 'clutch',  title: 'Estadísticas Clutch',     description: 'Rendimiento de jugadores y equipos en momentos decisivos del partido.', icon: Flame },
     ],
   },
   {
