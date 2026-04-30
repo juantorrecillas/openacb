@@ -112,9 +112,9 @@ function Home() {
       {/* Hero Section */}
       <div className="text-center mb-10">
         <div className="flex justify-center mb-6">
-          <img src="/openacb_nobckg.png" alt="OpenACB Logo" className="w-28 h-28 object-contain" />
+          <img src="/openacb_nobckg.png" alt="openACB Logo" className="w-28 h-28 object-contain" />
         </div>
-        <h1 className="text-4xl font-bold text-acb-900 mb-4">Bienvenido a OpenACB</h1>
+        <h1 className="text-4xl font-bold text-acb-900 mb-4">Bienvenido a openACB</h1>
         <p className="text-xl text-acb-600 max-w-3xl mx-auto leading-relaxed">
           Herramientas de analítica y estadísticas avanzadas para la Liga ACB.
           Explora, visualiza y utiliza los recursos disponibles para entender mejor el baloncesto ACB.
@@ -130,12 +130,11 @@ function Home() {
 
       {/* Quick Stats Banner */}
       <div className="bg-gradient-to-r from-acb-900 to-acb-700 rounded-lg p-8 text-white">
-        <div className="grid md:grid-cols-3 gap-8 text-center">
+        <div className="grid md:grid-cols-2 gap-8 text-center">
           <div>
             <div className="text-3xl font-bold mb-2">10</div>
             <div className="text-acb-300 text-sm">Temporadas Disponibles: 2016-2026</div>
           </div>
-          <div></div>
           <a
             href="https://github.com/juantorrecillas/openacb"
             target="_blank"

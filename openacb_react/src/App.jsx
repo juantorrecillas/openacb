@@ -284,7 +284,7 @@ function App() {
                 >
                   <img
                     src="/openacb_nobckg.png"
-                    alt="OpenACB Logo"
+                    alt="openACB Logo"
                     className="w-10 h-10 sm:w-14 sm:h-14 xl:w-20 xl:h-20 object-contain"
                   />
                   <h1 className="text-base sm:text-lg font-semibold text-acb-900 hidden sm:block">openACB</h1>
@@ -301,8 +301,8 @@ function App() {
                         <Link
                           key={item.id}
                           to={TAB_PATHS[item.id] || '/'}
-                          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md transition-colors text-xs font-medium whitespace-nowrap
-                            ${isActive ? 'text-accent-600' : 'text-acb-600 hover:bg-accent-100 hover:text-accent-700'}`}
+                          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border transition-colors text-xs font-medium whitespace-nowrap
+                            ${isActive ? 'border-accent-200 bg-accent-50 text-accent-700 font-semibold' : 'border-transparent text-acb-600 hover:bg-accent-100 hover:text-accent-700'}`}
                         >
                           <Icon className="w-3.5 h-3.5" />
                           <span>{item.short}</span>
@@ -319,8 +319,8 @@ function App() {
                         onMouseLeave={() => setOpenGroup(null)}
                       >
                         <button
-                          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md transition-colors text-xs font-medium whitespace-nowrap
-                            ${isActive ? 'text-accent-600' : 'text-acb-600 hover:bg-accent-100 hover:text-accent-700'}`}
+                          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border transition-colors text-xs font-medium whitespace-nowrap
+                            ${isActive ? 'border-accent-200 bg-accent-50 text-accent-700 font-semibold' : 'border-transparent text-acb-600 hover:bg-accent-100 hover:text-accent-700'}`}
                         >
                           <Icon className="w-3.5 h-3.5" />
                           <span>{item.short}</span>

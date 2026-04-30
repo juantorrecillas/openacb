@@ -47,13 +47,13 @@ function About() {
             <Info className="w-8 h-8 text-acb-700" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-acb-900">¿Qué es OpenACB?</h1>
+            <h1 className="text-3xl font-bold text-acb-900">¿Qué es openACB?</h1>
           </div>
         </div>
 
           <div className="prose prose-slate max-w-none">
             <p className="text-acb-700 leading-relaxed">
-          OpenACB es una plataforma que recoge herramientas de análisis de estadísticas avanzadas para la Liga Endesa.
+          openACB es una plataforma que recoge herramientas de análisis de estadísticas avanzadas para la Liga Endesa.
           Este proyecto compila datos de Play-by-Play de acb.com para presentar una serie de estadísticas y herramientas analíticas que pueden resultar útiles para aficionados o cuerpo técnico. En mi opinión, la herramienta tiene una serie de ventajas que la hacen interesante para el mencionado público. En primer lugar, es una herramienta rápida y ligera, con una gran cantidad de estadísticas disponible. Segundo, proporciona herramientas de analítica avanzada, como el análisis On/Off o las cartas de tiro, que pueden ser de gran interés tanto para analistas como para aficionados. En tercer lugar, es una app de código abierto. La mayoría de herramientas de analítica avanzada están escondidas bajo servicios de suscripción o muros de pago.  Aquí tienes varios de esos servicios disponibles gratuitamente, sin anuncios y en código abierto. Sin ser una plataforma profesional, presenta una serie de herramientas de analítica avanzada que pueden ayudar a conocer mejor el perfil de equipos y jugadores a un nivel más técnico y avanzado. Y todo, repito, de forma gratuita. En el repositorio de GitHub puedes encontrar tanto los datos como el código utilizado para descargar, tratar y presentar los mismos. <strong>Es, en definitiva, una herramienta cuyo único objetivo es ser utilizada.</strong> Si te ha parecido útil, por favor, házmelo saber escribiéndome a mi correo: <a href={`mailto:${contactInfo.email}`} className="text-acb-600 hover:text-accent-500 underline">{contactInfo.email}</a>.
             </p>
             <p className="text-acb-700 leading-relaxed"> 
@@ -174,19 +174,19 @@ function About() {
           <h2 className="text-xl font-semibold text-acb-900 mb-4">Resumen de las herramientas</h2>
           <div className="space-y-3 text-sm text-acb-700">
             <div>
-              <span className="font-medium">Cartas de tiro:</span> Las cartas de tiro muestran la distribución de tiros de campo para un jugador o equipo. Es una herramienta que nos permite,
-                      por ejemplo, conocer desde dónde un equipo tiene tendencia a tirar (hay equipos y jugadores que tienen tendencia a  cargar ciertas zonas del campo), desde dónde son más eficientes los lanzamientos de un jugador o si la selección de tiro puede ser mejorable. También muestra los máximos anotadores y los anotadores más eficientes desde cada zona del campo en una temporada dada.
+              <span className="font-medium">Equipos:</span> Las herramientas de equipo nos muestran estadísticas avanzadas para todos los equipos ACB en la temporada escogida. Es útil para obtener información rápida de un vistazo, identificar fortalezas o debilidades de algunos equipos, o para saber qué equipos de la liga destacan en las categorías en las que estemos interesados. Además de las estadísticas generales, también hay perfiles de equipo para entender mejor su estilo, una herramienta de análisis de partido para revisar la evolución del marcador y de las jugadas, y una sección de Four Factors para resumir tiro, pérdidas, rebote y tiros libres.
             </div>
             <div>
-              <span className="font-medium">Estadísticas de Equipo:</span> Estas herramientas nos muestran estadísticas avanzadas para todos los equipos ACB en la temporada escogida. Es útil para obtener información rápida de un 
-              vistazo, identificar fortalezas o debilidades de algunos equipos, o para saber qué equipos de la liga destacan en las categorías en las que estemos interesados. Además, todas las estadísticas también están disponibles agregadas a nivel de oponente. Asimismo, se ofrecen estadísticas desagregadas por cuarto e intervalos de tiempo más pequeños.
+              <span className="font-medium">Jugadores:</span> Estas herramientas muestran una compilación de estadísticas individuales, tanto básicas como avanzadas. Existen disponibles tablas para toda la liga, perfiles de jugador con información más detallada sobre producción, eficiencia y evolución, y estadísticas clutch para analizar el rendimiento en finales ajustados. La idea es que se pueda pasar de una visión general de la liga a una lectura más concreta de qué hace bien un jugador y en qué contexto aporta más.
             </div>
             <div>
-              <span className="font-medium">Estadísticas de Jugador:</span> Estas herramientas muestran una compilación de estadísticas individuales, tanto básicas como avanzadas. Existen disponibles tablas para toda la liga, perfil de jugadores y una herramienta para encontrar jugadores con un perfil estadístico similar. 
+              <span className="font-medium">Herramientas:</span> Este bloque recoge herramientas pensadas para comparar y buscar relaciones entre jugadores y equipos. La similitud permite encontrar jugadores con un perfil estadístico parecido; la comparación directa sirve para poner dos jugadores frente a frente en una misma vista; y el cara a cara de equipos permite comparar dos equipos por métricas para entender mejor cómo encajan sus fortalezas y debilidades.
             </div>
             <div>
-              <span className="font-medium">Análisis de Alineación:</span> Las estadísticas de alineación nos permite analizar el desempeño de un equipo cuando ciertos jugadores o conjuntos de jugadores están (o no) en 
-                        la cancha. Se puede utilizar para identificar combinaciones de jugadores con las que un equipo tiende a tener un mejor desempeño.
+              <span className="font-medium">Alineaciones:</span> Las estadísticas de alineación nos permiten analizar el desempeño de un equipo cuando ciertos jugadores o conjuntos de jugadores están (o no) en la cancha. Se puede utilizar para identificar combinaciones de jugadores con las que un equipo tiende a tener un mejor desempeño. Además del análisis On/Off, también hay un ranking de mejores alineaciones para encontrar quintetos que hayan producido especialmente bien en una temporada determinada.
+            </div>
+            <div>
+              <span className="font-medium">Tiro:</span> Las cartas de tiro muestran la distribución de tiros de campo para un jugador o equipo. Es una herramienta que nos permite, por ejemplo, conocer desde dónde un equipo tiene tendencia a tirar, desde dónde son más eficientes los lanzamientos de un jugador o si la selección de tiro puede ser mejorable. También se ofrecen líderes por zona para revisar los máximos anotadores y los anotadores más eficientes desde cada zona del campo en una temporada dada.
             </div>
           </div>
         </div>
