@@ -22,16 +22,6 @@ const TAB_PATHS = {
 
 const categories = [
   {
-    id: 'jugadores',
-    title: 'Jugadores',
-    description: 'Estadísticas individuales y perfiles de jugador',
-    tools: [
-      { id: 'players', title: 'Estadísticas de Jugador', description: 'Producción, eficiencia y métricas avanzadas.', icon: Users },
-      { id: 'profile', title: 'Perfil de Jugador',       description: 'Perfil completo, estilo y evolución.', icon: UserCircle },
-      { id: 'clutch',  title: 'Estadísticas Clutch',     description: 'Rendimiento en finales ajustados.', icon: Flame },
-    ],
-  },
-  {
     id: 'equipos',
     title: 'Equipos',
     description: 'Rendimiento, estilo e identidad de cada equipo',
@@ -40,6 +30,16 @@ const categories = [
       { id: 'fingerprint', title: 'Perfil de Equipo',       description: 'Fortalezas, debilidades y estilo.',               icon: Fingerprint },
       { id: 'gameflow',    title: 'Análisis de Partido',    description: 'Evolución del marcador y jugadas.', icon: Activity },
       { id: 'factors',     title: 'Four Factors',           description: 'Tiro, pérdidas, rebote y tiros libres.',                         icon: Percent },
+    ],
+  },
+  {
+    id: 'jugadores',
+    title: 'Jugadores',
+    description: 'Estadísticas individuales y perfiles de jugador',
+    tools: [
+      { id: 'players', title: 'Estadísticas de Jugador', description: 'Producción, eficiencia y métricas avanzadas.', icon: Users },
+      { id: 'profile', title: 'Perfil de Jugador',       description: 'Perfil completo, estilo y evolución.', icon: UserCircle },
+      { id: 'clutch',  title: 'Estadísticas Clutch',     description: 'Rendimiento en finales ajustados.', icon: Flame },
     ],
   },
   {
@@ -136,10 +136,16 @@ function Home() {
             <div className="text-acb-300 text-sm">Temporadas Disponibles: 2016-2026</div>
           </div>
           <div></div>
-          <div>
+          <a
+            href="https://github.com/juantorrecillas/openacb"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block group hover:opacity-90 transition-opacity"
+            title="Ver código en GitHub"
+          >
             <div className="text-3xl font-bold mb-2">100%</div>
-            <div className="text-acb-300 text-sm">Código Abierto</div>
-          </div>
+            <div className="text-acb-300 text-sm group-hover:text-white transition-colors">Código Abierto ↗</div>
+          </a>
         </div>
       </div>
 

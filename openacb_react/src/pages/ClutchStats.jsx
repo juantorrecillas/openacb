@@ -18,13 +18,18 @@ function fmtVal(v, key) {
   return Number(v).toFixed(1)
 }
 
-function getRankColor(rank, total) {
-  if (!rank || !total) return 'bg-acb-100 text-acb-600'
-  const pct = rank / total
-  if (pct <= 0.25) return 'bg-positive-100 text-positive-700'
-  if (pct <= 0.5)  return 'bg-info-100 text-info-700'
-  if (pct <= 0.75) return 'bg-info-100 text-info-600'
+function getPercentileColor(pct) {
+  if (pct == null || isNaN(pct)) return 'bg-acb-100 text-acb-600'
+  if (pct >= 75) return 'bg-positive-100 text-positive-700'
+  if (pct >= 50) return 'bg-info-100 text-info-700'
+  if (pct >= 25) return 'bg-info-100 text-info-600'
   return 'bg-negative-100 text-negative-700'
+}
+
+// rank → percentile (rank 1 → 100, rank n → 0). undefined for n <= 1.
+function rankToPercentile(rank, n) {
+  if (rank == null || n == null || n <= 1) return null
+  return Math.round(((n - rank) / (n - 1)) * 100)
 }
 
 const POSITION_ORDER = ['Base', 'Escolta', 'Alero', 'Ala-pívot', 'Pívot']
@@ -404,6 +409,7 @@ export default function ClutchStats({ teams, players = [], playerBio = {}, loadC
                     const v = p[col.key]
                     const rankKey = col.rank ? `${col.key}Rank` : null
                     const rank = rankKey ? p[rankKey] : null
+                    const percentile = rankToPercentile(rank, n)
 
                     return (
                       <td
@@ -418,11 +424,11 @@ export default function ClutchStats({ teams, players = [], playerBio = {}, loadC
                           ${col.key === 'team' ? 'text-acb-600' : ''}
                           ${col.key === 'position' ? 'text-acb-500 text-xs' : ''}`}
                       >
-                        {rank != null ? (
+                        {percentile != null ? (
                           <div className="flex flex-col items-end gap-1">
                             <span className="font-mono text-acb-700">{fmtVal(v, col.key)}</span>
-                            <span className={`text-xs px-1.5 py-0.5 rounded ${getRankColor(rank, n)}`}>
-                              #{rank}
+                            <span className={`text-xs px-1.5 py-0.5 rounded ${getPercentileColor(percentile)}`}>
+                              {percentile}%
                             </span>
                           </div>
                         ) : (
