@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, ArrowUp, ArrowDown, Filter } from 'lucide-react'
+import { Search, ArrowUp, ArrowDown, Filter, Download } from 'lucide-react'
+import { downloadTableAsCsv } from '../utils/csvDownload'
 
 const positionCol = { key: 'position', label: 'Pos', align: 'left', sortable: true }
 
@@ -372,6 +373,50 @@ export default function PlayerStats({ players, playerBio = {} }) {
 
   const getPercentileColor = () => 'text-acb-700'
 
+  const handleDownloadCsv = () => {
+    const seasonStr = selectedSeason === 'all'
+      ? 'todas-temporadas'
+      : `${selectedSeason - 1}-${String(selectedSeason).slice(-2)}`
+    const viewStr = viewMode === 'basic' ? 'basico'
+      : viewMode === 'advanced' ? 'avanzado'
+      : viewMode === 'absolutos' ? 'absolutos'
+      : viewMode === 'misc' ? 'otros'
+      : viewMode === 'frequency' ? 'tiro-frecuencia'
+      : viewMode === 'accuracy' ? 'tiro-precision'
+      : 'tiro-rival'
+    const filename = `jugadores_${seasonStr}_${viewStr}.csv`
+
+    const exportColumns = [
+      { key: 'season', label: 'Temporada' },
+      ...columns.map(c => ({ key: c.key, label: c.label })),
+    ]
+
+    const exportRows = filteredPlayers.map(p => {
+      const row = { season: `${p.season - 1}-${String(p.season).slice(-2)}` }
+      columns.forEach(col => {
+        const v = p[col.key]
+        if (col.key === 'playerFull') {
+          row[col.key] = p.playerFull ?? ''
+        } else if (col.key === 'team' || col.key === 'position') {
+          row[col.key] = (typeof v === 'string' && v) ? v : ''
+        } else if (v == null) {
+          row[col.key] = ''
+        } else {
+          // mirror display semantics but strip % / leading + so values are spreadsheet-friendly
+          const formatted = formatValue(v, col.key, p)
+          if (formatted === '-' || formatted === 'N/D') {
+            row[col.key] = ''
+          } else {
+            row[col.key] = String(formatted).replace('%', '').replace(/^\+/, '')
+          }
+        }
+      })
+      return row
+    })
+
+    downloadTableAsCsv(filename, exportRows, exportColumns)
+  }
+
   // Get percentile badge color based on percentile value (0-100)
   const getPercentileBadgeColor = (percentile) => {
     if (percentile == null || isNaN(percentile)) return 'bg-acb-100 text-acb-600'
@@ -549,12 +594,23 @@ export default function PlayerStats({ players, playerBio = {} }) {
         </div>
       </div>
 
-      {/* Results count */}
-      <div className="text-sm text-acb-500">
-        Mostrando {filteredPlayers.length} de {qualifiedPlayers.length + filteredOutCount} jugadores
-        {filteredOutCount > 0 && !showFilteredPlayers && (
-          <span className="text-acb-400"> ({filteredOutCount} filtrados al no cumplir mínimos en partidos y minutos)</span>
-        )}
+      {/* Results count + download */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="text-sm text-acb-500">
+          Mostrando {filteredPlayers.length} de {qualifiedPlayers.length + filteredOutCount} jugadores
+          {filteredOutCount > 0 && !showFilteredPlayers && (
+            <span className="text-acb-400"> ({filteredOutCount} filtrados al no cumplir mínimos en partidos y minutos)</span>
+          )}
+        </div>
+        <button
+          onClick={handleDownloadCsv}
+          disabled={filteredPlayers.length === 0}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-acb-200 rounded text-sm bg-white text-acb-700 hover:bg-acb-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Descargar la tabla actual como CSV"
+        >
+          <Download className="w-4 h-4" />
+          Descargar CSV
+        </button>
       </div>
 
       {/* Zone data unavailability notice */}

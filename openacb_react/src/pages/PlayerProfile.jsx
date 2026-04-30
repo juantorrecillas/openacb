@@ -1,7 +1,8 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Search, Loader2, Filter, GitCompareArrows, Flame } from 'lucide-react'
+import { Search, Loader2, Filter, GitCompareArrows, Flame, Download } from 'lucide-react'
 import { getPlayerPhoto } from '../utils/playerPhotos'
+import { downloadTableAsCsv } from '../utils/csvDownload'
 
 
 // ─── Helpers ───────────────────────────────────────────────────
@@ -24,6 +25,15 @@ function fmt(v, key) {
   if (['offTo', 'secondChance', 'assistedFgm', 'assistedFgm2', 'assistedFgm3'].includes(key))
     return `${(v * 100).toFixed(1)}%`
   return v.toFixed(1)
+}
+
+function slugify(s) {
+  return (s || 'jugador')
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .replace(/[^a-zA-Z0-9]+/g, '-')
+    .toLowerCase()
+    .replace(/^-|-$/g, '')
 }
 
 function seasonLabel(s) {
@@ -284,26 +294,58 @@ function CareerTable({ records }) {
   const cols = tab === 'basic' ? careerBasicCols : careerAdvancedCols
   const sorted = [...records].sort((a, b) => a.season - b.season)
 
+  const handleDownload = () => {
+    const slug = slugify(records[0]?.player || records[0]?.playerFull)
+    const filename = `${slug}_trayectoria_${tab === 'basic' ? 'basico' : 'avanzado'}.csv`
+    const exportRows = sorted.map(r => {
+      const row = {}
+      cols.forEach(c => {
+        const v = r[c.key]
+        if (v == null) {
+          row[c.key] = ''
+        } else if (c.fmtFn) {
+          row[c.key] = String(c.fmtFn(v)).replace('%', '')
+        } else if (c.left || c.integer) {
+          row[c.key] = v
+        } else {
+          row[c.key] = Number(v).toFixed(1)
+        }
+      })
+      return row
+    })
+    downloadTableAsCsv(filename, exportRows, cols.map(c => ({ key: c.key, label: c.label })))
+  }
+
   return (
     <div className="bg-white rounded-lg border border-acb-200 overflow-hidden">
       <div className="px-4 py-3 border-b border-acb-200 flex items-center gap-3 flex-wrap">
         <h3 className="font-semibold text-acb-900">Trayectoria</h3>
-        <div className="flex items-center gap-1 bg-acb-100 rounded-md p-0.5 ml-auto">
+        <div className="flex items-center gap-2 ml-auto">
+          <div className="flex items-center gap-1 bg-acb-100 rounded-md p-0.5">
+            <button
+              onClick={() => setTab('basic')}
+              className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+                tab === 'basic' ? 'bg-white text-acb-900 shadow-sm' : 'text-acb-600 hover:text-acb-900'
+              }`}
+            >
+              Básico
+            </button>
+            <button
+              onClick={() => setTab('advanced')}
+              className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+                tab === 'advanced' ? 'bg-white text-acb-900 shadow-sm' : 'text-acb-600 hover:text-acb-900'
+              }`}
+            >
+              Avanzado
+            </button>
+          </div>
           <button
-            onClick={() => setTab('basic')}
-            className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
-              tab === 'basic' ? 'bg-white text-acb-900 shadow-sm' : 'text-acb-600 hover:text-acb-900'
-            }`}
+            onClick={handleDownload}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 border border-acb-200 rounded text-xs bg-white text-acb-700 hover:bg-acb-50"
+            title="Descargar CSV"
           >
-            Básico
-          </button>
-          <button
-            onClick={() => setTab('advanced')}
-            className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
-              tab === 'advanced' ? 'bg-white text-acb-900 shadow-sm' : 'text-acb-600 hover:text-acb-900'
-            }`}
-          >
-            Avanzado
+            <Download className="w-3.5 h-3.5" />
+            CSV
           </button>
         </div>
       </div>
@@ -984,28 +1026,78 @@ function ShootingStatsCard({ player }) {
   const [shotTab, setShotTab] = useState('own')
   const hasRivalData = zones.some(z => player[`oppOnFgpct${z.key}`] != null)
 
+  const handleDownload = () => {
+    const slug = slugify(player.player || player.playerFull)
+    const seasonStr = `${player.season - 1}-${String(player.season).slice(-2)}`
+    const fmtNum = v => v == null ? '' : Number(v).toFixed(1)
+    if (shotTab === 'own') {
+      const cols = [
+        { key: 'zone', label: 'Zona' },
+        { key: 'freq', label: 'Freq%' },
+        { key: 'fgpct', label: 'FG%' },
+        { key: 'fga', label: 'FGA' },
+      ]
+      const rows = zones.map(z => ({
+        zone: z.label,
+        freq: fmtNum(player[`freq${z.key}`]),
+        fgpct: fmtNum(player[`fgpct${z.key}`]),
+        fga: player[`fga${z.key}`] ?? '',
+      }))
+      downloadTableAsCsv(`${slug}_tiro-zona_propio_${seasonStr}.csv`, rows, cols)
+    } else {
+      const cols = [
+        { key: 'zone', label: 'Zona' },
+        { key: 'diff', label: 'Dif. vs equipo' },
+        { key: 'fgpct', label: 'FG% Rival' },
+        { key: 'fga', label: 'FGA Rival' },
+      ]
+      const rows = zones.map(z => ({
+        zone: z.label,
+        diff: fmtNum(player[`oppDiff${z.key}`]),
+        fgpct: fmtNum(player[`oppOnFgpct${z.key}`]),
+        fga: player[`oppFga${z.key}`] ?? '',
+      }))
+      downloadTableAsCsv(`${slug}_tiro-zona_rival_${seasonStr}.csv`, rows, cols)
+    }
+  }
+
   return (
     <div className="bg-white rounded-lg border border-acb-200 p-5">
-      <div className="flex items-center justify-between mb-1">
+      <div className="flex items-center justify-between mb-1 gap-2 flex-wrap">
         <h3 className="font-semibold text-acb-900">Tiro por Zona</h3>
-        {hasRivalData && (
-          <div className="flex rounded-md border border-acb-200 overflow-hidden text-xs">
-            <button
-              onClick={() => setShotTab('own')}
-              className={`px-3 py-1 transition-colors ${shotTab === 'own' ? 'bg-acb-900 text-white' : 'bg-white text-acb-600 hover:bg-acb-50'}`}
-            >
-              Tiro Propio
-            </button>
-            <button
-              onClick={() => setShotTab('rival')}
-              className={`px-3 py-1 transition-colors ${shotTab === 'rival' ? 'bg-acb-900 text-white' : 'bg-white text-acb-600 hover:bg-acb-50'}`}
-            >
-              Tiro Rival
-            </button>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {hasRivalData && (
+            <div className="flex rounded-md border border-acb-200 overflow-hidden text-xs">
+              <button
+                onClick={() => setShotTab('own')}
+                className={`px-3 py-1 transition-colors ${shotTab === 'own' ? 'bg-acb-900 text-white' : 'bg-white text-acb-600 hover:bg-acb-50'}`}
+              >
+                Tiro Propio
+              </button>
+              <button
+                onClick={() => setShotTab('rival')}
+                className={`px-3 py-1 transition-colors ${shotTab === 'rival' ? 'bg-acb-900 text-white' : 'bg-white text-acb-600 hover:bg-acb-50'}`}
+              >
+                Tiro Rival
+              </button>
+            </div>
+          )}
+          <button
+            onClick={handleDownload}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 border border-acb-200 rounded text-xs bg-white text-acb-700 hover:bg-acb-50"
+            title="Descargar CSV"
+          >
+            <Download className="w-3.5 h-3.5" />
+            CSV
+          </button>
+        </div>
       </div>
-      <p className="text-xs text-acb-500 mb-3">{player.team} - {player.games} partidos</p>
+      <p className="text-xs text-acb-500 mb-3">
+        {player.team} - {player.games} partidos
+        {shotTab === 'rival' && (
+          <> · Dif. = tiro rival con el jugador en pista vs. media del equipo (negativo = mejor defensa)</>
+        )}
+      </p>
       <div className="overflow-x-auto">
         {shotTab === 'own' ? (
           <table className="w-full text-sm">
@@ -1038,7 +1130,7 @@ function ShootingStatsCard({ player }) {
             <thead>
               <tr className="border-b border-acb-200">
                 <th className="px-3 py-2 text-left text-xs font-semibold text-acb-600 uppercase whitespace-nowrap">Zona</th>
-                <th className="px-3 py-2 text-right text-xs font-semibold text-acb-600 uppercase whitespace-nowrap">Diff</th>
+                <th className="px-3 py-2 text-right text-xs font-semibold text-acb-600 uppercase whitespace-nowrap">Dif. vs equipo</th>
                 <th className="px-3 py-2 text-right text-xs font-semibold text-acb-600 uppercase whitespace-nowrap">FG% Rival</th>
                 <th className="px-3 py-2 text-right text-xs font-semibold text-acb-600 uppercase whitespace-nowrap">FGA Rival</th>
               </tr>
@@ -1117,9 +1209,59 @@ function OnOffCard({ records, loadLineupsForSeason, lineupsCache, loadingLineups
   const hasAnyData = rows.some(r => r.found)
   const anyLoading = rows.some(r => r.loading)
 
+  const handleDownload = () => {
+    const slug = slugify(records[0]?.player || records[0]?.playerFull)
+    const cols = [
+      { key: 'season', label: 'Temporada' },
+      { key: 'team', label: 'Equipo' },
+      { key: 'onORtg', label: 'On ORtg' },
+      { key: 'offORtg', label: 'Off ORtg' },
+      { key: 'ortgD', label: 'Δ ORtg' },
+      { key: 'onDRtg', label: 'On DRtg' },
+      { key: 'offDRtg', label: 'Off DRtg' },
+      { key: 'drtgD', label: 'Δ DRtg' },
+      { key: 'onNetRtg', label: 'On Neto' },
+      { key: 'offNetRtg', label: 'Off Neto' },
+      { key: 'netDiff', label: 'Impacto' },
+      { key: 'onMin', label: 'Min' },
+    ]
+    const fmtNum = v => v == null ? '' : Number(v).toFixed(1)
+    const exportRows = rows.filter(r => r.found).map(r => {
+      const ortgD = r.onORtg != null && r.offORtg != null ? r.onORtg - r.offORtg : null
+      const drtgD = r.onDRtg != null && r.offDRtg != null ? r.onDRtg - r.offDRtg : null
+      return {
+        season: seasonLabel(r.season),
+        team: r.team,
+        onORtg: fmtNum(r.onORtg),
+        offORtg: fmtNum(r.offORtg),
+        ortgD: fmtNum(ortgD),
+        onDRtg: fmtNum(r.onDRtg),
+        offDRtg: fmtNum(r.offDRtg),
+        drtgD: fmtNum(drtgD),
+        onNetRtg: fmtNum(r.onNetRtg),
+        offNetRtg: fmtNum(r.offNetRtg),
+        netDiff: fmtNum(r.netDiff),
+        onMin: r.onMin == null ? '' : Math.round(r.onMin),
+      }
+    })
+    downloadTableAsCsv(`${slug}_onoff.csv`, exportRows, cols)
+  }
+
   return (
     <div className="bg-white rounded-lg border border-acb-200 p-5">
-      <h3 className="font-semibold text-acb-900 mb-3">Impacto On/Off Court</h3>
+      <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
+        <h3 className="font-semibold text-acb-900">Impacto On/Off Court</h3>
+        {hasAnyData && (
+          <button
+            onClick={handleDownload}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 border border-acb-200 rounded text-xs bg-white text-acb-700 hover:bg-acb-50"
+            title="Descargar CSV"
+          >
+            <Download className="w-3.5 h-3.5" />
+            CSV
+          </button>
+        )}
+      </div>
       {anyLoading && (
         <div className="flex items-center gap-2 text-sm text-acb-500 mb-3">
           <Loader2 className="w-4 h-4 animate-spin" />
@@ -1225,12 +1367,69 @@ function ClutchCard({ records, loadClutchForSeason, clutchCache, loadingClutch }
 
   if (!anyLoading && clutchRows.length === 0) return null
 
+  const handleDownload = () => {
+    const slug = slugify(records[0]?.player || records[0]?.playerFull)
+    const cols = [
+      { key: 'season', label: 'Temporada' },
+      { key: 'team', label: 'Equipo' },
+      { key: 'games', label: 'PJ' },
+      { key: 'pts', label: 'Pts' },
+      { key: 'reb', label: 'Reb' },
+      { key: 'ast', label: 'Ast' },
+      { key: 'stl', label: 'Rob' },
+      { key: 'blk', label: 'Tap' },
+      { key: 'tov', label: 'Pér' },
+      { key: 'fg2Pct', label: 'T2%' },
+      { key: 'fg3Pct', label: '3P%' },
+      { key: 'ftPct', label: 'TL%' },
+      { key: 'efgPct', label: 'eFG%' },
+      { key: 'tsPct', label: 'TS%' },
+      { key: 'fg3Rate', label: '3PAr' },
+    ]
+    const fmtNum = v => v == null || isNaN(v) ? '' : Number(v).toFixed(1)
+    const exportRows = clutchRows.map(r => {
+      const fga = (r.fg2A || 0) + (r.fg3A || 0)
+      const tsPct = fga + (r.ftA || 0) > 0
+        ? (r.pts * r.games) / (2 * (fga + 0.44 * (r.ftA || 0))) * 100
+        : null
+      const fg3Rate = fga > 0 ? (r.fg3A || 0) / fga * 100 : null
+      return {
+        season: seasonLabel(r.season),
+        team: r.team,
+        games: r.games ?? '',
+        pts: fmtNum(r.pts),
+        reb: fmtNum(r.reb),
+        ast: fmtNum(r.ast),
+        stl: fmtNum(r.stl),
+        blk: fmtNum(r.blk),
+        tov: fmtNum(r.tov),
+        fg2Pct: fmtNum(r.fg2Pct),
+        fg3Pct: fmtNum(r.fg3Pct),
+        ftPct: fmtNum(r.ftPct),
+        efgPct: fmtNum(r.efgPct),
+        tsPct: fmtNum(tsPct),
+        fg3Rate: fmtNum(fg3Rate),
+      }
+    })
+    downloadTableAsCsv(`${slug}_clutch.csv`, exportRows, cols)
+  }
+
   return (
     <div className="bg-white rounded-lg border border-acb-200 overflow-hidden">
-      <div className="px-5 py-3 border-b border-acb-100 flex items-center gap-2">
+      <div className="px-5 py-3 border-b border-acb-100 flex items-center gap-2 flex-wrap">
         <Flame className="w-4 h-4 text-orange-500" />
         <h3 className="font-semibold text-acb-900 text-sm">Estadísticas Clutch</h3>
         <span className="text-xs text-acb-400 ml-1">últimos 5 min, diferencia ≤ 5 pts</span>
+        {clutchRows.length > 0 && (
+          <button
+            onClick={handleDownload}
+            className="ml-auto inline-flex items-center gap-1.5 px-2.5 py-1 border border-acb-200 rounded text-xs bg-white text-acb-700 hover:bg-acb-50"
+            title="Descargar CSV"
+          >
+            <Download className="w-3.5 h-3.5" />
+            CSV
+          </button>
+        )}
       </div>
       {anyLoading && clutchRows.length === 0 ? (
         <div className="flex items-center justify-center py-6 text-acb-400">

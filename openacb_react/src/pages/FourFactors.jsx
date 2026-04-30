@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
-import { Circle } from 'lucide-react'
+import { Circle, Download } from 'lucide-react'
+import { downloadTableAsCsv } from '../utils/csvDownload'
 
 
 export default function FourFactors({ teams }) {
@@ -113,6 +114,41 @@ export default function FourFactors({ teams }) {
     return value.toFixed(decimals)
   }
 
+  const handleDownloadCsv = () => {
+    const seasonStr = selectedSeason === 'all'
+      ? 'todas-temporadas'
+      : `${selectedSeason - 1}-${String(selectedSeason).slice(-2)}`
+    const filename = `four-factors_${seasonStr}.csv`
+
+    const cols = [
+      { key: 'season', label: 'Temporada' },
+      { key: 'team', label: 'Equipo' },
+      { key: 'offensiveShooting', label: 'eFG% Atq' },
+      { key: 'offensiveTurnovers', label: 'PER% Atq' },
+      { key: 'offensiveRebounding', label: 'RO% Atq' },
+      { key: 'offensiveFreeThrows', label: 'TLr Atq' },
+      { key: 'offensiveRating', label: 'ORtg' },
+      { key: 'defensiveShooting', label: 'eFG% Def' },
+      { key: 'defensiveTurnovers', label: 'PER% Def' },
+      { key: 'defensiveRebounding', label: 'RD% Def' },
+      { key: 'defensiveFreeThrows', label: 'TLr Def' },
+      { key: 'defensiveRating', label: 'DRtg' },
+      { key: 'netRating', label: 'Net' },
+    ]
+
+    const fmtNum = v => v == null || isNaN(v) ? '' : Number(v).toFixed(1)
+    const exportRows = sortedTeams.map(t => {
+      const row = {
+        season: `${t.season - 1}-${String(t.season).slice(-2)}`,
+        team: t.team,
+      }
+      cols.slice(2).forEach(c => { row[c.key] = fmtNum(t[c.key]) })
+      return row
+    })
+
+    downloadTableAsCsv(filename, exportRows, cols)
+  }
+
   const getRankColor = (rank, totalTeams) => {
     if (!rank) return 'bg-acb-100 text-acb-600'
     const percentile = rank / totalTeams
@@ -133,7 +169,7 @@ export default function FourFactors({ teams }) {
 
       {/* Controls */}
       <div className="bg-white rounded-lg border border-acb-200 p-4 space-y-4">
-        <div className="flex flex-wrap items-center gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           {/* Season Filter */}
           <div className="flex items-center gap-2">
             <span className="text-sm text-acb-600 font-medium">Temporada:</span>
@@ -148,6 +184,14 @@ export default function FourFactors({ teams }) {
               <option value="all">All Seasons</option>
             </select>
           </div>
+          <button
+            onClick={handleDownloadCsv}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-acb-200 rounded text-sm bg-white text-acb-700 hover:bg-acb-50"
+            title="Descargar la tabla actual como CSV"
+          >
+            <Download className="w-4 h-4" />
+            Descargar CSV
+          </button>
         </div>
       </div>
 

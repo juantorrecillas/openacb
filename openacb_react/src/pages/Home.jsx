@@ -26,9 +26,9 @@ const categories = [
     title: 'Jugadores',
     description: 'Estadísticas individuales y perfiles de jugador',
     tools: [
-      { id: 'players', title: 'Estadísticas de Jugador', description: 'Estadísticas Básicas y Avanzadas de todos los jugadores de la liga.', icon: Users },
-      { id: 'profile', title: 'Perfil de Jugador',       description: 'Perfil completo del jugador - estadísticas, arquetipos, evolución...', icon: UserCircle },
-      { id: 'clutch',  title: 'Estadísticas Clutch',     description: 'Rendimiento de jugadores y equipos en momentos decisivos del partido.', icon: Flame },
+      { id: 'players', title: 'Estadísticas de Jugador', description: 'Producción, eficiencia y métricas avanzadas.', icon: Users },
+      { id: 'profile', title: 'Perfil de Jugador',       description: 'Perfil completo, estilo y evolución.', icon: UserCircle },
+      { id: 'clutch',  title: 'Estadísticas Clutch',     description: 'Rendimiento en finales ajustados.', icon: Flame },
     ],
   },
   {
@@ -36,10 +36,10 @@ const categories = [
     title: 'Equipos',
     description: 'Rendimiento, estilo e identidad de cada equipo',
     tools: [
-      { id: 'teams',       title: 'Estadísticas de Equipo', description: 'Estadísticas Avanzadas de cada equipo.',                               icon: BarChart3 },
-      { id: 'fingerprint', title: 'Perfil de Equipo',       description: 'Perfil ofensivo y defensivo: Fortalezas y Debilidades.',               icon: Fingerprint },
-      { id: 'gameflow',    title: 'Análisis de Partido',    description: 'Evolución del marcador jugada a jugada y rendimiento detallado por cuartos.', icon: Activity },
-      { id: 'factors',     title: 'Four Factors',           description: 'Análisis de los Four Factors de Dean Oliver.',                         icon: Percent },
+      { id: 'teams',       title: 'Estadísticas de Equipo', description: 'Rendimiento, ritmo y eficiencia.',                               icon: BarChart3 },
+      { id: 'fingerprint', title: 'Perfil de Equipo',       description: 'Fortalezas, debilidades y estilo.',               icon: Fingerprint },
+      { id: 'gameflow',    title: 'Análisis de Partido',    description: 'Evolución del marcador y jugadas.', icon: Activity },
+      { id: 'factors',     title: 'Four Factors',           description: 'Tiro, pérdidas, rebote y tiros libres.',                         icon: Percent },
     ],
   },
   {
@@ -47,9 +47,9 @@ const categories = [
     title: 'Herramientas',
     description: 'Comparativas y búsqueda de similitud entre jugadores y equipos',
     tools: [
-      { id: 'similarity', title: 'Similitud',          description: 'Jugadores con perfiles estadísticos similares.',                    icon: Sparkles },
-      { id: 'comparison', title: 'Comparar Jugadores', description: 'Comparación directa entre dos jugadores, radar y on/off.',          icon: GitCompareArrows },
-      { id: 'matchup',    title: 'Cara a Cara',        description: 'Compara dos equipos por ritmo, tiro, rebote, zonas y clutch.',      icon: Scale },
+      { id: 'similarity', title: 'Similitud',          description: 'Jugadores con perfiles similares.',                    icon: Sparkles },
+      { id: 'comparison', title: 'Comparar Jugadores', description: 'Comparación directa entre jugadores.',          icon: GitCompareArrows },
+      { id: 'matchup',    title: 'Cara a Cara',        description: 'Compara dos equipos por métricas.',      icon: Scale },
     ],
   },
   {
@@ -57,8 +57,8 @@ const categories = [
     title: 'Alineaciones',
     description: 'Combinaciones y rendimiento de quintetos',
     tools: [
-      { id: 'lineups',  title: 'Análisis On/Off',     description: 'Qué alineaciones funcionan mejor sobre la pista.', icon: TrendingUp },
-      { id: 'rankings', title: 'Mejores Alineaciones', description: 'Las alineaciones con mayor impacto en la liga.',  icon: Trophy },
+      { id: 'lineups',  title: 'Análisis On/Off',     description: 'Impacto de jugadores y quintetos.', icon: TrendingUp },
+      { id: 'rankings', title: 'Mejores Alineaciones', description: 'Quintetos con mayor rendimiento.',  icon: Trophy },
     ],
   },
   {
@@ -66,8 +66,8 @@ const categories = [
     title: 'Tiro',
     description: 'Visualizaciones de tiro y líderes por zona',
     tools: [
-      { id: 'shots',       title: 'Cartas de Tiro',   description: 'Mapas de calor con la distribución espacial de tiros.',                                             icon: Target },
-      { id: 'zoneleaders', title: 'Líderes por Zona', description: 'Máximos anotadores y tiradores más eficientes en cada zona del campo: para toda la liga y por equipos.', icon: Crown },
+      { id: 'shots',       title: 'Cartas de Tiro',   description: 'Mapas de tiro por jugador o equipo.',                                             icon: Target },
+      { id: 'zoneleaders', title: 'Líderes por Zona', description: 'Anotadores y eficiencia por zona.', icon: Crown },
     ],
   },
 ]

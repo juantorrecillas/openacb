@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, LabelList } from 'recharts'
-import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
+import { ArrowUpDown, ArrowUp, ArrowDown, Download } from 'lucide-react'
+import { downloadTableAsCsv } from '../utils/csvDownload'
 
 
 // Add a color palette for teams (or generate colors dynamically)
@@ -361,6 +362,41 @@ export default function TeamStats({ teams, teamLogos = {} }) {
     return value.toFixed(1)
   }
 
+  const handleDownloadCsv = () => {
+    const seasonStr = selectedSeason === 'all'
+      ? 'todas-temporadas'
+      : `${selectedSeason - 1}-${String(selectedSeason).slice(-2)}`
+    const viewStr = viewMode === 'basic' ? 'basico'
+      : viewMode === 'advanced' ? 'avanzado'
+      : viewMode === 'oppBasic' ? 'rival-basico'
+      : 'rival-avanzado'
+    const filename = `equipos_${seasonStr}_${viewStr}.csv`
+
+    const exportColumns = [
+      { key: 'season', label: 'Temporada' },
+      ...tableColumns.map(c => ({ key: c.key, label: c.label })),
+    ]
+
+    const exportRows = sortedTeams.map(t => {
+      const row = { season: `${t.season - 1}-${String(t.season).slice(-2)}` }
+      tableColumns.forEach(col => {
+        const v = t[col.key]
+        if (col.key === 'team') {
+          row[col.key] = v ?? ''
+        } else if (v == null) {
+          row[col.key] = ''
+        } else {
+          // mirror display semantics but strip % so values are pure numbers
+          const formatted = formatValue(v, col.key)
+          row[col.key] = formatted === '-' ? '' : formatted.replace('%', '')
+        }
+      })
+      return row
+    })
+
+    downloadTableAsCsv(filename, exportRows, exportColumns)
+  }
+
   // Calculate rankings for each stat (1 = best)
   const rankings = useMemo(() => {
     const rankMap = {}
@@ -551,43 +587,53 @@ export default function TeamStats({ teams, teamLogos = {} }) {
         </div>
       </div>
       
-      {/* Table View Mode Toggle */}
-      <div className="flex items-center gap-1 bg-acb-100 rounded-md p-1 w-fit">
+      {/* Table View Mode Toggle + Download */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-1 bg-acb-100 rounded-md p-1 w-fit">
+          <button
+            onClick={() => setViewMode('basic')}
+            className={`px-3 py-1.5 text-sm font-medium rounded transition-colors
+              ${viewMode === 'basic'
+                ? 'bg-white text-acb-900 shadow-sm'
+                : 'text-acb-600 hover:text-acb-900'}`}
+          >
+            Básico
+          </button>
+          <button
+            onClick={() => setViewMode('advanced')}
+            className={`px-3 py-1.5 text-sm font-medium rounded transition-colors
+              ${viewMode === 'advanced'
+                ? 'bg-white text-acb-900 shadow-sm'
+                : 'text-acb-600 hover:text-acb-900'}`}
+          >
+            Avanzado
+          </button>
+          <button
+            onClick={() => setViewMode('oppBasic')}
+            className={`px-3 py-1.5 text-sm font-medium rounded transition-colors
+              ${viewMode === 'oppBasic'
+                ? 'bg-white text-acb-900 shadow-sm'
+                : 'text-acb-600 hover:text-acb-900'}`}
+          >
+            Riv. Básico
+          </button>
+          <button
+            onClick={() => setViewMode('oppAdvanced')}
+            className={`px-3 py-1.5 text-sm font-medium rounded transition-colors
+              ${viewMode === 'oppAdvanced'
+                ? 'bg-white text-acb-900 shadow-sm'
+                : 'text-acb-600 hover:text-acb-900'}`}
+          >
+            Riv. Avanzado
+          </button>
+        </div>
         <button
-          onClick={() => setViewMode('basic')}
-          className={`px-3 py-1.5 text-sm font-medium rounded transition-colors
-            ${viewMode === 'basic'
-              ? 'bg-white text-acb-900 shadow-sm'
-              : 'text-acb-600 hover:text-acb-900'}`}
+          onClick={handleDownloadCsv}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-acb-200 rounded text-sm bg-white text-acb-700 hover:bg-acb-50"
+          title="Descargar la tabla actual como CSV"
         >
-          Básico
-        </button>
-        <button
-          onClick={() => setViewMode('advanced')}
-          className={`px-3 py-1.5 text-sm font-medium rounded transition-colors
-            ${viewMode === 'advanced'
-              ? 'bg-white text-acb-900 shadow-sm'
-              : 'text-acb-600 hover:text-acb-900'}`}
-        >
-          Avanzado
-        </button>
-        <button
-          onClick={() => setViewMode('oppBasic')}
-          className={`px-3 py-1.5 text-sm font-medium rounded transition-colors
-            ${viewMode === 'oppBasic'
-              ? 'bg-white text-acb-900 shadow-sm'
-              : 'text-acb-600 hover:text-acb-900'}`}
-        >
-          Riv. Básico
-        </button>
-        <button
-          onClick={() => setViewMode('oppAdvanced')}
-          className={`px-3 py-1.5 text-sm font-medium rounded transition-colors
-            ${viewMode === 'oppAdvanced'
-              ? 'bg-white text-acb-900 shadow-sm'
-              : 'text-acb-600 hover:text-acb-900'}`}
-        >
-          Riv. Avanzado
+          <Download className="w-4 h-4" />
+          Descargar CSV
         </button>
       </div>
 
