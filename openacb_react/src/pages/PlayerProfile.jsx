@@ -1011,10 +1011,10 @@ function ShootingStatsCard({ player }) {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-acb-200">
-                <th className="text-left py-2 text-xs font-semibold text-acb-600 uppercase">Zona</th>
-                <th className="text-right py-2 text-xs font-semibold text-acb-600 uppercase">Freq%</th>
-                <th className="text-right py-2 text-xs font-semibold text-acb-600 uppercase">FG%</th>
-                <th className="text-right py-2 text-xs font-semibold text-acb-600 uppercase">FGA</th>
+                <th className="px-3 py-2 text-left text-xs font-semibold text-acb-600 uppercase whitespace-nowrap">Zona</th>
+                <th className="px-3 py-2 text-right text-xs font-semibold text-acb-600 uppercase whitespace-nowrap">Freq%</th>
+                <th className="px-3 py-2 text-right text-xs font-semibold text-acb-600 uppercase whitespace-nowrap">FG%</th>
+                <th className="px-3 py-2 text-right text-xs font-semibold text-acb-600 uppercase whitespace-nowrap">FGA</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-acb-100">
@@ -1024,10 +1024,10 @@ function ShootingStatsCard({ player }) {
                 const fga = player[`fga${z.key}`]
                 return (
                   <tr key={z.key} className="hover:bg-acb-50">
-                    <td className="py-2 text-acb-700">{z.label}</td>
-                    <td className="py-2 text-right font-mono text-acb-900">{freq != null ? `${freq.toFixed(1)}%` : '-'}</td>
-                    <td className="py-2 text-right font-mono text-acb-900">{fgpct != null ? `${fgpct.toFixed(1)}%` : '-'}</td>
-                    <td className="py-2 text-right font-mono text-acb-500">{fga ?? '-'}</td>
+                    <td className="px-3 py-2 text-acb-700 whitespace-nowrap">{z.label}</td>
+                    <td className="px-3 py-2 text-right font-mono text-acb-900 whitespace-nowrap">{freq != null ? `${freq.toFixed(1)}%` : '-'}</td>
+                    <td className="px-3 py-2 text-right font-mono text-acb-900 whitespace-nowrap">{fgpct != null ? `${fgpct.toFixed(1)}%` : '-'}</td>
+                    <td className="px-3 py-2 text-right font-mono text-acb-500 whitespace-nowrap">{fga ?? '-'}</td>
                   </tr>
                 )
               })}
@@ -1037,10 +1037,10 @@ function ShootingStatsCard({ player }) {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-acb-200">
-                <th className="text-left py-2 text-xs font-semibold text-acb-600 uppercase">Zona</th>
-                <th className="text-right py-2 text-xs font-semibold text-acb-600 uppercase">Diff</th>
-                <th className="text-right py-2 text-xs font-semibold text-acb-600 uppercase">FG% Rival</th>
-                <th className="text-right py-2 text-xs font-semibold text-acb-600 uppercase">FGA Rival</th>
+                <th className="px-3 py-2 text-left text-xs font-semibold text-acb-600 uppercase whitespace-nowrap">Zona</th>
+                <th className="px-3 py-2 text-right text-xs font-semibold text-acb-600 uppercase whitespace-nowrap">Diff</th>
+                <th className="px-3 py-2 text-right text-xs font-semibold text-acb-600 uppercase whitespace-nowrap">FG% Rival</th>
+                <th className="px-3 py-2 text-right text-xs font-semibold text-acb-600 uppercase whitespace-nowrap">FGA Rival</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-acb-100">
@@ -1050,12 +1050,12 @@ function ShootingStatsCard({ player }) {
                 const fga = player[`oppFga${z.key}`]
                 return (
                   <tr key={z.key} className="hover:bg-acb-50">
-                    <td className="py-2 text-acb-700">{z.label}</td>
-                    <td className={`py-2 text-right font-mono font-medium ${diff == null ? 'text-acb-400' : diff < 0 ? 'text-positive' : diff > 0 ? 'text-negative' : 'text-acb-700'}`}>
+                    <td className="px-3 py-2 text-acb-700 whitespace-nowrap">{z.label}</td>
+                    <td className={`px-3 py-2 text-right font-mono font-medium whitespace-nowrap ${diff == null ? 'text-acb-400' : diff < 0 ? 'text-positive' : diff > 0 ? 'text-negative' : 'text-acb-700'}`}>
                       {diff != null ? `${diff > 0 ? '+' : ''}${diff.toFixed(1)}` : '-'}
                     </td>
-                    <td className="py-2 text-right font-mono text-acb-900">{fgpct != null ? `${fgpct.toFixed(1)}%` : '-'}</td>
-                    <td className="py-2 text-right font-mono text-acb-500">{fga ?? '-'}</td>
+                    <td className="px-3 py-2 text-right font-mono text-acb-900 whitespace-nowrap">{fgpct != null ? `${fgpct.toFixed(1)}%` : '-'}</td>
+                    <td className="px-3 py-2 text-right font-mono text-acb-500 whitespace-nowrap">{fga ?? '-'}</td>
                   </tr>
                 )
               })}
@@ -1131,26 +1131,26 @@ function OnOffCard({ records, loadLineupsForSeason, lineupsCache, loadingLineups
       )}
       {hasAnyData && (
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="text-xs font-semibold text-acb-600 uppercase border-b border-acb-200">
-                <th className="text-left py-1" rowSpan={2}>Temp.</th>
-                <th className="text-left py-1" rowSpan={2}>Equipo</th>
-                <th colSpan={3} className="text-center py-1 border-b border-acb-100">Ataque</th>
-                <th colSpan={3} className="text-center py-1 border-b border-acb-100">Defensa</th>
-                <th colSpan={2} className="text-center py-1 border-b border-acb-100">Neto</th>
-                <th className="text-right py-1" rowSpan={2}>Impacto</th>
-                <th className="text-right py-1" rowSpan={2}>Min</th>
+                <th className="px-2 py-1.5 text-left whitespace-nowrap" rowSpan={2}>Temp.</th>
+                <th className="px-2 py-1.5 text-left whitespace-nowrap" rowSpan={2}>Equipo</th>
+                <th colSpan={3} className="px-2 py-1.5 text-center whitespace-nowrap border-b border-l border-acb-100">Ataque</th>
+                <th colSpan={3} className="px-2 py-1.5 text-center whitespace-nowrap border-b border-l border-acb-100">Defensa</th>
+                <th colSpan={2} className="px-2 py-1.5 text-center whitespace-nowrap border-b border-l border-acb-100">Neto</th>
+                <th className="px-2 py-1.5 text-right whitespace-nowrap border-l border-acb-100" rowSpan={2}>Impacto</th>
+                <th className="px-2 py-1.5 text-right whitespace-nowrap" rowSpan={2}>Min</th>
               </tr>
               <tr className="text-xs font-semibold text-acb-500 uppercase">
-                <th className="text-right py-1">On</th>
-                <th className="text-right py-1">Off</th>
-                <th className="text-right py-1">Δ</th>
-                <th className="text-right py-1">On</th>
-                <th className="text-right py-1">Off</th>
-                <th className="text-right py-1">Δ</th>
-                <th className="text-right py-1">On</th>
-                <th className="text-right py-1">Off</th>
+                <th className="px-2 py-1.5 text-right whitespace-nowrap border-l border-acb-100">On</th>
+                <th className="px-2 py-1.5 text-right whitespace-nowrap">Off</th>
+                <th className="px-2 py-1.5 text-right whitespace-nowrap">Δ</th>
+                <th className="px-2 py-1.5 text-right whitespace-nowrap border-l border-acb-100">On</th>
+                <th className="px-2 py-1.5 text-right whitespace-nowrap">Off</th>
+                <th className="px-2 py-1.5 text-right whitespace-nowrap">Δ</th>
+                <th className="px-2 py-1.5 text-right whitespace-nowrap border-l border-acb-100">On</th>
+                <th className="px-2 py-1.5 text-right whitespace-nowrap">Off</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-acb-100">
@@ -1159,28 +1159,28 @@ function OnOffCard({ records, loadLineupsForSeason, lineupsCache, loadingLineups
                 const drtgD = r.onDRtg != null && r.offDRtg != null ? r.onDRtg - r.offDRtg : null
                 return (
                   <tr key={`${r.season}-${r.team}`} className="hover:bg-acb-50">
-                    <td className="py-2 font-medium text-acb-900">{seasonLabel(r.season)}</td>
-                    <td className="py-2 text-acb-700">{r.team}</td>
-                    <td className="py-2 text-right font-mono text-acb-700">{r.onORtg?.toFixed(1) ?? '-'}</td>
-                    <td className="py-2 text-right font-mono text-acb-500">{r.offORtg?.toFixed(1) ?? '-'}</td>
-                    <td className={`py-2 text-right font-mono font-medium ${ortgD == null ? 'text-acb-400' : ortgD > 0 ? 'text-positive' : ortgD < 0 ? 'text-negative' : 'text-acb-500'}`}>
+                    <td className="px-2 py-2 font-medium text-acb-900 whitespace-nowrap">{seasonLabel(r.season)}</td>
+                    <td className="px-2 py-2 text-acb-700 whitespace-nowrap">{r.team}</td>
+                    <td className="px-2 py-2 text-right font-mono text-acb-700 whitespace-nowrap border-l border-acb-100">{r.onORtg?.toFixed(1) ?? '-'}</td>
+                    <td className="px-2 py-2 text-right font-mono text-acb-500 whitespace-nowrap">{r.offORtg?.toFixed(1) ?? '-'}</td>
+                    <td className={`px-2 py-2 text-right font-mono font-medium whitespace-nowrap ${ortgD == null ? 'text-acb-400' : ortgD > 0 ? 'text-positive' : ortgD < 0 ? 'text-negative' : 'text-acb-500'}`}>
                       {ortgD != null ? `${ortgD > 0 ? '+' : ''}${ortgD.toFixed(1)}` : '-'}
                     </td>
-                    <td className="py-2 text-right font-mono text-acb-700">{r.onDRtg?.toFixed(1) ?? '-'}</td>
-                    <td className="py-2 text-right font-mono text-acb-500">{r.offDRtg?.toFixed(1) ?? '-'}</td>
-                    <td className={`py-2 text-right font-mono font-medium ${drtgD == null ? 'text-acb-400' : drtgD < 0 ? 'text-positive' : drtgD > 0 ? 'text-negative' : 'text-acb-500'}`}>
+                    <td className="px-2 py-2 text-right font-mono text-acb-700 whitespace-nowrap border-l border-acb-100">{r.onDRtg?.toFixed(1) ?? '-'}</td>
+                    <td className="px-2 py-2 text-right font-mono text-acb-500 whitespace-nowrap">{r.offDRtg?.toFixed(1) ?? '-'}</td>
+                    <td className={`px-2 py-2 text-right font-mono font-medium whitespace-nowrap ${drtgD == null ? 'text-acb-400' : drtgD < 0 ? 'text-positive' : drtgD > 0 ? 'text-negative' : 'text-acb-500'}`}>
                       {drtgD != null ? `${drtgD > 0 ? '+' : ''}${drtgD.toFixed(1)}` : '-'}
                     </td>
-                    <td className="py-2 text-right font-mono text-acb-700">
+                    <td className="px-2 py-2 text-right font-mono text-acb-700 whitespace-nowrap border-l border-acb-100">
                       {r.onNetRtg != null ? `${r.onNetRtg > 0 ? '+' : ''}${r.onNetRtg.toFixed(1)}` : '-'}
                     </td>
-                    <td className="py-2 text-right font-mono text-acb-500">
+                    <td className="px-2 py-2 text-right font-mono text-acb-500 whitespace-nowrap">
                       {r.offNetRtg != null ? `${r.offNetRtg > 0 ? '+' : ''}${r.offNetRtg.toFixed(1)}` : '-'}
                     </td>
-                    <td className={`py-2 text-right font-mono ${diffColor(r.netDiff)}`}>
+                    <td className={`px-2 py-2 text-right font-mono whitespace-nowrap border-l border-acb-100 ${diffColor(r.netDiff)}`}>
                       {r.netDiff != null ? `${r.netDiff > 0 ? '+' : ''}${r.netDiff.toFixed(1)}` : '-'}
                     </td>
-                    <td className="py-2 text-right font-mono text-acb-500">{r.onMin?.toFixed(0) ?? '-'}</td>
+                    <td className="px-2 py-2 text-right font-mono text-acb-500 whitespace-nowrap">{r.onMin?.toFixed(0) ?? '-'}</td>
                   </tr>
                 )
               })}
