@@ -446,7 +446,7 @@ export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingSho
               className="w-full px-3 py-2 border border-acb-200 rounded-md text-sm bg-white"
             >
               <option value="points">Máximo Anotador (Puntos)</option>
-              <option value="fgPct">Mejor % de Acierto (FG%)</option>
+              <option value="fgPct">Mejor TC% por zona</option>
             </select>
           </div>
         </div>
@@ -458,7 +458,7 @@ export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingSho
         <div className="lg:col-span-2 bg-white rounded-lg border border-acb-200 p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-medium text-acb-900">
-              {selectedTeam || 'Toda la Liga'} — {metric === 'points' ? 'Máx. Anotador' : 'Mejor FG%'} por zona
+              {selectedTeam || 'Toda la Liga'} — {metric === 'points' ? 'Máx. Anotador' : 'Mejor TC%'} por zona
             </h3>
 
           </div>

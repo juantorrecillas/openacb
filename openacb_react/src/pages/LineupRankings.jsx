@@ -373,7 +373,7 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
               }`}
             >
               <Trophy className="w-4 h-4" />
-              Top 10
+              Mejores 10
             </button>
             <button
               onClick={() => setShowBottom(true)}
@@ -384,7 +384,7 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
               }`}
             >
               <TrendingDown className="w-4 h-4" />
-              Bottom 10
+              Peores 10
             </button>
           </div>
 
@@ -411,7 +411,7 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
                     : 'bg-acb-50 text-acb-600 hover:bg-acb-100'
                 }`}
               >
-                NetRtg
+                Ef. Neta
               </button>
             </div>
           )}
@@ -430,12 +430,12 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
             {showBottom ? (
               <>
                 <TrendingDown className="w-5 h-5 text-accent-500" />
-                Bottom 10 {categoryLabels[selectedCategory]}
+                Peores 10 {categoryLabels[selectedCategory]}
               </>
             ) : (
               <>
                 <Trophy className="w-5 h-5 text-accent-500" />
-                Top 10 {categoryLabels[selectedCategory]}
+                Mejores 10 {categoryLabels[selectedCategory]}
               </>
             )}
           </h3>
@@ -456,7 +456,7 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
                   <th className="px-4 py-3 font-semibold text-center">Min</th>
                   <th className="px-4 py-3 font-semibold text-center">ORtg</th>
                   <th className="px-4 py-3 font-semibold text-center">DRtg</th>
-                  <th className="px-4 py-3 font-semibold text-center">NetRtg</th>
+                  <th className="px-4 py-3 font-semibold text-center">Ef. Neta</th>
                   {selectedCategory !== 'lineups' && (
                     <th className={`px-4 py-3 font-semibold text-center ${
                       (activeView === 'team' || sortByImpact) ? 'bg-accent-50' : ''

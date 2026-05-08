@@ -181,7 +181,7 @@ export default function FourFactors({ teams }) {
               {availableSeasons.map(season => (
                 <option key={season} value={season}>{season-1}-{String(season).slice(-2)}</option>
               ))}
-              <option value="all">All Seasons</option>
+              <option value="all">Todas las temporadas</option>
             </select>
           </div>
           <button

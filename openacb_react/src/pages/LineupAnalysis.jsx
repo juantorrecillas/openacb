@@ -214,10 +214,10 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
 
     const adjusted = inverse ? -value : value
     if (adjusted > threshold + 5) return { emoji: '🔥', label: 'Elite', color: 'text-positive' }
-    if (adjusted > threshold + 2) return { emoji: '✅', label: 'Good', color: 'text-positive' }
-    if (adjusted > threshold - 2) return { emoji: '➖', label: 'Average', color: 'text-acb-500' }
-    if (adjusted > threshold - 5) return { emoji: '⚠️', label: 'Below Avg', color: 'text-acb-500' }
-    return { emoji: '🔻', label: 'Poor', color: 'text-negative' }
+    if (adjusted > threshold + 2) return { emoji: '✅', label: 'Bueno', color: 'text-positive' }
+    if (adjusted > threshold - 2) return { emoji: '➖', label: 'Normal', color: 'text-acb-500' }
+    if (adjusted > threshold - 5) return { emoji: '⚠️', label: 'Debajo Media', color: 'text-acb-500' }
+    return { emoji: '🔻', label: 'Bajo', color: 'text-negative' }
   }
 
   // Rating color helper
@@ -772,8 +772,8 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
         <span className="flex items-center gap-1">🔥 Élite</span>
         <span className="flex items-center gap-1">✅ Bueno</span>
         <span className="flex items-center gap-1">➖ Medio</span>
-        <span className="flex items-center gap-1">⚠️ Debajo Media </span>
-        <span className="flex items-center gap-1">🔻 Pobre</span>
+        <span className="flex items-center gap-1">⚠️ Debajo Media</span>
+        <span className="flex items-center gap-1">🔻 Bajo</span>
       </div>
 
       {/* On/Off Explanation */}
@@ -788,15 +788,15 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
             <div className="bg-white p-3 rounded border border-acb-100">
-              <div className="font-medium text-acb-900 mb-1">On Court</div>
+              <div className="font-medium text-acb-900 mb-1">En cancha</div>
               <p className="text-xs">Estadísticas del equipo durante los minutos que el jugador o combinación seleccionada está jugando.</p>
             </div>
             <div className="bg-white p-3 rounded border border-acb-100">
-              <div className="font-medium text-acb-900 mb-1">Off Court</div>
+              <div className="font-medium text-acb-900 mb-1">Fuera de cancha</div>
               <p className="text-xs">Estadísticas del equipo durante los minutos que el jugador o combinación no está en pista.</p>
             </div>
             <div className="bg-white p-3 rounded border border-acb-100">
-              <div className="font-medium text-acb-900 mb-1">Impacto (Diff)</div>
+              <div className="font-medium text-acb-900 mb-1">Impacto (Dif.)</div>
               <p className="text-xs">La diferencia entre On y Off. Indica cuánto mejora (o empeora) el equipo con su presencia.</p>
             </div>
           </div>

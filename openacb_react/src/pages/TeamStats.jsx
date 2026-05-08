@@ -59,8 +59,8 @@ const statOptions = [
   { value: 'offTo', label: 'Pts de Robo %', format: 'pct' },
   { value: 'secondChance', label: '2da Oport. %', format: 'pct' },
   { value: 'assistedFgm', label: 'Pts Asistidos %', format: 'pct' },
-  { value: 'assistedFgm2', label: '2PT Asistidos %', format: 'pct' },
-  { value: 'assistedFgm3', label: '3PT Asistidos %', format: 'pct' },
+  { value: 'assistedFgm2', label: '2P Asistidos %', format: 'pct' },
+  { value: 'assistedFgm3', label: '3P Asistidos %', format: 'pct' },
   // Opponent boxscore stats
   { value: 'opp_ppg', label: 'Riv PPP', format: 'decimal' },
   { value: 'opp_rpg', label: 'Riv RPP', format: 'decimal' },
@@ -104,7 +104,7 @@ const basicColumns = [
   { key: 'rpg', label: 'RPP', align: 'right' },
   { key: 'apg', label: 'APP', align: 'right' },
   { key: 'spg', label: 'RBP', align: 'right' },
-  { key: 'bpg', label: 'TPP', align: 'right' },
+  { key: 'bpg', label: 'TAPP', align: 'right' },
   { key: 'topg', label: 'PER', align: 'right', inverse: true },
 ]
 
@@ -146,7 +146,7 @@ const oppBasicColumns = [
   { key: 'opp_rpg', label: 'RPP', align: 'right', inverse: true },
   { key: 'opp_apg', label: 'APP', align: 'right', inverse: true },
   { key: 'opp_spg', label: 'RBP', align: 'right', inverse: true },
-  { key: 'opp_bpg', label: 'TPP', align: 'right', inverse: true },
+  { key: 'opp_bpg', label: 'TAPP', align: 'right', inverse: true },
   { key: 'opp_topg', label: 'PER', align: 'right' },
 ]
 

@@ -247,11 +247,11 @@ const radarAxes = [
   { key: 'ppgPct', posKey: 'ppgPosPct', label: 'Anotación' },
   { key: 'tsPct', posKey: 'tsPosPct', label: 'Eficiencia' },
   { key: 'usgPct', posKey: 'usgPosPct', label: 'Volumen' },
-  { key: 'threeRatePct', posKey: 'threeRatePosPct', label: 'Vol 3%' },
+  { key: 'threeRatePct', posKey: 'threeRatePosPct', label: 'Freq. 3P' },
   { key: 'astPctPct', posKey: 'astPctPosPct', label: 'Creación' },
   { key: 'trbPctPct', posKey: 'trbPctPosPct', label: 'Rebote' },
   { key: 'blkPctPct', posKey: 'blkPctPosPct', label: 'Def. Interior' },
-  { key: 'stlPctPct', posKey: 'stlPctPosPct', label: 'Def. Perimetro' },
+  { key: 'stlPctPct', posKey: 'stlPctPosPct', label: 'Def. Perímetro' },
 ]
 
 function getRadarValues(player, usePos) {
@@ -382,7 +382,7 @@ const metricGroups = [
       { key: 'rpg', label: 'RPP' },
       { key: 'apg', label: 'APP' },
       { key: 'spg', label: 'RBP' },
-      { key: 'bpg', label: 'TPP' },
+      { key: 'bpg', label: 'TAPP' },
       { key: 'topg', label: 'PER', lowerIsBetter: true },
     ],
   },
@@ -406,7 +406,7 @@ const metricGroups = [
       { key: 'astPct', label: 'AST%' },
       { key: 'tovPct', label: 'TOV%', lowerIsBetter: true },
       { key: 'astToRatio', label: 'AST/PER' },
-      { key: 'assistedFgm', label: 'Pts Ast%' },
+      { key: 'assistedFgm', label: '% asistidos' },
       { key: 'offTo', label: 'Pts Robo%' },
       { key: 'secondChance', label: '2a Op%' },
     ],
@@ -449,7 +449,7 @@ function MetricComparison({ playerA, playerB }) {
             <tr className="bg-acb-50 border-b border-acb-200">
               <th className="px-4 py-2 text-left text-xs font-semibold text-acb-600 uppercase">Métrica</th>
               <th className="px-4 py-2 text-right text-xs font-semibold text-accent-600 uppercase">{playerA.playerAbbrev || 'Jugador A'}</th>
-              <th className="px-4 py-2 text-center text-xs font-semibold text-acb-500 uppercase">Diff</th>
+              <th className="px-4 py-2 text-center text-xs font-semibold text-acb-500 uppercase">Dif.</th>
               <th className="px-4 py-2 text-right text-xs font-semibold text-info-600 uppercase">{playerB.playerAbbrev || 'Jugador B'}</th>
             </tr>
           </thead>
@@ -476,7 +476,13 @@ function MetricComparison({ playerA, playerB }) {
                             <td className={`px-4 py-2 text-right font-mono w-1/4 ${valueColor(a, b, metric, 'a')}`}>
                               {fmt(a, metric.key)}
                             </td>
-                            <td className={`px-4 py-2 text-center font-mono w-1/4 ${diff == null ? 'text-acb-400' : diff > 0 ? 'text-acb-700' : diff < 0 ? 'text-acb-700' : 'text-acb-400'}`}>
+                            <td className={`px-4 py-2 text-center font-mono w-1/4 ${
+                              diff == null || diff === 0
+                                ? 'text-acb-400'
+                                : (metric.lowerIsBetter ? diff < 0 : diff > 0)
+                                  ? 'text-positive font-semibold'
+                                  : 'text-info-600 font-medium'
+                            }`}>
                               {diff != null ? `${diff > 0 ? '+' : ''}${fmt(diff, metric.key)}` : '-'}
                             </td>
                             <td className={`px-4 py-2 text-right font-mono w-1/4 ${valueColor(a, b, metric, 'b')}`}>

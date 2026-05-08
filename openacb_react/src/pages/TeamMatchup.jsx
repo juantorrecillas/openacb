@@ -117,7 +117,7 @@ function RadarOverlay({ teamA, teamB, league }) {
     <div className="bg-white rounded-lg border border-acb-200 p-5">
       <div className="flex items-start justify-between gap-3 mb-2">
         <div>
-          <h3 className="font-semibold text-acb-900">Radar de matchup</h3>
+          <h3 className="font-semibold text-acb-900">Radar de cara a cara</h3>
           <p className="text-xs text-acb-500">Percentiles de liga por temporada</p>
         </div>
         <div className="flex flex-wrap gap-3 text-xs">
@@ -205,7 +205,7 @@ function SummaryCard({ team, league, pace, clutch, teamLogos, accent }) {
           </div>
         ))}
         <div className="flex items-center justify-between gap-2">
-          <span className="text-acb-500">Clutch net</span>
+          <span className="text-acb-500">Neto clutch</span>
           <span className={`font-mono ${edgeClass(clutchNet)}`}>{fmt(clutchNet, 'signed')}</span>
         </div>
         <div className="flex items-center justify-between gap-2">
@@ -320,7 +320,7 @@ function ZoneRows({ rows, emptyText }) {
         <div key={z.zone}>
           <div className="flex items-center justify-between gap-3 text-xs mb-1">
             <span className="font-medium text-acb-700 truncate">{z.zone}</span>
-            <span className="font-mono text-acb-500 shrink-0">{(z.freq * 100).toFixed(1)}% - {z.pps.toFixed(2)} PPS</span>
+            <span className="font-mono text-acb-500 shrink-0">{(z.freq * 100).toFixed(1)}% - {z.pps.toFixed(2)} PPT</span>
           </div>
           <div className="h-2 rounded-full bg-acb-100 overflow-hidden">
             <div className="h-full bg-accent-400" style={{ width: `${Math.min(100, z.freq * 220)}%` }} />
@@ -396,7 +396,7 @@ function PaceFlow({ a, b }) {
             <div className="flex items-center justify-between gap-3 mb-2">
               <span className="text-sm font-semibold text-acb-800">{row?.team || '-'}</span>
               <span className="text-xs text-acb-500">
-                ATO {fmt(row?.afterTimeout?.ppp)} PPP
+                Post-TM {fmt(row?.afterTimeout?.ppp)} PPP
                 {row?.afterTimeout?.leaguePpp != null && <span> vs liga {fmt(row.afterTimeout.leaguePpp)}</span>}
               </span>
             </div>
@@ -426,11 +426,11 @@ function PaceFlow({ a, b }) {
 
 function ClutchPanel({ a, b, loading }) {
   const metrics = [
-    ['Record', r => r ? `${r.wins}-${r.losses}` : '-'],
+    ['Balance', r => r ? `${r.wins}-${r.losses}` : '-'],
     ['NetRtg', r => fmt(r?.netRtg, 'signed')],
     ['ORtg', r => fmt(r?.ortg)],
     ['DRtg', r => fmt(r?.drtg)],
-    ['TS/eFG', r => `${fmt(r?.fgPct, 'pct100')} / ${fmt(r?.efgPct, 'pct100')}`],
+    ['TC%/eFG%', r => `${fmt(r?.fgPct, 'pct100')} / ${fmt(r?.efgPct, 'pct100')}`],
     ['TOV%', r => fmt(r?.tovRate, 'pct100')],
   ]
   return (
@@ -525,7 +525,7 @@ function buildNotes(a, b, league, paceA, paceB, clutchA, clutchB) {
     const isA = tovDiff < 0
     const [clean] = isA ? [a, b] : [b, a]
     const cv = isA ? tovA : tovB; const mv = isA ? tovB : tovA
-    notes.push(mk('Balón', clean.team, isA, `${(cv * 100).toFixed(1)}% vs ${(mv * 100).toFixed(1)}% pérdidas`,
+    notes.push(mk('Pérdidas', clean.team, isA, `${(cv * 100).toFixed(1)}% vs ${(mv * 100).toFixed(1)}% pérdidas`,
       'Menor tasa de pérdidas propias.', Math.abs(tovDiff) * 150))
   }
 

@@ -27,7 +27,7 @@ const basicColumns = [
   { key: 'rpg', label: 'RPP', align: 'right', sortable: true, pctKey: 'rpgPct', posPctKey: 'rpgPosPct' },
   { key: 'apg', label: 'APP', align: 'right', sortable: true, pctKey: 'apgPct', posPctKey: 'apgPosPct' },
   { key: 'spg', label: 'RBP', align: 'right', sortable: true, pctKey: 'spgPct', posPctKey: 'spgPosPct' },
-  { key: 'bpg', label: 'TPP', align: 'right', sortable: true, pctKey: 'bpgPct', posPctKey: 'bpgPosPct' },
+  { key: 'bpg', label: 'TAPP', align: 'right', sortable: true, pctKey: 'bpgPct', posPctKey: 'bpgPosPct' },
   { key: 'topg', label: 'PER', align: 'right', sortable: true, inverse: true, pctKey: 'topgPct', posPctKey: 'topgPosPct' },
   { key: 'fpg', label: 'FPP', align: 'right', sortable: true, inverse: true, pctKey: 'fpgPct', posPctKey: 'fpgPosPct' },
 ]
@@ -62,9 +62,9 @@ const miscColumns = [
   { key: 'ppg', label: 'PPP', align: 'right', sortable: true },
   { key: 'offTo', label: 'Pts Robo%', align: 'right', sortable: true },
   { key: 'secondChance', label: '2da Op%', align: 'right', sortable: true },
-  { key: 'assistedFgm', label: 'Pts Ast%', align: 'right', sortable: true },
-  { key: 'assistedFgm2', label: 'Ast 2PT%', align: 'right', sortable: true },
-  { key: 'assistedFgm3', label: 'Ast 3PT%', align: 'right', sortable: true },
+  { key: 'assistedFgm', label: '% asistidos', align: 'right', sortable: true },
+  { key: 'assistedFgm2', label: 'Ast 2P%', align: 'right', sortable: true },
+  { key: 'assistedFgm3', label: 'Ast 3P%', align: 'right', sortable: true },
 ]
 
 // Zone shooting frequency columns (% of shots from each zone)
@@ -79,7 +79,7 @@ const frequencyColumns = [
   { key: 'freqLongMid', label: 'Media Distancia', align: 'right', sortable: true, zone: true, fgaKey: 'fgaLongMid' },
   { key: 'freqCornerThree', label: 'Esquina 3', align: 'right', sortable: true, zone: true, fgaKey: 'fgaCornerThree' },
   { key: 'freqNcThree', label: 'Centro 3', align: 'right', sortable: true, zone: true, fgaKey: 'fgaNcThree' },
-  { key: 'freqAllThree', label: 'Todo 3', align: 'right', sortable: true, zone: true, fgaKey: 'fgaAllThree' },
+  { key: 'freqAllThree', label: 'Total 3P', align: 'right', sortable: true, zone: true, fgaKey: 'fgaAllThree' },
 ]
 
 // Zone shooting accuracy columns (FG% per zone)
@@ -94,7 +94,7 @@ const accuracyColumns = [
   { key: 'fgpctLongMid', label: 'Media Distancia', align: 'right', sortable: true, zone: true, fgaKey: 'fgaLongMid' },
   { key: 'fgpctCornerThree', label: 'Esquina 3', align: 'right', sortable: true, zone: true, fgaKey: 'fgaCornerThree' },
   { key: 'fgpctNcThree', label: 'Centro 3', align: 'right', sortable: true, zone: true, fgaKey: 'fgaNcThree' },
-  { key: 'fgpctAllThree', label: 'Todo 3', align: 'right', sortable: true, zone: true, fgaKey: 'fgaAllThree' },
+  { key: 'fgpctAllThree', label: 'Total 3P', align: 'right', sortable: true, zone: true, fgaKey: 'fgaAllThree' },
 ]
 
 // Raw counting totals — no per-game normalization
@@ -124,12 +124,12 @@ const defenseColumns = [
   positionCol,
   { key: 'games', label: 'PJ', align: 'right', sortable: true },
   { key: 'mpg', label: 'MPP', align: 'right', sortable: true },
-  { key: 'oppDiffRim', label: 'Zona restr', align: 'right', sortable: true, defense: true, fgpctKey: 'oppOnFgpctRim', fgaKey: 'oppFgaRim' },
+  { key: 'oppDiffRim', label: 'Zona restr.', align: 'right', sortable: true, defense: true, fgpctKey: 'oppOnFgpctRim', fgaKey: 'oppFgaRim' },
   { key: 'oppDiffShortMid', label: 'Zona no restr.', align: 'right', sortable: true, defense: true, fgpctKey: 'oppOnFgpctShortMid', fgaKey: 'oppFgaShortMid' },
   { key: 'oppDiffLongMid', label: 'Media Distancia', align: 'right', sortable: true, defense: true, fgpctKey: 'oppOnFgpctLongMid', fgaKey: 'oppFgaLongMid' },
   { key: 'oppDiffCornerThree', label: 'Esquina 3', align: 'right', sortable: true, defense: true, fgpctKey: 'oppOnFgpctCornerThree', fgaKey: 'oppFgaCornerThree' },
   { key: 'oppDiffNcThree', label: 'Centro 3', align: 'right', sortable: true, defense: true, fgpctKey: 'oppOnFgpctNcThree', fgaKey: 'oppFgaNcThree' },
-  { key: 'oppDiffAllThree', label: 'Todo 3', align: 'right', sortable: true, defense: true, fgpctKey: 'oppOnFgpctAllThree', fgaKey: 'oppFgaAllThree' },
+  { key: 'oppDiffAllThree', label: 'Total 3P', align: 'right', sortable: true, defense: true, fgpctKey: 'oppOnFgpctAllThree', fgaKey: 'oppFgaAllThree' },
 ]
 
 export default function PlayerStats({ players, playerBio = {} }) {

@@ -223,7 +223,7 @@ function ClutchTeamsView({ tabBar, teams, selectedSeason, setSelectedSeason, ava
                     <th className={thCls('rebAvg')} onClick={() => handleSort('rebAvg')}>RT {sortIcon('rebAvg')}</th>
                     <th className={`${thCls('apg')} border-l border-acb-200`} onClick={() => handleSort('apg')}>APP {sortIcon('apg')}</th>
                     <th className={thCls('spg')} onClick={() => handleSort('spg')}>RBP {sortIcon('spg')}</th>
-                    <th className={thCls('bpg')} onClick={() => handleSort('bpg')}>TPP {sortIcon('bpg')}</th>
+                    <th className={thCls('bpg')} onClick={() => handleSort('bpg')}>TAPP {sortIcon('bpg')}</th>
                     <th className={thCls('topg')} onClick={() => handleSort('topg')}>PER {sortIcon('topg')}</th>
                   </>}
                   {viewTab === 'avanzado' && <>
@@ -268,7 +268,7 @@ function ClutchTeamsView({ tabBar, teams, selectedSeason, setSelectedSeason, ava
                     <th className={thCls('opp_drebAvg')} onClick={() => handleSort('opp_drebAvg')}>RD {sortIcon('opp_drebAvg')}</th>
                     <th className={`${thCls('opp_apg')} border-l border-acb-200`} onClick={() => handleSort('opp_apg')}>APP {sortIcon('opp_apg')}</th>
                     <th className={thCls('opp_spg')} onClick={() => handleSort('opp_spg')}>RBP {sortIcon('opp_spg')}</th>
-                    <th className={thCls('opp_bpg')} onClick={() => handleSort('opp_bpg')}>TPP {sortIcon('opp_bpg')}</th>
+                    <th className={thCls('opp_bpg')} onClick={() => handleSort('opp_bpg')}>TAPP {sortIcon('opp_bpg')}</th>
                     <th className={thCls('opp_topg')} onClick={() => handleSort('opp_topg')}>PER {sortIcon('opp_topg')}</th>
                   </>}
                 </tr>

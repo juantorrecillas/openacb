@@ -403,11 +403,11 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
                 <span>
                   {heatmapMode === 'frequency'
                     ? 'Frecuencia'
-                    : 'Mapa de Calor'}
+                    : 'Densidad'}
                 </span>
               )}
               {displayMode === 'zones' && (
-                <span>{zoneMode === 'frequency' ? 'Frecuencia por zona' : 'Zona del Campo'}</span>
+                <span>{zoneMode === 'frequency' ? 'Frecuencia por zona' : 'Eficiencia por zona'}</span>
               )}
 
             </div>
@@ -463,7 +463,7 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
                 <div className="text-2xl font-semibold font-mono text-acb-900">
                   {stats.fgPct}%
                 </div>
-                <div className="text-xs text-acb-500">FG%</div>
+                <div className="text-xs text-acb-500">TC%</div>
               </div>
               <div>
                 <div className="text-2xl font-semibold font-mono text-acb-900">
