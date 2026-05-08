@@ -377,62 +377,62 @@ const metricGroups = [
   {
     title: 'Producción',
     metrics: [
-      { key: 'mpg', label: 'MPP' },
-      { key: 'ppg', label: 'PPP' },
-      { key: 'rpg', label: 'RPP' },
-      { key: 'apg', label: 'APP' },
-      { key: 'spg', label: 'RBP' },
-      { key: 'bpg', label: 'TAPP' },
-      { key: 'topg', label: 'PER', lowerIsBetter: true },
+      { key: 'mpg', label: 'MPP', scale: 15 },
+      { key: 'ppg', label: 'PPP', scale: 10 },
+      { key: 'rpg', label: 'RPP', scale: 5 },
+      { key: 'apg', label: 'APP', scale: 5 },
+      { key: 'spg', label: 'RBP', scale: 2 },
+      { key: 'bpg', label: 'TAPP', scale: 1.5 },
+      { key: 'topg', label: 'PER', lowerIsBetter: true, scale: 3 },
     ],
   },
   {
     title: 'Eficiencia y volumen',
     metrics: [
-      { key: 'ortg', label: 'ORtg' },
-      { key: 'usg', label: 'USG%' },
-      { key: 'ts', label: 'TS%' },
-      { key: 'efg', label: 'eFG%' },
-      { key: 'fg2Pct', label: '2P%' },
-      { key: 'fg3Pct', label: '3P%' },
-      { key: 'ftPct', label: 'TL%' },
-      { key: 'threeRate', label: '3PAr' },
+      { key: 'ortg', label: 'ORtg', scale: 20 },
+      { key: 'usg', label: 'USG%', scale: 15 },
+      { key: 'ts', label: 'TS%', scale: 10 },
+      { key: 'efg', label: 'eFG%', scale: 10 },
+      { key: 'fg2Pct', label: '2P%', scale: 15 },
+      { key: 'fg3Pct', label: '3P%', scale: 15 },
+      { key: 'ftPct', label: 'TL%', scale: 15 },
+      { key: 'threeRate', label: 'Vol. 3P', scale: 20 },
     ],
   },
   {
     title: 'Creación y posesión',
     metrics: [
-      { key: 'possPg', label: 'Pos/PJ' },
-      { key: 'astPct', label: 'AST%' },
-      { key: 'tovPct', label: 'TOV%', lowerIsBetter: true },
-      { key: 'astToRatio', label: 'AST/PER' },
-      { key: 'assistedFgm', label: '% asistidos' },
-      { key: 'offTo', label: 'Pts Robo%' },
-      { key: 'secondChance', label: '2a Op%' },
+      { key: 'possPg', label: 'Pos/PJ', scale: 30 },
+      { key: 'astPct', label: 'AST%', scale: 25 },
+      { key: 'tovPct', label: 'TOV%', lowerIsBetter: true, scale: 10 },
+      { key: 'astToRatio', label: 'AST/PER', scale: 3 },
+      { key: 'assistedFgm', label: '% asistidos', scale: 0.3 },
+      { key: 'offTo', label: 'Pts Robo%', scale: 0.2 },
+      { key: 'secondChance', label: '2a Op%', scale: 0.15 },
     ],
   },
   {
     title: 'Rebote y defensa',
     metrics: [
-      { key: 'orbPct', label: 'RO%' },
-      { key: 'drbPct', label: 'RD%' },
-      { key: 'trbPct', label: 'REB%' },
-      { key: 'stlPct', label: 'ROB%' },
-      { key: 'blkPct', label: 'TAP%' },
-      { key: 'oppDiffRim', label: 'Diff aro', lowerIsBetter: true },
-      { key: 'oppDiffAllThree', label: 'Diff 3P', lowerIsBetter: true },
+      { key: 'orbPct', label: 'RO%', scale: 10 },
+      { key: 'drbPct', label: 'RD%', scale: 15 },
+      { key: 'trbPct', label: 'REB%', scale: 20 },
+      { key: 'stlPct', label: 'ROB%', scale: 3 },
+      { key: 'blkPct', label: 'TAP%', scale: 5 },
+      { key: 'oppDiffRim', label: 'Dif. aro', lowerIsBetter: true, scale: 15 },
+      { key: 'oppDiffAllThree', label: 'Dif. 3P', lowerIsBetter: true, scale: 10 },
     ],
   },
   {
     title: 'Perfil de tiro',
     metrics: [
-      { key: 'freqRim', label: 'Freq aro' },
-      { key: 'freqAllMid', label: 'Freq media' },
-      { key: 'freqCornerThree', label: 'Freq esq. 3' },
-      { key: 'freqNcThree', label: 'Freq no esq. 3' },
-      { key: 'fgpctRim', label: 'FG% aro' },
-      { key: 'fgpctAllMid', label: 'FG% media' },
-      { key: 'fgpctAllThree', label: 'FG% 3P' },
+      { key: 'freqRim', label: 'Freq. aro', scale: 20 },
+      { key: 'freqAllMid', label: 'Freq. media', scale: 20 },
+      { key: 'freqCornerThree', label: 'Freq. esq. 3', scale: 15 },
+      { key: 'freqNcThree', label: 'Freq. no esq. 3', scale: 20 },
+      { key: 'fgpctRim', label: 'TC% aro', scale: 15 },
+      { key: 'fgpctAllMid', label: 'TC% media', scale: 15 },
+      { key: 'fgpctAllThree', label: 'TC% 3P', scale: 15 },
     ],
   },
 ]
@@ -442,15 +442,26 @@ function MetricComparison({ playerA, playerB }) {
     <div className="bg-white rounded-lg border border-acb-200 overflow-hidden">
       <div className="px-5 py-3 border-b border-acb-200">
         <h3 className="font-semibold text-acb-900">Comparación Estadística</h3>
+        <p className="text-xs text-acb-500 mt-0.5">La barra central indica dirección y magnitud de la ventaja</p>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-acb-50 border-b border-acb-200">
-              <th className="px-4 py-2 text-left text-xs font-semibold text-acb-600 uppercase">Métrica</th>
-              <th className="px-4 py-2 text-right text-xs font-semibold text-accent-600 uppercase">{playerA.playerAbbrev || 'Jugador A'}</th>
-              <th className="px-4 py-2 text-center text-xs font-semibold text-acb-500 uppercase">Dif.</th>
-              <th className="px-4 py-2 text-right text-xs font-semibold text-info-600 uppercase">{playerB.playerAbbrev || 'Jugador B'}</th>
+              <th className="px-4 py-2 text-left text-xs font-semibold text-acb-600 uppercase w-[38%]">Métrica</th>
+              <th className="px-4 py-2 text-right text-xs font-semibold text-accent-600 uppercase w-[22%]">
+                <span className="flex items-center justify-end gap-1">
+                  <span className="w-2 h-2 rounded-full bg-accent-500 inline-block" />
+                  {playerA.playerAbbrev || 'Jugador A'}
+                </span>
+              </th>
+              <th className="px-4 py-2 text-center text-xs font-semibold text-acb-500 uppercase w-[18%]">Dif.</th>
+              <th className="px-4 py-2 text-right text-xs font-semibold text-info-600 uppercase w-[22%]">
+                <span className="flex items-center justify-end gap-1">
+                  <span className="w-2 h-2 rounded-full bg-info-500 inline-block" />
+                  {playerB.playerAbbrev || 'Jugador B'}
+                </span>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -470,22 +481,36 @@ function MetricComparison({ playerA, playerB }) {
                         const diff = a != null && b != null && !Number.isNaN(Number(a)) && !Number.isNaN(Number(b))
                           ? Number(a) - Number(b)
                           : null
+                        const aWins = diff != null && (metric.lowerIsBetter ? diff < 0 : diff > 0)
+                        const barPct = diff != null && metric.scale ? Math.min(100, (Math.abs(diff) / metric.scale) * 100) : 0
                         return (
                           <tr key={metric.key} className="border-t border-acb-100 hover:bg-acb-50">
-                            <td className="px-4 py-2 text-acb-700 w-1/4">{metric.label}</td>
-                            <td className={`px-4 py-2 text-right font-mono w-1/4 ${valueColor(a, b, metric, 'a')}`}>
+                            <td className="px-4 py-2 text-acb-700 w-[38%]">{metric.label}</td>
+                            <td className={`px-4 py-2 text-right font-mono w-[22%] ${valueColor(a, b, metric, 'a')}`}>
                               {fmt(a, metric.key)}
                             </td>
-                            <td className={`px-4 py-2 text-center font-mono w-1/4 ${
-                              diff == null || diff === 0
-                                ? 'text-acb-400'
-                                : (metric.lowerIsBetter ? diff < 0 : diff > 0)
-                                  ? 'text-positive font-semibold'
-                                  : 'text-info-600 font-medium'
-                            }`}>
-                              {diff != null ? `${diff > 0 ? '+' : ''}${fmt(diff, metric.key)}` : '-'}
+                            <td className="px-4 py-2 text-center w-[18%]">
+                              <div className="flex flex-col items-center gap-0.5">
+                                <span className={`font-mono text-[10px] ${
+                                  diff == null || diff === 0 ? 'text-acb-400'
+                                    : aWins ? 'text-positive-600 font-medium' : 'text-info-600 font-medium'
+                                }`}>
+                                  {diff != null ? `${diff > 0 ? '+' : ''}${fmt(diff, metric.key)}` : '-'}
+                                </span>
+                                {diff != null && (
+                                  <div className="flex w-full h-[3px]">
+                                    <div className="flex-1 flex justify-end overflow-hidden">
+                                      {aWins && <div className="h-full bg-accent-400 rounded-l-full" style={{ width: `${barPct}%` }} />}
+                                    </div>
+                                    <div className="w-px bg-acb-200 shrink-0" />
+                                    <div className="flex-1 overflow-hidden">
+                                      {!aWins && diff !== 0 && <div className="h-full bg-info-400 rounded-r-full" style={{ width: `${barPct}%` }} />}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
                             </td>
-                            <td className={`px-4 py-2 text-right font-mono w-1/4 ${valueColor(a, b, metric, 'b')}`}>
+                            <td className={`px-4 py-2 text-right font-mono w-[22%] ${valueColor(a, b, metric, 'b')}`}>
                               {fmt(b, metric.key)}
                             </td>
                           </tr>
@@ -552,7 +577,7 @@ function OnOffComparison({ playerA, playerB, loadLineupsForSeason, lineupsCache,
     <div className="bg-white rounded-lg border border-acb-200 overflow-hidden">
       <div className="px-5 py-3 border-b border-acb-200 flex items-center justify-between gap-3">
         <div>
-          <h3 className="font-semibold text-acb-900">Impacto On/Off Court</h3>
+          <h3 className="font-semibold text-acb-900">Impacto en pista</h3>
           <p className="text-xs text-acb-500">Ratings del equipo con y sin el jugador en pista</p>
         </div>
         {anyLoading && (
@@ -575,11 +600,11 @@ function OnOffComparison({ playerA, playerB, loadLineupsForSeason, lineupsCache,
                 <th className="text-right px-4 py-2">Min</th>
                 <th className="text-right px-4 py-2">ORtg On</th>
                 <th className="text-right px-4 py-2">ORtg Off</th>
-                <th className="text-right px-4 py-2">Delta O</th>
+                <th className="text-right px-4 py-2">Dif. O</th>
                 <th className="text-right px-4 py-2">DRtg On</th>
                 <th className="text-right px-4 py-2">DRtg Off</th>
-                <th className="text-right px-4 py-2">Delta D</th>
-                <th className="text-right px-4 py-2">Net On</th>
+                <th className="text-right px-4 py-2">Dif. D</th>
+                <th className="text-right px-4 py-2">Neto</th>
                 <th className="text-right px-4 py-2">Impacto</th>
               </tr>
             </thead>
@@ -642,7 +667,12 @@ function PercentileDeltas({ playerA, playerB }) {
                 />
               )}
             </div>
-            <span className={`font-mono text-xs text-right px-1.5 py-0.5 rounded ${pctColor(Math.abs(r.diff || 0) + 50)}`}>
+            <span className={`font-mono text-xs text-right px-1.5 py-0.5 rounded ${
+              r.diff == null ? 'text-acb-400'
+                : r.diff > 0 ? 'bg-accent-100 text-accent-700'
+                : r.diff < 0 ? 'bg-info-100 text-info-700'
+                : 'bg-acb-100 text-acb-500'
+            }`}>
               {r.diff != null ? `${r.diff > 0 ? '+' : ''}${r.diff.toFixed(0)}` : '-'}
             </span>
           </div>
@@ -715,6 +745,12 @@ export default function PlayerComparison({
     if (latest) setBSeason(latest.season)
   }
 
+  const handleSwap = () => {
+    const tmpId = aId; const tmpSeason = aSeason
+    setAId(bId); setASeason(bSeason)
+    setBId(tmpId); setBSeason(tmpSeason)
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
@@ -725,25 +761,34 @@ export default function PlayerComparison({
           </p>
         </div>
         {playerA && playerB && (
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Link
               to={`/jugador/${playerA.licenseId}`}
               className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-md border border-acb-200 text-acb-600 hover:bg-acb-50"
             >
-              Perfil A <ArrowRight className="w-3.5 h-3.5" />
+              <span className="w-2 h-2 rounded-full bg-accent-500 shrink-0" />
+              {playerA.playerAbbrev || playerA.playerFull?.trim()} <ArrowRight className="w-3.5 h-3.5" />
             </Link>
             <Link
               to={`/jugador/${playerB.licenseId}`}
               className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-md border border-acb-200 text-acb-600 hover:bg-acb-50"
             >
-              Perfil B <ArrowRight className="w-3.5 h-3.5" />
+              <span className="w-2 h-2 rounded-full bg-info-500 shrink-0" />
+              {playerB.playerAbbrev || playerB.playerFull?.trim()} <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
         )}
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-4">
+      <div className="grid lg:grid-cols-[1fr_auto_1fr] gap-4 items-center">
         <PlayerSelector players={players} label="Jugador A" selectedLicenseId={aId} onSelect={handleSelectA} />
+        <button
+          onClick={handleSwap}
+          className="p-2.5 rounded-lg border border-acb-200 bg-white hover:bg-acb-50 text-acb-500 hover:text-acb-900 transition-colors text-xl leading-none self-stretch flex items-center"
+          title="Intercambiar jugadores"
+        >
+          ⇄
+        </button>
         <PlayerSelector players={players} label="Jugador B" selectedLicenseId={bId} onSelect={handleSelectB} />
       </div>
 
