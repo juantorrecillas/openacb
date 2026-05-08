@@ -491,10 +491,7 @@ function MetricComparison({ playerA, playerB }) {
                             </td>
                             <td className="px-4 py-2 text-center w-[18%]">
                               <div className="flex flex-col items-center gap-0.5">
-                                <span className={`font-mono text-[10px] ${
-                                  diff == null || diff === 0 ? 'text-acb-400'
-                                    : aWins ? 'text-positive-600 font-medium' : 'text-info-600 font-medium'
-                                }`}>
+                                <span className="font-mono text-[10px] text-acb-500">
                                   {diff != null ? `${diff > 0 ? '+' : ''}${fmt(diff, metric.key)}` : '-'}
                                 </span>
                                 {diff != null && (

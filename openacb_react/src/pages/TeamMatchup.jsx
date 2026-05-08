@@ -297,7 +297,7 @@ function StatComparison({ a, b }) {
                       <div className="text-acb-600 truncate">{m.label}</div>
                       <div className={`font-mono text-right ${diff != null && diff > 0 ? 'text-positive font-semibold' : 'text-acb-700'}`}>{fmt(av, m.type)}</div>
                       <div className="flex flex-col items-center gap-0.5">
-                        <span className={`font-mono text-[10px] ${softEdgeClass(diff)}`}>{diff == null ? '-' : fmt(diff, 'signed')}</span>
+                        <span className="font-mono text-[10px] text-acb-500">{diff == null ? '-' : fmt(diff, 'signed')}</span>
                         {diff != null && (
                           <div className="flex w-full h-[3px]">
                             <div className="flex-1 flex justify-end overflow-hidden">
