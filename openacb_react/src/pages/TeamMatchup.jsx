@@ -1,8 +1,13 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
+import ZoneHeatmap from '../components/ZoneHeatmap'
 
 function seasonLabel(s) {
   return `${s - 1}-${String(s).slice(-2)}`
+}
+
+function toSlug(str) {
+  return str.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
 }
 
 function num(v) {
@@ -54,11 +59,16 @@ function TeamLogo({ team, teamLogos, size = 'lg' }) {
   return <div className={`${cls} rounded-full bg-acb-100 border border-acb-200`} />
 }
 
-function TeamSelector({ label, teams, selected, onChange, teamLogos }) {
+function TeamSelector({ label, teams, selected, onChange, teamLogos, profileUrl }) {
   return (
     <div className="bg-white rounded-lg border border-acb-200 p-4">
-      <div className="flex items-center gap-2 mb-3">
+      <div className="flex items-center justify-between gap-2 mb-3">
         <h3 className="font-semibold text-acb-900">{label}</h3>
+        {profileUrl && selected && (
+          <Link to={profileUrl} className="text-xs text-acb-400 hover:text-acb-700 transition-colors" title="Ver perfil del equipo">
+            Ver perfil →
+          </Link>
+        )}
       </div>
       <div className="flex items-center gap-3">
         <TeamLogo team={selected} teamLogos={teamLogos} size="sm" />
@@ -78,8 +88,8 @@ const radarAxes = [
   { key: 'ortg', label: 'Ataque', inverse: false },
   { key: 'drtg', label: 'Defensa', inverse: true },
   { key: 'pace', label: 'Ritmo', inverse: false },
-  { key: 'ts', label: 'TS%', inverse: false },
-  { key: 'threeRate', label: '3PAr', inverse: false },
+  { key: 'ts', label: 'Ef. Tiro', inverse: false },
+  { key: 'threeRate', label: 'Vol. 3P', inverse: false },
   { key: 'opp_tovRate', label: 'Presión', inverse: false },
   { key: 'orbPct', label: 'RO%', inverse: false },
   { key: 'drbPct', label: 'RD%', inverse: false },
@@ -221,31 +231,31 @@ const sections = [
   {
     title: 'Eficiencia',
     metrics: [
-      { key: 'ortg', label: 'ORtg', type: 'decimal' },
-      { key: 'drtg', label: 'DRtg', type: 'decimal', lower: true },
-      { key: 'netRtg', label: 'Neto', type: 'signed' },
-      { key: 'efg', label: 'eFG%', type: 'pct' },
-      { key: 'ts', label: 'TS%', type: 'pct' },
+      { key: 'ortg', label: 'ORtg', type: 'decimal', scale: 12 },
+      { key: 'drtg', label: 'DRtg', type: 'decimal', lower: true, scale: 12 },
+      { key: 'netRtg', label: 'Neto', type: 'signed', scale: 15 },
+      { key: 'efg', label: 'eFG%', type: 'pct', scale: 0.08 },
+      { key: 'ts', label: 'TS%', type: 'pct', scale: 0.08 },
     ],
   },
   {
     title: 'Ritmo y tiro',
     metrics: [
-      { key: 'pace', label: 'Pace', type: 'decimal' },
-      { key: 'threeRate', label: '3PAr', type: 'pct' },
-      { key: 'threePct', label: '3P%', type: 'pct' },
-      { key: 'ftRate', label: 'FTr', type: 'decimal' },
-      { key: 'assistedFgm', label: 'Pts asistidos', type: 'pct100' },
+      { key: 'pace', label: 'Pace', type: 'decimal', scale: 8 },
+      { key: 'threeRate', label: 'Vol. 3P', type: 'pct', scale: 0.15 },
+      { key: 'threePct', label: '3P%', type: 'pct', scale: 0.12 },
+      { key: 'ftRate', label: 'FTr', type: 'decimal', scale: 0.3 },
+      { key: 'assistedFgm', label: '% asistidos', type: 'pct100', scale: 20 },
     ],
   },
   {
     title: 'Presión y rebote',
     metrics: [
-      { key: 'tovRate', label: 'PER%', type: 'pct', lower: true },
-      { key: 'opp_tovRate', label: 'PER% rival', type: 'pct' },
-      { key: 'stlRate', label: 'ROB%', type: 'pct' },
-      { key: 'orbPct', label: 'RO%', type: 'pct' },
-      { key: 'drbPct', label: 'RD%', type: 'pct' },
+      { key: 'tovRate', label: 'PER%', type: 'pct', lower: true, scale: 0.06 },
+      { key: 'opp_tovRate', label: 'PER% rival', type: 'pct', scale: 0.06 },
+      { key: 'stlRate', label: 'ROB%', type: 'pct', scale: 0.04 },
+      { key: 'orbPct', label: 'RO%', type: 'pct', scale: 0.10 },
+      { key: 'drbPct', label: 'RD%', type: 'pct', scale: 0.10 },
     ],
   },
 ]
@@ -255,13 +265,19 @@ function StatComparison({ a, b }) {
     <div className="bg-white rounded-lg border border-acb-200 overflow-hidden">
       <div className="px-5 py-3 border-b border-acb-200">
         <h3 className="font-semibold text-acb-900">Fortalezas y debilidades</h3>
-        <p className="text-xs text-acb-500 mt-0.5">La columna central marca la ventaja ajustada: positivo favorece al equipo de la izquierda</p>
+        <p className="text-xs text-acb-500 mt-0.5">La barra central indica dirección y magnitud de la ventaja</p>
       </div>
-      <div className="grid grid-cols-[minmax(120px,1fr)_minmax(86px,112px)_70px_minmax(86px,112px)] items-center gap-2 px-4 py-2.5 bg-acb-50 border-b border-acb-200 text-[11px] font-semibold uppercase text-acb-500">
+      <div className="grid grid-cols-[minmax(110px,1fr)_minmax(80px,108px)_80px_minmax(80px,108px)] items-center gap-2 px-4 py-2.5 bg-acb-50 border-b border-acb-200 text-[11px] font-semibold uppercase text-acb-500">
         <div>Métrica</div>
-        <div className="text-right truncate" title={a?.team}>{a?.team || 'Equipo A'}</div>
+        <div className="text-right flex items-center justify-end gap-1">
+          <span className="w-2 h-2 rounded-full bg-accent-500 shrink-0" />
+          <span className="truncate" title={a?.team}>{a?.team || 'Equipo A'}</span>
+        </div>
         <div className="text-center">Ventaja</div>
-        <div className="text-right truncate" title={b?.team}>{b?.team || 'Equipo B'}</div>
+        <div className="text-right flex items-center justify-end gap-1">
+          <span className="w-2 h-2 rounded-full bg-info-500 shrink-0" />
+          <span className="truncate" title={b?.team}>{b?.team || 'Equipo B'}</span>
+        </div>
       </div>
       <div className="divide-y divide-acb-100">
         {sections.map(section => {
@@ -270,16 +286,30 @@ function StatComparison({ a, b }) {
               <div className="flex items-center gap-2 mb-3">
                 <h4 className="text-sm font-semibold text-acb-800">{section.title}</h4>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 {section.metrics.map(m => {
                   const av = num(a?.[m.key])
                   const bv = num(b?.[m.key])
                   const diff = av == null || bv == null ? null : (m.lower ? bv - av : av - bv)
+                  const barPct = diff != null && m.scale ? Math.min(100, (Math.abs(diff) / m.scale) * 100) : 0
                   return (
-                    <div key={m.key} className="grid grid-cols-[minmax(120px,1fr)_minmax(86px,112px)_70px_minmax(86px,112px)] items-center gap-2 text-sm">
+                    <div key={m.key} className="grid grid-cols-[minmax(110px,1fr)_minmax(80px,108px)_80px_minmax(80px,108px)] items-center gap-2 text-sm">
                       <div className="text-acb-600 truncate">{m.label}</div>
                       <div className={`font-mono text-right ${diff != null && diff > 0 ? 'text-positive font-semibold' : 'text-acb-700'}`}>{fmt(av, m.type)}</div>
-                      <div className={`font-mono text-center text-xs ${softEdgeClass(diff)}`}>{diff == null ? '-' : fmt(diff, 'signed')}</div>
+                      <div className="flex flex-col items-center gap-0.5">
+                        <span className={`font-mono text-[10px] ${softEdgeClass(diff)}`}>{diff == null ? '-' : fmt(diff, 'signed')}</span>
+                        {diff != null && (
+                          <div className="flex w-full h-[3px]">
+                            <div className="flex-1 flex justify-end overflow-hidden">
+                              {diff > 0 && <div className="h-full bg-accent-400 rounded-l-full" style={{ width: `${barPct}%` }} />}
+                            </div>
+                            <div className="w-px bg-acb-200 shrink-0" />
+                            <div className="flex-1 overflow-hidden">
+                              {diff < 0 && <div className="h-full bg-info-400 rounded-r-full" style={{ width: `${barPct}%` }} />}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                       <div className={`font-mono text-right ${diff != null && diff < 0 ? 'text-positive font-semibold' : 'text-acb-700'}`}>{fmt(bv, m.type)}</div>
                     </div>
                   )
@@ -293,82 +323,65 @@ function StatComparison({ a, b }) {
   )
 }
 
-function buildZoneStats(shots, team, allowed = false) {
-  const rows = shots.filter(s => allowed ? s.opponent === team : s.team === team)
-  const total = rows.length
-  const byZone = {}
-  rows.forEach(s => {
-    const zone = s.zoned || s.zone || 'Sin zona'
-    if (!byZone[zone]) byZone[zone] = { zone, attempts: 0, makes: 0, points: 0 }
-    byZone[zone].attempts += 1
-    if (s.made) byZone[zone].makes += 1
-    byZone[zone].points += num(s.points) || 0
-  })
-  return Object.values(byZone).map(z => ({
-    ...z,
-    freq: total ? z.attempts / total : 0,
-    pct: z.attempts ? z.makes / z.attempts : 0,
-    pps: z.attempts ? z.points / z.attempts : 0,
-  })).sort((a, b) => b.freq - a.freq)
-}
-
-function ZoneRows({ rows, emptyText }) {
-  if (!rows.length) return <div className="text-sm text-acb-400 py-6 text-center">{emptyText}</div>
-  return (
-    <div className="space-y-2">
-      {rows.slice(0, 6).map(z => (
-        <div key={z.zone}>
-          <div className="flex items-center justify-between gap-3 text-xs mb-1">
-            <span className="font-medium text-acb-700 truncate">{z.zone}</span>
-            <span className="font-mono text-acb-500 shrink-0">{(z.freq * 100).toFixed(1)}% - {z.pps.toFixed(2)} PPT</span>
-          </div>
-          <div className="h-2 rounded-full bg-acb-100 overflow-hidden">
-            <div className="h-full bg-accent-400" style={{ width: `${Math.min(100, z.freq * 220)}%` }} />
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-}
 
 function ShotProfile({ teamA, teamB, shots, isLoading }) {
-  const aFor = useMemo(() => buildZoneStats(shots, teamA?.team, false), [shots, teamA])
-  const bFor = useMemo(() => buildZoneStats(shots, teamB?.team, false), [shots, teamB])
-  const aAllowed = useMemo(() => buildZoneStats(shots, teamA?.team, true), [shots, teamA])
-  const bAllowed = useMemo(() => buildZoneStats(shots, teamB?.team, true), [shots, teamB])
+  const [mode, setMode] = useState('attack')
+  const [metric, setMetric] = useState('efficiency')
+
+  const shotsA = useMemo(() => mode === 'attack'
+    ? shots.filter(s => s.team === teamA?.team)
+    : shots.filter(s => s.opponent === teamA?.team), [shots, teamA, mode])
+  const shotsB = useMemo(() => mode === 'attack'
+    ? shots.filter(s => s.team === teamB?.team)
+    : shots.filter(s => s.opponent === teamB?.team), [shots, teamB, mode])
+
+  const toggleBtn = (active, onClick, label) => (
+    <button
+      onClick={onClick}
+      className={`px-2.5 py-1 text-xs rounded transition-colors ${active ? 'bg-acb-800 text-white font-medium' : 'bg-acb-100 text-acb-600 hover:bg-acb-200'}`}
+    >
+      {label}
+    </button>
+  )
 
   return (
     <div className="bg-white rounded-lg border border-acb-200 p-5">
-      <div className="flex items-start justify-between gap-3 mb-4">
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
         <div>
-          <h3 className="font-semibold text-acb-900">Perfil de tiro y zonas permitidas</h3>
-          <p className="text-xs text-acb-500">Frecuencia de tiro por zona y zonas que concede cada defensa</p>
+          <h3 className="font-semibold text-acb-900">Perfil de tiro por zonas</h3>
+          <p className="text-xs text-acb-500">Comparado con la media de la liga en cada zona</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <div className="flex gap-1">
+            {toggleBtn(mode === 'attack', () => setMode('attack'), 'Ataque')}
+            {toggleBtn(mode === 'defense', () => setMode('defense'), 'Defensa')}
+          </div>
+          <div className="flex gap-1">
+            {toggleBtn(metric === 'efficiency', () => setMetric('efficiency'), 'Eficiencia')}
+            {toggleBtn(metric === 'frequency', () => setMetric('frequency'), 'Frecuencia')}
+          </div>
         </div>
       </div>
       {isLoading ? (
         <div className="text-center py-10 text-acb-400">Cargando tiros...</div>
       ) : (
-        <div className="grid lg:grid-cols-2 gap-5">
-          <div className="space-y-4">
-            <h4 className="text-sm font-semibold text-acb-800">{teamA?.team}</h4>
-            <div>
-              <div className="text-xs uppercase font-semibold text-acb-400 mb-2">Ataque</div>
-              <ZoneRows rows={aFor} emptyText="Sin datos de tiro" />
+        <div className="grid lg:grid-cols-2 gap-6">
+          <div>
+            <div className="flex items-center gap-2 mb-2 text-sm font-semibold text-acb-800">
+              <span className="w-2.5 h-2.5 rounded-full bg-accent-500 inline-block" />
+              {teamA?.team}
             </div>
-            <div>
-              <div className="text-xs uppercase font-semibold text-acb-400 mb-2">Permitido</div>
-              <ZoneRows rows={aAllowed} emptyText="Sin datos defensivos" />
+            <div className="overflow-x-auto">
+              <ZoneHeatmap shots={shotsA} leagueShots={shots} metric={metric} width={430} height={405} />
             </div>
           </div>
-          <div className="space-y-4">
-            <h4 className="text-sm font-semibold text-acb-800">{teamB?.team}</h4>
-            <div>
-              <div className="text-xs uppercase font-semibold text-acb-400 mb-2">Ataque</div>
-              <ZoneRows rows={bFor} emptyText="Sin datos de tiro" />
+          <div>
+            <div className="flex items-center gap-2 mb-2 text-sm font-semibold text-acb-800">
+              <span className="w-2.5 h-2.5 rounded-full bg-info-500 inline-block" />
+              {teamB?.team}
             </div>
-            <div>
-              <div className="text-xs uppercase font-semibold text-acb-400 mb-2">Permitido</div>
-              <ZoneRows rows={bAllowed} emptyText="Sin datos defensivos" />
+            <div className="overflow-x-auto">
+              <ZoneHeatmap shots={shotsB} leagueShots={shots} metric={metric} width={430} height={405} />
             </div>
           </div>
         </div>
@@ -393,12 +406,8 @@ function PaceFlow({ a, b }) {
       <div className="space-y-4">
         {[a, b].map((row, idx) => (
           <div key={idx}>
-            <div className="flex items-center justify-between gap-3 mb-2">
+            <div className="mb-2">
               <span className="text-sm font-semibold text-acb-800">{row?.team || '-'}</span>
-              <span className="text-xs text-acb-500">
-                Post-TM {fmt(row?.afterTimeout?.ppp)} PPP
-                {row?.afterTimeout?.leaguePpp != null && <span> vs liga {fmt(row.afterTimeout.leaguePpp)}</span>}
-              </span>
             </div>
             <div className="grid grid-cols-4 gap-2">
               {[0, 1, 2, 3].map(i => {
@@ -417,6 +426,17 @@ function PaceFlow({ a, b }) {
                 )
               })}
             </div>
+            {row?.afterTimeout?.ppp != null && (
+              <div className="mt-2 pt-2 border-t border-acb-100 flex items-center justify-between text-xs">
+                <span className="text-acb-500">Post tiempo muerto</span>
+                <span className={`font-mono ${edgeClass(row.afterTimeout.ppp - (row.afterTimeout.leaguePpp ?? row.afterTimeout.ppp))}`}>
+                  {fmt(row.afterTimeout.ppp)} PPP
+                  {row.afterTimeout.leaguePpp != null && (
+                    <span className="text-acb-400 font-normal"> (liga: {fmt(row.afterTimeout.leaguePpp)})</span>
+                  )}
+                </span>
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -424,14 +444,14 @@ function PaceFlow({ a, b }) {
   )
 }
 
-function ClutchPanel({ a, b, loading }) {
+function ClutchPanel({ a, b, loading, teamA, teamB }) {
   const metrics = [
     ['Balance', r => r ? `${r.wins}-${r.losses}` : '-'],
-    ['NetRtg', r => fmt(r?.netRtg, 'signed')],
+    ['Ef. Neta', r => fmt(r?.netRtg, 'signed')],
     ['ORtg', r => fmt(r?.ortg)],
     ['DRtg', r => fmt(r?.drtg)],
     ['TC%/eFG%', r => `${fmt(r?.fgPct, 'pct100')} / ${fmt(r?.efgPct, 'pct100')}`],
-    ['TOV%', r => fmt(r?.tovRate, 'pct100')],
+    ['PER%', r => fmt(r?.tovRate, 'pct100')],
   ]
   return (
     <div className="bg-white rounded-lg border border-acb-200 p-5">
@@ -445,6 +465,17 @@ function ClutchPanel({ a, b, loading }) {
         <div className="text-center py-8 text-acb-400">Cargando clutch...</div>
       ) : (
         <div className="space-y-2">
+          <div className="grid grid-cols-[1fr_1fr_1fr] gap-3 pb-2 mb-1 border-b border-acb-100 text-[11px] font-semibold text-acb-500">
+            <div />
+            <div className="flex items-center justify-end gap-1">
+              <span className="w-2 h-2 rounded-full bg-accent-500 shrink-0" />
+              <span className="truncate" title={teamA?.team}>{teamA?.team || 'Equipo A'}</span>
+            </div>
+            <div className="flex items-center justify-end gap-1">
+              <span className="w-2 h-2 rounded-full bg-info-500 shrink-0" />
+              <span className="truncate" title={teamB?.team}>{teamB?.team || 'Equipo B'}</span>
+            </div>
+          </div>
           {metrics.map(([label, get]) => (
             <div key={label} className="grid grid-cols-[1fr_1fr_1fr] gap-3 text-sm">
               <div className="text-acb-500">{label}</div>
@@ -741,7 +772,7 @@ export default function TeamMatchup({
         </Link>
       </div>
 
-      <div className="grid lg:grid-cols-[160px_1fr_1fr] gap-4">
+      <div className="grid lg:grid-cols-[160px_1fr_auto_1fr] gap-4 items-center">
         <div className="bg-white rounded-lg border border-acb-200 p-4">
           <label className="text-xs text-acb-500 font-medium">Temporada</label>
           <select
@@ -752,8 +783,29 @@ export default function TeamMatchup({
             {availableSeasons.map(s => <option key={s} value={s}>{seasonLabel(s)}</option>)}
           </select>
         </div>
-        <TeamSelector label="Equipo A" teams={seasonTeams.filter(t => t.team !== teamB)} selected={teamA} onChange={setTeamA} teamLogos={teamLogos} />
-        <TeamSelector label="Equipo B" teams={seasonTeams.filter(t => t.team !== teamA)} selected={teamB} onChange={setTeamB} teamLogos={teamLogos} />
+        <TeamSelector
+          label="Equipo A"
+          teams={seasonTeams.filter(t => t.team !== teamB)}
+          selected={teamA}
+          onChange={setTeamA}
+          teamLogos={teamLogos}
+          profileUrl={teamA ? `/perfil-equipo/${selectedSeason}/${toSlug(teamA)}` : null}
+        />
+        <button
+          onClick={() => { const tmp = teamA; setTeamA(teamB); setTeamB(tmp) }}
+          className="p-2.5 rounded-lg border border-acb-200 bg-white hover:bg-acb-50 text-acb-500 hover:text-acb-900 transition-colors text-xl leading-none self-stretch flex items-center"
+          title="Intercambiar equipos"
+        >
+          ⇄
+        </button>
+        <TeamSelector
+          label="Equipo B"
+          teams={seasonTeams.filter(t => t.team !== teamA)}
+          selected={teamB}
+          onChange={setTeamB}
+          teamLogos={teamLogos}
+          profileUrl={teamB ? `/perfil-equipo/${selectedSeason}/${toSlug(teamB)}` : null}
+        />
       </div>
 
       <div className="grid lg:grid-cols-2 gap-5">
@@ -766,17 +818,16 @@ export default function TeamMatchup({
         <NotesPanel notes={notes} />
       </div>
 
-      <div className="grid xl:grid-cols-[1.2fr_0.8fr] gap-5">
+      <div className="grid xl:grid-cols-2 gap-5">
         <StatComparison a={recordA} b={recordB} />
-        <div className="space-y-5">
-          {isPaceLoading ? (
-            <div className="bg-white rounded-lg border border-acb-200 p-10 text-center text-acb-400">Cargando ritmo...</div>
-          ) : (
-            <PaceFlow a={paceA} b={paceB} />
-          )}
-          <ClutchPanel a={clutchA} b={clutchB} loading={isClutchLoading} />
-        </div>
+        <ClutchPanel a={clutchA} b={clutchB} loading={isClutchLoading} teamA={recordA} teamB={recordB} />
       </div>
+
+      {isPaceLoading ? (
+        <div className="bg-white rounded-lg border border-acb-200 p-10 text-center text-acb-400">Cargando ritmo...</div>
+      ) : (
+        <PaceFlow a={paceA} b={paceB} />
+      )}
 
       <ShotProfile teamA={recordA} teamB={recordB} shots={shotRows} isLoading={isShotsLoading} />
     </div>
