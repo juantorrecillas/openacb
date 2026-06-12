@@ -46,6 +46,9 @@ nul
 CLAUDE.md
 AGENTS.md
 .claude/
+.aider.chat.history.md
+.aider.input.history
+.aider.tags.cache.v4/
 #=============================================================================
 # Scripts to download pictures
 #=============================================================================
