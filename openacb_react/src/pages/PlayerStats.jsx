@@ -158,6 +158,7 @@ export default function PlayerStats({ players, playerBio = {} }) {
   }, [enrichedPlayers])
 
   const [selectedSeason, setSelectedSeason] = useState(availableSeasons[0] || 2025)
+  const [selectedStage, setSelectedStage] = useState('regular')
   const [viewMode, setViewMode] = useState('basic') // 'basic', 'advanced', 'misc', 'frequency', 'accuracy', 'defense'
   const [search, setSearch] = useState('')
   const [sortKey, setSortKey] = useState('playerFull')
@@ -179,7 +180,9 @@ export default function PlayerStats({ players, playerBio = {} }) {
     // Fallback: calculate locally
     // Most recent season: must have BOTH 5+ games AND 50+ minutes
     // Previous seasons: must have BOTH 10+ games AND 150+ minutes
-    if (player.season === mostRecentSeason) {
+    if (selectedStage === 'playoffs') {
+      return player.games >= 2 && player.totalMinutes >= 20
+    } else if (player.season === mostRecentSeason) {
       return player.games >= 5 && player.totalMinutes >= 50
     } else {
       return player.games >= 10 && player.totalMinutes >= 150
@@ -194,11 +197,15 @@ export default function PlayerStats({ players, playerBio = {} }) {
     : viewMode === 'accuracy' ? accuracyColumns
     : defenseColumns
 
+  const stageFilteredPlayers = useMemo(() => {
+    return enrichedPlayers.filter(p => (p.competitionStage || 'regular') === selectedStage)
+  }, [enrichedPlayers, selectedStage])
+
   // Filter players by season
   const seasonFilteredPlayers = useMemo(() => {
-    if (selectedSeason === 'all') return enrichedPlayers
-    return enrichedPlayers.filter(p => p.season === selectedSeason)
-  }, [enrichedPlayers, selectedSeason])
+    if (selectedSeason === 'all') return stageFilteredPlayers
+    return stageFilteredPlayers.filter(p => p.season === selectedSeason)
+  }, [stageFilteredPlayers, selectedSeason])
 
   const teams = useMemo(() =>
     [...new Set(seasonFilteredPlayers.map(p => p.team))].sort(),
@@ -384,7 +391,7 @@ export default function PlayerStats({ players, playerBio = {} }) {
       : viewMode === 'frequency' ? 'tiro-frecuencia'
       : viewMode === 'accuracy' ? 'tiro-precision'
       : 'tiro-rival'
-    const filename = `jugadores_${seasonStr}_${viewStr}.csv`
+    const filename = `jugadores_${seasonStr}_${selectedStage}_${viewStr}.csv`
 
     const exportColumns = [
       { key: 'season', label: 'Temporada' },
@@ -452,6 +459,25 @@ export default function PlayerStats({ players, playerBio = {} }) {
               ))}
               <option value="all">Todas las Temporadas</option>
             </select>
+          </div>
+
+          <div className="flex items-center gap-1 bg-acb-100 rounded-md p-1">
+            <button
+              onClick={() => { setSelectedStage('regular'); setTeamFilter('') }}
+              className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
+                selectedStage === 'regular' ? 'bg-white text-acb-900 shadow-sm' : 'text-acb-600 hover:text-acb-900'
+              }`}
+            >
+              Temporada regular
+            </button>
+            <button
+              onClick={() => { setSelectedStage('playoffs'); setTeamFilter('') }}
+              className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
+                selectedStage === 'playoffs' ? 'bg-white text-acb-900 shadow-sm' : 'text-acb-600 hover:text-acb-900'
+              }`}
+            >
+              Playoffs
+            </button>
           </div>
 
           {/* View Mode Toggle */}

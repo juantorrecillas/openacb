@@ -208,6 +208,7 @@ export default function TeamStats({ teams, teamLogos = {} }) {
   }, [teams])
 
   const [selectedSeason, setSelectedSeason] = useState(availableSeasons[0] || 2025)
+  const [selectedStage, setSelectedStage] = useState('regular')
   const [viewMode, setViewMode] = useState('basic') // 'basic', 'advanced', 'oppBasic', 'oppAdvanced'
   const [xAxis, setXAxis] = useState('ortg')
   const [yAxis, setYAxis] = useState('drtg')
@@ -237,11 +238,15 @@ export default function TeamStats({ teams, teamLogos = {} }) {
     }, [])
   )
 
+  const stageFilteredTeams = useMemo(() => {
+    return teams.filter(t => (t.competitionStage || 'regular') === selectedStage)
+  }, [teams, selectedStage])
+
   // Filter teams by season
   const seasonFilteredTeams = useMemo(() => {
-    if (selectedSeason === 'all') return teams
-    return teams.filter(t => t.season === selectedSeason)
-  }, [teams, selectedSeason])
+    if (selectedSeason === 'all') return stageFilteredTeams
+    return stageFilteredTeams.filter(t => t.season === selectedSeason)
+  }, [stageFilteredTeams, selectedSeason])
 
   // Derive trbPct / opp_trbPct from per-game rebound averages (not in JSON)
   const enrichedTeams = useMemo(() => {
@@ -370,7 +375,7 @@ export default function TeamStats({ teams, teamLogos = {} }) {
       : viewMode === 'advanced' ? 'avanzado'
       : viewMode === 'oppBasic' ? 'rival-basico'
       : 'rival-avanzado'
-    const filename = `equipos_${seasonStr}_${viewStr}.csv`
+    const filename = `equipos_${seasonStr}_${selectedStage}_${viewStr}.csv`
 
     const exportColumns = [
       { key: 'season', label: 'Temporada' },
@@ -467,6 +472,24 @@ export default function TeamStats({ teams, teamLogos = {} }) {
               ))}
               <option value="all">Todas las Temporadas</option>
             </select>
+          </div>
+          <div className="flex items-center gap-1 bg-acb-100 rounded-md p-1">
+            <button
+              onClick={() => setSelectedStage('regular')}
+              className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
+                selectedStage === 'regular' ? 'bg-white text-acb-900 shadow-sm' : 'text-acb-600 hover:text-acb-900'
+              }`}
+            >
+              Temporada regular
+            </button>
+            <button
+              onClick={() => setSelectedStage('playoffs')}
+              className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
+                selectedStage === 'playoffs' ? 'bg-white text-acb-900 shadow-sm' : 'text-acb-600 hover:text-acb-900'
+              }`}
+            >
+              Playoffs
+            </button>
           </div>
           <div className="flex items-center gap-2">
             <label className="text-sm text-acb-600">Eje X:</label>

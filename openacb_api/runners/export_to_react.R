@@ -72,6 +72,8 @@ export_shot_data <- function() {
           points = shots$points,
           zone = shots$zoned,
           shotType = shots$type.description,
+          competitionStage = shots$competition_stage,
+          competitionRound = shots$competition_round,
           season = year
         )
 
@@ -94,25 +96,36 @@ export_shot_data <- function() {
   }
 }
 
-export_team_data <- function() {
+export_team_data <- function(competition_stages = NULL, output_name = "teams.json") {
   cat("Exporting team statistics...\n")
   
   all_teams <- data.frame()
   
   for (year in SEASONS) {
-    patterns <- c(
-      paste0("TeamAdvancedStats", year, "Clean.csv"),
-      paste0("TeamAdvancedStats", year, ".csv")
-    )
-    
-    for (pattern in patterns) {
-      file_path <- file.path(SHINY_DATA_DIR, pattern)
-      if (file.exists(file_path)) {
-        teams <- read.csv(file_path, encoding = "UTF-8", stringsAsFactors = FALSE)
-        teams$season <- year
-        all_teams <- dplyr::bind_rows(all_teams, teams)
-        cat(sprintf("  - Loaded %d teams from %s\n", nrow(teams), pattern))
-        break
+    stages <- if (is.null(competition_stages)) NA_character_ else competition_stages
+
+    for (stage in stages) {
+      patterns <- if (is.na(stage)) {
+        c(
+          paste0("TeamAdvancedStats", year, "Clean.csv"),
+          paste0("TeamAdvancedStats", year, ".csv")
+        )
+      } else {
+        paste0("TeamAdvancedStats", year, "_", stage, ".csv")
+      }
+
+      for (pattern in patterns) {
+        file_path <- file.path(SHINY_DATA_DIR, pattern)
+        if (file.exists(file_path)) {
+          teams <- read.csv(file_path, encoding = "UTF-8", stringsAsFactors = FALSE)
+          teams$season <- year
+          if (!"competition_stage" %in% names(teams)) {
+            teams$competition_stage <- if (is.na(stage)) "all" else stage
+          }
+          all_teams <- dplyr::bind_rows(all_teams, teams)
+          cat(sprintf("  - Loaded %d teams from %s\n", nrow(teams), pattern))
+          break
+        }
       }
     }
   }
@@ -129,6 +142,7 @@ export_team_data <- function() {
       list(
         team = t$team.team_actual_name,
         season = t$season,
+        competitionStage = t$competition_stage,
         games = t$ngames,
         wins = safe_val(t$wins, 0),
         losses = safe_val(t$losses, 0),
@@ -222,7 +236,7 @@ export_team_data <- function() {
     # Remove any with NA team names
     teams_export <- Filter(function(x) !is.na(x$team) && x$team != "NA", teams_export)
     
-    output_file <- file.path(REACT_APP_DIR, "public/data/teams.json")
+    output_file <- file.path(REACT_APP_DIR, "public/data", output_name)
     write_json(teams_export, output_file, pretty = TRUE, auto_unbox = TRUE)
     cat(sprintf("  ✓ Exported %d team records\n\n", length(teams_export)))
   } else {
@@ -230,28 +244,42 @@ export_team_data <- function() {
   }
 }
 
-load_all_player_data <- function() {
+load_all_player_data <- function(competition_stages = NULL) {
   cat("Loading player statistics...\n")
 
   all_players <- data.frame()
 
   for (year in SEASONS) {
-    patterns <- c(
-      paste0("PlayerStats", year, ".csv"),
-      paste0("PlayerStats", year, ".Rds")
-    )
+    stages <- if (is.null(competition_stages)) NA_character_ else competition_stages
 
-    for (pattern in patterns) {
-      file_path <- file.path(SHINY_DATA_DIR, pattern)
-      if (file.exists(file_path)) {
-        if (grepl("\\.Rds$", pattern)) {
-          players <- readRDS(file_path)
-        } else {
-          players <- read.csv(file_path, encoding = "UTF-8", stringsAsFactors = FALSE)
+    for (stage in stages) {
+      patterns <- if (is.na(stage)) {
+        c(
+          paste0("PlayerStats", year, ".csv"),
+          paste0("PlayerStats", year, ".Rds")
+        )
+      } else {
+        c(
+          paste0("PlayerStats", year, "_", stage, ".csv"),
+          paste0("PlayerStats", year, "_", stage, ".Rds")
+        )
+      }
+
+      for (pattern in patterns) {
+        file_path <- file.path(SHINY_DATA_DIR, pattern)
+        if (file.exists(file_path)) {
+          if (grepl("\\.Rds$", pattern)) {
+            players <- readRDS(file_path)
+          } else {
+            players <- read.csv(file_path, encoding = "UTF-8", stringsAsFactors = FALSE)
+          }
+          if (!"competition_stage" %in% names(players)) {
+            players$competition_stage <- if (is.na(stage)) "all" else stage
+          }
+          all_players <- dplyr::bind_rows(all_players, players)
+          cat(sprintf("  - Loaded %d players from %s\n", nrow(players), pattern))
+          break
         }
-        all_players <- dplyr::bind_rows(all_players, players)
-        cat(sprintf("  - Loaded %d players from %s\n", nrow(players), pattern))
-        break
       }
     }
   }
@@ -259,7 +287,7 @@ load_all_player_data <- function() {
   all_players
 }
 
-export_player_data <- function(all_players) {
+export_player_data <- function(all_players, output_name = "players.json") {
   cat("Exporting player statistics...\n")
 
   if (nrow(all_players) > 0) {
@@ -287,6 +315,7 @@ export_player_data <- function(all_players) {
         heightM = if (!is.null(p$height_m) && !is.na(p$height_m)) round(as.numeric(p$height_m), 2) else NULL,
         birthDate = if (!is.null(p$birth_date) && !is.na(p$birth_date)) p$birth_date else NULL,
         season = p$season,
+        competitionStage = p$competition_stage,
         team = p$team,
         games = safe_val(p$games, 0),
 
@@ -487,7 +516,7 @@ export_player_data <- function(all_players) {
     # Remove any with NA player names
     players_export <- Filter(function(x) !is.na(x$player) && x$player != "", players_export)
 
-    output_file <- file.path(REACT_APP_DIR, "public/data/players.json")
+    output_file <- file.path(REACT_APP_DIR, "public/data", output_name)
     write_json(players_export, output_file, pretty = TRUE, auto_unbox = TRUE, null = "null")
     cat(sprintf("  ✓ Exported %d player records\n\n", length(players_export)))
   } else {
@@ -632,13 +661,16 @@ cat("========================================\n\n")
 
 export_shot_data()
 export_team_data()
+export_team_data(c("regular", "playoffs"), "teams-by-stage.json")
 all_players <- load_all_player_data()
 export_player_data(all_players)
+stage_players <- load_all_player_data(c("regular", "playoffs"))
+export_player_data(stage_players, "players-by-stage.json")
 export_similarity_data(all_players)
 export_gameflow_data()
 export_teampace_data()
 
-# Player bio: position, height, birth date 
+# player bio: position, height, birth date
 source("etl/12_player_positions.R")
 generate_player_bio(
   data_dir   = SHINY_DATA_DIR,

@@ -151,7 +151,8 @@ calculate_minutes <- function(df, player_nicks) {
 #'
 calculate_player_stats <- function(season_id,
                                     data_dir = "./data",
-                                    config_path = "./config/seasons.R") {
+                                    config_path = "./config/seasons.R",
+                                    competition_stage = NULL) {
 
   # Load configuration
   source(config_path)
@@ -179,6 +180,25 @@ calculate_player_stats <- function(season_id,
   }
 
   cat("  Rows:", format(nrow(df), big.mark = ","), "\n")
+
+  if (!is.null(competition_stage)) {
+    valid_stages <- c("regular", "playoffs")
+    if (!competition_stage %in% valid_stages) {
+      stop("competition_stage must be one of: ", paste(valid_stages, collapse = ", "))
+    }
+    if (!"competition_stage" %in% names(df)) {
+      stop("competition_stage is missing from adjusted PBP data")
+    }
+
+    df <- df %>%
+      filter(.data$competition_stage == .env$competition_stage)
+
+    if (nrow(df) == 0) {
+      cat("  No", competition_stage, "data found for season", season_id, "- skipping\n")
+      return(invisible(NULL))
+    }
+    cat("  Stage:", competition_stage, "-", format(nrow(df), big.mark = ","), "rows\n")
+  }
 
   # Get unique players
   players <- unique(df$license.licenseNick)
@@ -583,6 +603,11 @@ calculate_player_stats <- function(season_id,
   if (file.exists(shot_file)) {
     shots <- read.csv(shot_file, encoding = "UTF-8", stringsAsFactors = FALSE)
 
+    if (!is.null(competition_stage) && "competition_stage" %in% names(shots)) {
+      shots <- shots %>%
+        filter(.data$competition_stage == .env$competition_stage)
+    }
+
     # Map R zones to CtG-style zones
     shots <- shots %>%
       mutate(
@@ -985,7 +1010,10 @@ calculate_player_stats <- function(season_id,
   # Apply different thresholds based on season
   # Most recent season: 5+ games AND 50+ minutes
   # Previous seasons: 10+ games AND 150+ minutes
-  if (is_most_recent) {
+  if (!is.null(competition_stage) && competition_stage == "playoffs") {
+    qualified <- player_stats$games >= 2 & player_stats$total_minutes >= 20
+    cat("  Using playoff threshold: 2+ games AND 20+ minutes\n")
+  } else if (is_most_recent) {
     qualified <- player_stats$games >= 5 & player_stats$total_minutes >= 50
     cat("  Using most recent season threshold: 5+ games AND 50+ minutes\n")
   } else {
@@ -1007,12 +1035,17 @@ calculate_player_stats <- function(season_id,
   for (stat in pct_stats) {
     pct_col <- paste0(stat, "_pct")
     qualified_values <- player_stats[[stat]][qualified]
+    qualified_values <- qualified_values[!is.na(qualified_values)]
 
-    player_stats[[pct_col]] <- sapply(player_stats[[stat]], function(x) {
-      if (is.na(x)) return(NA)
+    if (length(qualified_values) == 0) {
+      player_stats[[pct_col]] <- NA_real_
+    } else {
       ecdf_func <- ecdf(qualified_values)
-      round(ecdf_func(x) * 100, 1)
-    })
+      player_stats[[pct_col]] <- sapply(player_stats[[stat]], function(x) {
+        if (is.na(x)) return(NA)
+        round(ecdf_func(x) * 100, 1)
+      })
+    }
   }
 
   # Inverse percentiles for stats where lower is better (turnovers)
@@ -1020,13 +1053,18 @@ calculate_player_stats <- function(season_id,
   for (stat in inverse_stats) {
     pct_col <- paste0(stat, "_pct")
     if (pct_col == "tov_pct_pct") pct_col <- "tov_pct_pctile"  # Avoid naming conflict
+    qualified_values <- player_stats[[stat]][qualified]
+    qualified_values <- qualified_values[!is.na(qualified_values)]
 
-    player_stats[[pct_col]] <- sapply(player_stats[[stat]], function(x) {
-      if (is.na(x)) return(NA)
-      qualified_values <- player_stats[[stat]][qualified]
+    if (length(qualified_values) == 0) {
+      player_stats[[pct_col]] <- NA_real_
+    } else {
       ecdf_func <- ecdf(qualified_values)
-      round((1 - ecdf_func(x)) * 100, 1)
-    })
+      player_stats[[pct_col]] <- sapply(player_stats[[stat]], function(x) {
+        if (is.na(x)) return(NA)
+        round((1 - ecdf_func(x)) * 100, 1)
+      })
+    }
   }
 
   # --------------------------------------------------------------------------
@@ -1114,6 +1152,7 @@ calculate_player_stats <- function(season_id,
 
   # Add season identifier
   player_stats$season <- season_id
+  player_stats$competition_stage <- if (is.null(competition_stage)) "all" else competition_stage
 
   # Define zone stat columns (may not exist if shot data unavailable)
   zone_cols <- c(
@@ -1135,7 +1174,7 @@ calculate_player_stats <- function(season_id,
   # Select and order columns
   final_stats <- player_stats %>%
     select(
-      player_id, license_id, player, player_abbrev, player_full, position, team, season, games, total_minutes, mpg, qualified,
+      player_id, license_id, player, player_abbrev, player_full, position, team, season, competition_stage, games, total_minutes, mpg, qualified,
       # Basic totals
       points, rebounds, oreb, dreb, assists, steals, blocks, turnovers, fouls,
       # Shooting totals
@@ -1170,12 +1209,13 @@ calculate_player_stats <- function(season_id,
     arrange(desc(ppg))
 
   # Save results
-  output_file <- file.path(processed_dir, paste0("PlayerStats", season_id, ".csv"))
+  stage_suffix <- if (is.null(competition_stage)) "" else paste0("_", competition_stage)
+  output_file <- file.path(processed_dir, paste0("PlayerStats", season_id, stage_suffix, ".csv"))
   cat("→ Saving to:", output_file, "\n")
   write.csv(final_stats, output_file, row.names = FALSE, fileEncoding = "UTF-8")
 
   # Also save as RDS for efficiency
-  rds_output <- file.path(processed_dir, paste0("PlayerStats", season_id, ".Rds"))
+  rds_output <- file.path(processed_dir, paste0("PlayerStats", season_id, stage_suffix, ".Rds"))
   saveRDS(final_stats, rds_output)
 
   # Report

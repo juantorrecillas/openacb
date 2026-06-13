@@ -67,6 +67,8 @@ generate_game_flow <- function(
     # Get match metadata from first row
     first_row <- match_pbp[1, ]
     jornada <- first_row$jornada
+    competition_stage <- first_row$competition_stage
+    competition_round <- first_row$competition_round
 
     # Identify local and visitor teams
     local_rows <- match_pbp %>% filter(local == TRUE)
@@ -239,6 +241,8 @@ generate_game_flow <- function(
     game <- list(
       id = mid,
       jornada = jornada,
+      competitionStage = competition_stage,
+      competitionRound = competition_round,
       local = local_team,
       visitor = visitor_team,
       scoreL = final_local,

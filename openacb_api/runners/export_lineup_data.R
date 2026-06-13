@@ -396,5 +396,7 @@ export_single_season <- function(season_id) {
 # ============================================================================
 
 if (!interactive()) {
-  export_lineup_data_to_react()
+  season_args <- suppressWarnings(as.integer(commandArgs(trailingOnly = TRUE)))
+  season_args <- season_args[!is.na(season_args)]
+  export_lineup_data_to_react(if (length(season_args) > 0) season_args else SEASONS)
 }

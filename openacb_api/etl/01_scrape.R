@@ -9,6 +9,117 @@ library(jsonlite)
 library(httr)
 library(dplyr)
 
+#' validate the raw files for a season
+#'
+#' @param season_id integer year (e.g., 2025 for 2024-2025 season)
+#' @param expected_matches optional match data frame returned by the ACB API
+#' @param data_dir base directory containing season folders
+#' @param config_path path to seasons.R config file
+#' @param stop_on_error stop when missing or duplicate matches are found
+#' @return invisibly returns a one-row-per-file manifest
+#'
+validate_raw_season <- function(season_id,
+                                expected_matches = NULL,
+                                data_dir = "./data/raw",
+                                config_path = "./config/seasons.R",
+                                stop_on_error = TRUE) {
+
+  source(config_path)
+  season <- get_season_config(season_id)
+  raw_dir <- file.path(data_dir, season$folder_name)
+  filenames <- list.files(raw_dir, pattern = "_PBP\\.csv$", full.names = TRUE)
+
+  if (length(filenames) == 0) {
+    stop("No raw PBP files found in: ", raw_dir)
+  }
+
+  # read one row per file to build a lightweight match manifest
+  manifest_rows <- lapply(filenames, function(filepath) {
+    first_row <- tryCatch(
+      read.csv(filepath, encoding = "UTF-8", stringsAsFactors = FALSE, nrows = 1),
+      error = function(e) read.csv(filepath, encoding = "latin1", stringsAsFactors = FALSE, nrows = 1)
+    )
+
+    data.frame(
+      file = basename(filepath),
+      match_id = if ("id_match" %in% names(first_row) && nrow(first_row) > 0) {
+        as.character(first_row$id_match[1])
+      } else {
+        NA_character_
+      },
+      competition_stage = if ("competition_stage" %in% names(first_row) && nrow(first_row) > 0) {
+        as.character(first_row$competition_stage[1])
+      } else {
+        NA_character_
+      },
+      competition_round = if ("competition_round" %in% names(first_row) && nrow(first_row) > 0) {
+        as.character(first_row$competition_round[1])
+      } else {
+        NA_character_
+      },
+      stringsAsFactors = FALSE
+    )
+  })
+
+  manifest <- do.call("rbind", manifest_rows)
+
+  duplicate_ids <- manifest %>%
+    filter(!is.na(match_id)) %>%
+    count(match_id, name = "files") %>%
+    filter(files > 1)
+
+  missing_file_ids <- manifest %>%
+    filter(is.na(match_id)) %>%
+    pull(file)
+
+  missing_stage_files <- manifest %>%
+    filter(is.na(competition_stage)) %>%
+    pull(file)
+
+  missing_expected <- character()
+  extra_raw <- character()
+  stage_mismatches <- data.frame()
+
+  if (!is.null(expected_matches)) {
+    expected <- expected_matches %>%
+      transmute(
+        match_id = as.character(match_id),
+        expected_stage = competition_stage
+      )
+
+    missing_expected <- setdiff(expected$match_id, manifest$match_id)
+    extra_raw <- setdiff(manifest$match_id, expected$match_id)
+
+    stage_mismatches <- manifest %>%
+      inner_join(expected, by = "match_id") %>%
+      filter(is.na(competition_stage) | competition_stage != expected_stage)
+  }
+
+  issues <- c(
+    if (length(missing_file_ids) > 0) paste(length(missing_file_ids), "files without id_match"),
+    if (length(missing_stage_files) > 0) paste(length(missing_stage_files), "files without competition_stage"),
+    if (nrow(duplicate_ids) > 0) paste(nrow(duplicate_ids), "duplicate match IDs"),
+    if (length(missing_expected) > 0) paste(length(missing_expected), "expected matches missing"),
+    if (length(extra_raw) > 0) paste(length(extra_raw), "unexpected raw matches"),
+    if (nrow(stage_mismatches) > 0) paste(nrow(stage_mismatches), "stage mismatches")
+  )
+
+  cat("\nRaw season validation:", season$season_name, "\n")
+  cat("  Files:", nrow(manifest), "\n")
+  cat("  Unique match IDs:", length(unique(na.omit(manifest$match_id))), "\n")
+  cat("  Regular season:", sum(manifest$competition_stage == "regular", na.rm = TRUE), "\n")
+  cat("  Playoffs:", sum(manifest$competition_stage == "playoffs", na.rm = TRUE), "\n")
+
+  if (length(issues) == 0) {
+    cat("  Status: complete\n")
+  } else {
+    cat("  Status:", paste(issues, collapse = "; "), "\n")
+    if (stop_on_error) stop("Raw season validation failed for ", season$season_name)
+  }
+
+  invisible(manifest)
+}
+
 #' Scrape all play-by-play data for a given season
 #'
 #' @param season_id Integer year (e.g., 2025 for 2024-2025 season)
@@ -50,7 +161,7 @@ scrape_season <- function(season_id,
   }
   
   weeks_json <- fromJSON(content(week_response, type = "text", encoding = "UTF-8"), flatten = TRUE)
-  weeks <- data.frame(id = weeks_json$id, jornada = weeks_json$descriptor)
+  weeks <- data.frame(id = weeks_json$id, matchweek = weeks_json$descriptor)
   cat("  Found", nrow(weeks), "matchweeks\n")
   
   # Fetch all matches
@@ -74,7 +185,19 @@ scrape_season <- function(season_id,
   ) %>%
     merge(weeks, by.x = "weekid", by.y = "id") %>%
     filter(finalized == TRUE) %>%
-    mutate(jornada = as.numeric(gsub("Jornada ", "", jornada)))
+    mutate(
+      jornada = as.numeric(ifelse(
+        grepl("^Jornada [0-9]+$", matchweek),
+        gsub("Jornada ", "", matchweek),
+        NA_character_
+      )),
+      competition_stage = ifelse(
+        !is.na(jornada) & jornada <= season$regular_season_rounds,
+        "regular",
+        "playoffs"
+      ),
+      competition_round = ifelse(competition_stage == "playoffs", matchweek, NA_character_)
+    )
 
   cat("  Found", nrow(all_matches), "completed matches\n")
   
@@ -86,6 +209,7 @@ scrape_season <- function(season_id,
   pb <- txtProgressBar(min = 0, max = length(match_ids), style = 3)
 
   errors <- c()
+  unavailable_match_ids <- c()
   saved  <- 0L
 
   for (i in seq_along(match_ids)) {
@@ -110,7 +234,10 @@ scrape_season <- function(season_id,
         pbp_data <- pbp_raw
       } else if (is.list(pbp_raw)) {
         df_elements <- Filter(is.data.frame, pbp_raw)
-        if (length(df_elements) == 0) stop("API response is a list but contains no data.frame")
+        if (length(df_elements) == 0) {
+          unavailable_match_ids <- c(unavailable_match_ids, match_id)
+          next
+        }
         pbp_data <- df_elements[[1]]
       } else {
         stop("Unexpected API response type: ", class(pbp_raw))
@@ -125,6 +252,8 @@ scrape_season <- function(season_id,
       # Get match info
       match_info <- all_matches[all_matches$match_id == match_id, ]
       jornada <- match_info$jornada[1]
+      competition_stage <- match_info$competition_stage[1]
+      competition_round <- match_info$competition_round[1]
 
       # Determine local/visitor teams
       team_summary <- pbp_data %>%
@@ -147,6 +276,8 @@ scrape_season <- function(season_id,
 
       # Add metadata columns
       pbp_data$jornada <- jornada
+      pbp_data$competition_stage <- competition_stage
+      pbp_data$competition_round <- competition_round
       pbp_data$team <- ifelse(pbp_data$local == TRUE, team_local, team_visitor)
       pbp_data$opponent <- ifelse(pbp_data$local == TRUE, team_visitor, team_local)
 
@@ -161,11 +292,23 @@ scrape_season <- function(season_id,
         pbp_data$score_visitor_final <- NA_real_
       }
 
-      # Save to CSV
-      filename <- paste0("J", jornada, "_", team_local_abb, "_", team_visitor_abb, "_PBP.csv")
+      # use match id for every playoff game to prevent filename collisions
+      file_prefix <- if (competition_stage == "playoffs") paste0("M", match_id) else paste0("J", jornada)
+      filename <- paste0(file_prefix, "_", team_local_abb, "_", team_visitor_abb, "_PBP.csv")
       filepath <- file.path(output_dir, filename)
+
+      # remove the old playoff filename when migrating existing data
+      if (competition_stage == "playoffs") {
+        legacy_prefix <- if (is.na(jornada)) "JNA" else paste0("J", jornada)
+        legacy_filepath <- file.path(
+          output_dir,
+          paste0(legacy_prefix, "_", team_local_abb, "_", team_visitor_abb, "_PBP.csv")
+        )
+        if (file.exists(legacy_filepath)) file.remove(legacy_filepath)
+      }
+
       write.csv(pbp_data, filepath, row.names = FALSE, fileEncoding = "UTF-8")
-      saved <<- saved + 1L
+      saved <- saved + 1L
 
     }, error = function(e) {
       errors <<- c(errors, paste("Match", match_id, "-", e$message))
@@ -181,6 +324,7 @@ scrape_season <- function(season_id,
   cat("\n\n✓ Scraping complete!\n")
   cat("  Matches fetched:", length(match_ids), "\n")
   cat("  Files saved:    ", saved, "\n")
+  cat("  Matches without PBP:", length(unavailable_match_ids), "\n")
   cat("  Output directory:", output_dir, "\n")
 
   if (length(errors) > 0) {
@@ -190,6 +334,13 @@ scrape_season <- function(season_id,
     }
     if (length(errors) > 20) cat("  ... and", length(errors) - 20, "more\n")
   }
+
+  validate_raw_season(
+    season_id = season_id,
+    expected_matches = all_matches %>% filter(!match_id %in% unavailable_match_ids),
+    data_dir = data_dir,
+    config_path = config_path
+  )
   
   invisible(all_matches)
 }

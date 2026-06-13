@@ -107,7 +107,7 @@ function App() {
   const location = useLocation()
   const activeTab = getTabFromPath(location.pathname)
 
-  const [data, setData] = useState({ teams: [], players: [], similarity: [], teamLogos: {}, playerPhotos: {}, playerBio: {} })
+  const [data, setData] = useState({ teams: [], teamsByStage: [], players: [], playersByStage: [], similarity: [], teamLogos: {}, playerPhotos: {}, playerBio: {} })
   const [loading, setLoading] = useState(true)
   const [menuOpen, setMenuOpen] = useState(false)
   const [openGroup, setOpenGroup] = useState(null)
@@ -139,23 +139,36 @@ function App() {
   useEffect(() => {
     async function loadData() {
       try {
-        const [teamsRes, playersRes, similarityRes, teamLogosRes, playerPhotosRes, playerBioRes] = await Promise.all([
+        const [teamsRes, teamsByStageRes, playersRes, playersByStageRes, similarityRes, teamLogosRes, playerPhotosRes, playerBioRes] = await Promise.all([
           fetch('/data/teams.json'),
+          fetch('/data/teams-by-stage.json'),
           fetch('/data/players.json'),
+          fetch('/data/players-by-stage.json'),
           fetch('/data/similarity.json'),
           fetch('/data/team-logos.json'),
           fetch('/data/player-photos.json'),
           fetch('/data/player-bio.json'),
         ])
-        const [teams, players, similarity, teamLogos, playerPhotos, playerBio] = await Promise.all([
+        const [teams, teamsByStage, players, playersByStage, similarity, teamLogos, playerPhotos, playerBio] = await Promise.all([
           teamsRes.json(),
+          teamsByStageRes.ok ? teamsByStageRes.json() : [],
           playersRes.json(),
+          playersByStageRes.ok ? playersByStageRes.json() : [],
           similarityRes.ok ? similarityRes.json() : [],
           teamLogosRes.ok ? teamLogosRes.json() : {},
           playerPhotosRes.ok ? playerPhotosRes.json() : {},
           playerBioRes.ok ? playerBioRes.json() : {},
         ])
-        setData({ teams, players, similarity, teamLogos, playerPhotos, playerBio })
+        setData({
+          teams,
+          teamsByStage,
+          players,
+          playersByStage,
+          similarity,
+          teamLogos,
+          playerPhotos,
+          playerBio,
+        })
       } catch (error) {
         console.error('Error cargando datos:', error)
       } finally {
@@ -423,7 +436,7 @@ function App() {
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/equipos" element={<TeamStats teams={data.teams} teamLogos={data.teamLogos} />} />
+            <Route path="/equipos" element={<TeamStats teams={data.teamsByStage} teamLogos={data.teamLogos} />} />
             <Route path="/perfil-equipo" element={<TeamFingerprint teams={data.teams} teamLogos={data.teamLogos} />} />
             <Route path="/perfil-equipo/:season/:team" element={<TeamFingerprint teams={data.teams} teamLogos={data.teamLogos} />} />
             <Route path="/matchup-equipos" element={
@@ -473,13 +486,14 @@ function App() {
             <Route path="/cuatro-factores" element={<FourFactors teams={data.teams} />} />
             <Route path="/jugadores" element={
               <PlayerStats
-                players={data.players}
+                players={data.playersByStage}
                 playerBio={data.playerBio}
               />
             } />
             <Route path="/jugador" element={
               <PlayerProfile
-                players={data.players}
+                players={data.playersByStage}
+                allPlayers={data.players}
                 playerPhotos={data.playerPhotos}
                 playerBio={data.playerBio}
                 loadLineupsForSeason={loadLineupsForSeason}
@@ -492,7 +506,8 @@ function App() {
             } />
             <Route path="/jugador/:licenseId" element={
               <PlayerProfile
-                players={data.players}
+                players={data.playersByStage}
+                allPlayers={data.players}
                 playerPhotos={data.playerPhotos}
                 playerBio={data.playerBio}
                 loadLineupsForSeason={loadLineupsForSeason}

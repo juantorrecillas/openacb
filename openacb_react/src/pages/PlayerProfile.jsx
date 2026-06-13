@@ -1250,7 +1250,10 @@ function OnOffCard({ records, loadLineupsForSeason, lineupsCache, loadingLineups
   return (
     <div className="bg-white rounded-lg border border-acb-200 p-5">
       <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
-        <h3 className="font-semibold text-acb-900">Impacto On/Off Court</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="font-semibold text-acb-900">Impacto On/Off Court</h3>
+          <span className="text-xs text-acb-400">temporada completa</span>
+        </div>
         {hasAnyData && (
           <button
             onClick={handleDownload}
@@ -1419,6 +1422,7 @@ function ClutchCard({ records, loadClutchForSeason, clutchCache, loadingClutch }
       <div className="px-5 py-3 border-b border-acb-100 flex items-center gap-2 flex-wrap">
         <Flame className="w-4 h-4 text-orange-500" />
         <h3 className="font-semibold text-acb-900 text-sm">Estadísticas Clutch</h3>
+        <span className="text-xs text-acb-400">temporada completa</span>
         <span className="text-xs text-acb-400 ml-1">últimos 5 min, diferencia ≤ 5 pts</span>
         {clutchRows.length > 0 && (
           <button
@@ -1481,11 +1485,12 @@ function ClutchCard({ records, loadClutchForSeason, clutchCache, loadingClutch }
 }
 
 // ─── Main Page ─────────────────────────────────────────────────
-export default function PlayerProfile({ players, playerPhotos = {}, playerBio = {}, loadLineupsForSeason, lineupsCache, loadingLineups, loadClutchForSeason, clutchCache, loadingClutch }) {
+export default function PlayerProfile({ players, allPlayers = players, playerPhotos = {}, playerBio = {}, loadLineupsForSeason, lineupsCache, loadingLineups, loadClutchForSeason, clutchCache, loadingClutch }) {
   const { licenseId: urlLicenseId } = useParams()
   const navigate = useNavigate()
   const [selectedLicenseId, setSelectedLicenseId] = useState(null)
   const [selectedSeason, setSelectedSeason] = useState(null)
+  const [selectedStage, setSelectedStage] = useState('regular')
 
   // Sync from URL param when navigating via /jugador/:licenseId
   useEffect(() => {
@@ -1496,18 +1501,29 @@ export default function PlayerProfile({ players, playerPhotos = {}, playerBio = 
     }
   }, [urlLicenseId])
 
+  const scopedPlayers = useMemo(() => {
+    return players.filter(p => (p.competitionStage || 'regular') === selectedStage)
+  }, [players, selectedStage])
+
   // All records for the selected player, newest first
   const playerRecords = useMemo(() => {
     if (selectedLicenseId == null) return []
     // Compare with loose equality to handle string/number mismatch
-    return players
+    return scopedPlayers
       .filter(p => String(p.licenseId) === String(selectedLicenseId))
       .sort((a, b) => b.season - a.season)
-  }, [players, selectedLicenseId])
+  }, [scopedPlayers, selectedLicenseId])
+
+  const allPlayerRecords = useMemo(() => {
+    if (selectedLicenseId == null) return []
+    return allPlayers
+      .filter(p => String(p.licenseId) === String(selectedLicenseId))
+      .sort((a, b) => b.season - a.season)
+  }, [allPlayers, selectedLicenseId])
 
   // Available seasons for this player
   const availableSeasons = useMemo(() => {
-    return playerRecords.map(r => r.season)
+    return [...new Set(playerRecords.map(r => r.season))]
   }, [playerRecords])
 
   // Default to latest season when player changes
@@ -1517,7 +1533,7 @@ export default function PlayerProfile({ players, playerPhotos = {}, playerBio = 
     } else {
       setSelectedSeason(null)
     }
-  }, [selectedLicenseId, availableSeasons.length])
+  }, [selectedLicenseId, selectedStage, availableSeasons.length])
 
   // Record for the currently selected season
   const seasonRecord = useMemo(() => {
@@ -1529,17 +1545,17 @@ export default function PlayerProfile({ players, playerPhotos = {}, playerBio = 
   // fall back to the separate playerBio lookup for backwards compatibility.
   // Sanitize every value to a primitive — R's write_json can emit {} for some edge cases.
   const bio = useMemo(() => {
-    if (!playerRecords.length) return null
+    if (!allPlayerRecords.length) return null
     const str = v => (typeof v === 'string' && v) ? v : null
     const num = v => { const n = parseFloat(v); return isFinite(n) ? n : null }
-    const latest = playerRecords[0]
+    const latest = allPlayerRecords[0]
     const ext = playerBio[String(selectedLicenseId)] || {}
     return {
       position:  str(latest.position)  ?? str(ext.position),
       heightM:   num(latest.heightM)   ?? num(ext.heightM),
       birthDate: str(latest.birthDate) ?? str(ext.birthDate),
     }
-  }, [playerRecords, playerBio, selectedLicenseId])
+  }, [allPlayerRecords, playerBio, selectedLicenseId])
 
   return (
     <div className="space-y-6">
@@ -1558,18 +1574,42 @@ export default function PlayerProfile({ players, playerPhotos = {}, playerBio = 
         selectedLicenseId={selectedLicenseId}
       />
 
-      {selectedLicenseId && playerRecords.length > 0 && (
+      {selectedLicenseId && allPlayerRecords.length > 0 && (
         <>
           {/* Player Header */}
           <PlayerHeader
-            records={playerRecords}
-            photoUrl={getPlayerPhoto(playerPhotos, selectedLicenseId, selectedSeason)}
+            records={allPlayerRecords}
+            photoUrl={getPlayerPhoto(playerPhotos, selectedLicenseId, selectedSeason || allPlayerRecords[0]?.season)}
             bio={bio}
-            selectedSeason={selectedSeason}
+            selectedSeason={selectedSeason || allPlayerRecords[0]?.season}
           />
 
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-acb-500 font-medium">Estadísticas:</span>
+            <div className="flex rounded-md border border-acb-200 text-xs overflow-hidden">
+              <button
+                onClick={() => setSelectedStage('regular')}
+                className={`px-3 py-1.5 font-medium transition-colors ${
+                  selectedStage === 'regular' ? 'bg-acb-800 text-white' : 'bg-white text-acb-600 hover:bg-acb-50'
+                }`}
+              >
+                Temporada regular
+              </button>
+              <button
+                onClick={() => setSelectedStage('playoffs')}
+                className={`px-3 py-1.5 font-medium transition-colors ${
+                  selectedStage === 'playoffs' ? 'bg-acb-800 text-white' : 'bg-white text-acb-600 hover:bg-acb-50'
+                }`}
+              >
+                Playoffs
+              </button>
+            </div>
+          </div>
+
+          {playerRecords.length > 0 ? (
+            <>
           {/* Find Similar Players button */}
-          {selectedSeason && (
+          {selectedSeason && selectedStage === 'regular' && (
             <button
               onClick={() => navigate(`/similitud/${selectedLicenseId}/${selectedSeason}`)}
               className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-accent-700 bg-accent-50 border border-accent-200 rounded-lg hover:bg-accent-100 transition-colors"
@@ -1603,7 +1643,7 @@ export default function PlayerProfile({ players, playerPhotos = {}, playerBio = 
 
           {/* On/Off Impact */}
           <OnOffCard
-            records={playerRecords}
+            records={allPlayerRecords}
             loadLineupsForSeason={loadLineupsForSeason}
             lineupsCache={lineupsCache}
             loadingLineups={loadingLineups}
@@ -1612,16 +1652,22 @@ export default function PlayerProfile({ players, playerPhotos = {}, playerBio = 
           {/* Clutch Stats */}
           {loadClutchForSeason && (
             <ClutchCard
-              records={playerRecords}
+              records={allPlayerRecords}
               loadClutchForSeason={loadClutchForSeason}
               clutchCache={clutchCache}
               loadingClutch={loadingClutch}
             />
           )}
+            </>
+          ) : (
+            <div className="text-center py-12 text-acb-500">
+              No hay datos de {selectedStage === 'playoffs' ? 'playoffs' : 'temporada regular'} para este jugador.
+            </div>
+          )}
         </>
       )}
 
-      {selectedLicenseId && playerRecords.length === 0 && (
+      {selectedLicenseId && allPlayerRecords.length === 0 && (
         <div className="text-center py-12 text-acb-500">
           No se encontraron datos para este jugador.
         </div>

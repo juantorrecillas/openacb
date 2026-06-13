@@ -105,7 +105,11 @@ run_season_pipeline <- function(
     create_pbp_variables(season_id, data_dir = data_dir, config_path = config_path))
 
   step_run("team_stats",      "Calculating team statistics",
-    calculate_team_stats(season_id, data_dir = data_dir, config_path = config_path))
+    {
+      calculate_team_stats(season_id, data_dir = data_dir, config_path = config_path)
+      calculate_team_stats(season_id, data_dir = data_dir, config_path = config_path, competition_stage = "regular")
+      calculate_team_stats(season_id, data_dir = data_dir, config_path = config_path, competition_stage = "playoffs")
+    })
 
   step_run("shot_charts",     "Processing shot chart data",
     process_shot_charts(season_id, data_dir = data_dir, config_path = config_path))
@@ -114,7 +118,11 @@ run_season_pipeline <- function(
     calculate_lineup_analysis(season_id, data_dir = data_dir, config_path = config_path))
 
   step_run("player_stats",    "Calculating player statistics",
-    calculate_player_stats(season_id, data_dir = data_dir, config_path = config_path))
+    {
+      calculate_player_stats(season_id, data_dir = data_dir, config_path = config_path)
+      calculate_player_stats(season_id, data_dir = data_dir, config_path = config_path, competition_stage = "regular")
+      calculate_player_stats(season_id, data_dir = data_dir, config_path = config_path, competition_stage = "playoffs")
+    })
 
   step_run("game_flow",       "Generating game flow data",
     generate_game_flow(season_id, data_dir = data_dir, config_path = config_path))
@@ -209,9 +217,15 @@ run_full_pipeline <- function(season_ids = NULL, run_cross_season = TRUE, run_ex
     tryCatch(export_team_data(),        error = function(e) cat("✗ Error:", e$message, "\n"))
 
     cat("\n[Export] Exporting player data\n")
+    tryCatch(
+      export_team_data(c("regular", "playoffs"), "teams-by-stage.json"),
+      error = function(e) cat("Stage team export error:", e$message, "\n")
+    )
     tryCatch({
       all_players <- load_all_player_data()
       export_player_data(all_players)
+      stage_players <- load_all_player_data(c("regular", "playoffs"))
+      export_player_data(stage_players, "players-by-stage.json")
       export_similarity_data(all_players)
     }, error = function(e) cat("✗ Error:", e$message, "\n"))
 
@@ -257,7 +271,10 @@ quick_update <- function(
     all_players <- load_all_player_data()
     export_shot_data()
     export_team_data()
+    export_team_data(c("regular", "playoffs"), "teams-by-stage.json")
     export_player_data(all_players)
+    stage_players <- load_all_player_data(c("regular", "playoffs"))
+    export_player_data(stage_players, "players-by-stage.json")
     export_similarity_data(all_players)
     export_teampace_data()
     export_gameflow_data()

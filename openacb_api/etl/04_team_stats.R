@@ -20,7 +20,8 @@ source("./etl/02_clean.R")
 #' 
 calculate_team_stats <- function(season_id,
                                   data_dir = "./data",
-                                  config_path = "./config/seasons.R") {
+                                  config_path = "./config/seasons.R",
+                                  competition_stage = NULL) {
   
   # Load configuration
   source(config_path)
@@ -46,6 +47,24 @@ calculate_team_stats <- function(season_id,
   # Apply team name standardization - this is critical for consistent team names
   cat("→ Applying team name standardization...\n")
   df <- standardize_team_names(df, season_id, config_path)
+
+  if (!is.null(competition_stage)) {
+    valid_stages <- c("regular", "playoffs")
+    if (!competition_stage %in% valid_stages) {
+      stop("competition_stage must be one of: ", paste(valid_stages, collapse = ", "))
+    }
+    if (!"competition_stage" %in% names(df)) {
+      stop("competition_stage is missing from processed data")
+    }
+
+    df <- df %>%
+      filter(.data$competition_stage == .env$competition_stage)
+
+    if (nrow(df) == 0) {
+      cat("  No", competition_stage, "data found for season", season_id, "- skipping\n")
+      return(invisible(NULL))
+    }
+  }
   
   # Verify team names are correct
   unique_teams <- unique(na.omit(df$team.team_actual_name))
@@ -156,7 +175,8 @@ calculate_team_stats <- function(season_id,
       tecnica_opponent = tecnica_opponent,
 
       # Season identifier
-      year = season_id
+      year = season_id,
+      competition_stage = if (is.null(competition_stage)) "all" else competition_stage
     )
   
   # Calculate per-game boxscore stats
@@ -208,9 +228,12 @@ calculate_team_stats <- function(season_id,
   # Select final columns and add wins/losses
   final_stats <- stats %>%
     left_join(wins_count, by = "team.team_actual_name") %>%
-    mutate(losses = ngames - wins) %>%
+    mutate(
+      wins = coalesce(wins, 0L),
+      losses = ngames - wins
+    ) %>%
     select(
-      team.team_actual_name, ngames, wins, losses, year,
+      team.team_actual_name, ngames, wins, losses, year, competition_stage,
       # Team boxscore per-game stats
       ppg, rpg, orebpg, drebpg, apg, spg, bpg, topg, fpg,
       fgm_pg, fga_pg, fg3m_pg, fg3a_pg, ftm_pg, fta_pg,
@@ -239,7 +262,8 @@ calculate_team_stats <- function(season_id,
     filter(!is.na(team.team_actual_name))
   
   # Save results
-  output_file <- file.path(processed_dir, paste0("TeamAdvancedStats", season_id, ".csv"))
+  stage_suffix <- if (is.null(competition_stage)) "" else paste0("_", competition_stage)
+  output_file <- file.path(processed_dir, paste0("TeamAdvancedStats", season_id, stage_suffix, ".csv"))
   cat("→ Saving to:", output_file, "\n")
   write.csv(final_stats, output_file, row.names = FALSE, fileEncoding = "UTF-8")
   
