@@ -31,6 +31,9 @@ MIN_POSSESSIONS <- 10
 # Minimum minutes required (alternative filter)
 MIN_MINUTES <- 2
 
+# minimum minutes required for a player exclusion split
+MIN_EXCLUSION_MINUTES <- 25
+
 # =============================================================================
 # Time Difference Calculation (for minutes tracking)
 # =============================================================================
@@ -361,6 +364,26 @@ calculate_stats_for_subset <- function(subset_dt, team_name) {
   )
 }
 
+# format the directional player exclusion metrics used by react
+format_exclusion_stats <- function(stats) {
+  if (is.null(stats) || stats$minutes < MIN_EXCLUSION_MINUTES) return(NULL)
+
+  list(
+    min = round(stats$minutes, 1),
+    poss = round(stats$pos),
+    ORtg = round(stats$oer * 100, 1),
+    DRtg = round(stats$der * 100, 1),
+    netRtg = round(stats$ner * 100, 1),
+    eFG = round(stats$efg * 100, 1),
+    TOV = round(stats$tov_rate * 100, 1),
+    ORB = round(stats$orb_pct * 100, 1),
+    AST = round(stats$ast_rate * 100, 1),
+    oppEFG = round(stats$opp_efg * 100, 1),
+    oppTOV = round(stats$opp_tov_rate * 100, 1),
+    DRB = round(stats$drb_pct * 100, 1)
+  )
+}
+
 # =============================================================================
 # Individual Player Statistics (Optimized)
 # =============================================================================
@@ -477,6 +500,29 @@ calculate_pair_stats_optimized <- function(team_data, team_name, player_cols, pl
     off_stats <- calculate_stats_for_subset(off_subset, team_name)
 
     if (!is.null(on_stats)) {
+      # calculate each player with the other player off court
+      player1_without_player2_subset <- team_data[
+        team_data[[pista_col1]] == 1 & team_data[[pista_col2]] == 0
+      ]
+      player2_without_player1_subset <- team_data[
+        team_data[[pista_col2]] == 1 & team_data[[pista_col1]] == 0
+      ]
+
+      player1_without_player2 <- format_exclusion_stats(
+        calculate_stats_for_subset(player1_without_player2_subset, team_name)
+      )
+      player2_without_player1 <- format_exclusion_stats(
+        calculate_stats_for_subset(player2_without_player1_subset, team_name)
+      )
+
+      without_stats <- list()
+      if (!is.null(player1_without_player2)) {
+        without_stats$player1 <- player1_without_player2
+      }
+      if (!is.null(player2_without_player1)) {
+        without_stats$player2 <- player2_without_player1
+      }
+
       # Get display names using playerKey for exact match
       p1info <- player_info[playerKey == player_key1]
       p2info <- player_info[playerKey == player_key2]
@@ -515,7 +561,8 @@ calculate_pair_stats_optimized <- function(team_data, team_name, player_cols, pl
         onOppEFG = round(on_stats$opp_efg * 100, 1),
         onTOV = round(on_stats$tov_rate * 100, 1),
         onDRB = round(on_stats$drb_pct * 100, 1),
-        onAST = round(on_stats$ast_rate * 100, 1)
+        onAST = round(on_stats$ast_rate * 100, 1),
+        without = without_stats
       )
     }
   }

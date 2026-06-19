@@ -288,7 +288,8 @@ transform_pair_stats <- function(pair_data) {
       onOppEFG = p$onOppEFG,
       onTOV = p$onTOV,
       onDRB = p$onDRB,
-      onAST = p$onAST
+      onAST = p$onAST,
+      without = p$without
     )
   })
 }

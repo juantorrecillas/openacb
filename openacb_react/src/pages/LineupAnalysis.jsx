@@ -83,7 +83,13 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
 
   // Player selection state
   const [selectedPlayers, setSelectedPlayers] = useState([])
+  const [excludedPlayer, setExcludedPlayer] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
+
+  // clear exclusions whenever the analysis context changes
+  useEffect(() => {
+    setExcludedPlayer('')
+  }, [selectedSeason, selectedTeam, selectedPlayers])
 
   // Filter teams by season
   const seasonFilteredTeams = useMemo(() => {
@@ -123,6 +129,28 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
   const getPlayerDisplayName = (playerKey) => {
     return playerDisplayMap[playerKey]?.name || playerKey
   }
+
+  // find teammates with a valid directional exclusion split
+  const availableExclusions = useMemo(() => {
+    if (selectedPlayers.length !== 1 || !currentTeamData?.pairs) return []
+
+    const focalPlayer = selectedPlayers[0]
+    const teammates = []
+
+    Object.values(currentTeamData.pairs).forEach(pair => {
+      if (pair.player1 === focalPlayer && pair.without?.player1) {
+        teammates.push(pair.player2)
+      } else if (pair.player2 === focalPlayer && pair.without?.player2) {
+        teammates.push(pair.player1)
+      }
+    })
+
+    return teammates.sort((a, b) => {
+      const nameA = playerDisplayMap[a]?.name || a
+      const nameB = playerDisplayMap[b]?.name || b
+      return nameA.localeCompare(nameB, 'es')
+    })
+  }, [currentTeamData, selectedPlayers, playerDisplayMap])
 
   // Get all players data for the table
   const allPlayersData = useMemo(() => {
@@ -187,6 +215,22 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
   }
 
   const currentLineupData = getLineupDataForPlayers()
+
+  // resolve the focal player's directional split without relying on pair key order
+  const currentExclusionData = useMemo(() => {
+    if (selectedPlayers.length !== 1 || !excludedPlayer || !currentTeamData?.pairs) return null
+
+    const focalPlayer = selectedPlayers[0]
+    const pair = Object.values(currentTeamData.pairs).find(item => (
+      (item.player1 === focalPlayer && item.player2 === excludedPlayer) ||
+      (item.player2 === focalPlayer && item.player1 === excludedPlayer)
+    ))
+
+    if (!pair) return null
+    return pair.player1 === focalPlayer
+      ? pair.without?.player1 || null
+      : pair.without?.player2 || null
+  }, [currentTeamData, selectedPlayers, excludedPlayer])
 
   // Player selection handlers
   const addPlayer = (player) => {
@@ -336,6 +380,30 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
             </div>
           )}
 
+          {selectedPlayers.length === 1 && availableExclusions.length > 0 && (
+            <div className="flex flex-wrap items-center gap-3 rounded-md border border-acb-200 bg-acb-50 p-3">
+              <label htmlFor="excluded-player" className="text-sm font-medium text-acb-700">
+                Excluir compañero:
+              </label>
+              <select
+                id="excluded-player"
+                value={excludedPlayer}
+                onChange={(e) => setExcludedPlayer(e.target.value)}
+                className="min-w-[220px] rounded-md border border-acb-200 bg-white px-3 py-2 text-sm font-medium"
+              >
+                <option value="">Ninguno</option>
+                {availableExclusions.map(playerKey => (
+                  <option key={playerKey} value={playerKey}>
+                    {getPlayerDisplayName(playerKey)}
+                  </option>
+                ))}
+              </select>
+              <span className="text-xs text-acb-500">
+                Mínimo 2 min juntos y 25 min con el compañero fuera
+              </span>
+            </div>
+          )}
+
           {/* Player Grid */}
           <div className="max-h-48 overflow-y-auto border border-acb-100 rounded-md bg-acb-50/50">
             {filteredPlayers.length > 0 ? (
@@ -369,8 +437,85 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
         </div>
       </div>
 
+      {selectedPlayers.length === 1 && excludedPlayer && currentExclusionData && (
+        <div className="overflow-hidden rounded-lg border border-acb-200 bg-white">
+          <div className="bg-gradient-to-r from-acb-700 to-acb-800 px-4 py-3">
+            <h3 className="text-lg font-semibold text-white">
+              {getPlayerDisplayName(selectedPlayers[0])} sin {getPlayerDisplayName(excludedPlayer)}
+            </h3>
+            <p className="text-sm text-acb-200">
+              Rendimiento del equipo con {getPlayerDisplayName(selectedPlayers[0])} en pista y {getPlayerDisplayName(excludedPlayer)} fuera
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 divide-x divide-y divide-acb-200 sm:grid-cols-4 sm:divide-y-0">
+            <div className="p-4 text-center">
+              <div className="mb-1 text-xs uppercase tracking-wider text-acb-500">Ef. Ofensiva</div>
+              <div className={`font-mono text-2xl font-bold ${getRatingColor(currentExclusionData.ORtg)}`}>
+                {currentExclusionData.ORtg?.toFixed(1)}
+              </div>
+            </div>
+            <div className="p-4 text-center">
+              <div className="mb-1 text-xs uppercase tracking-wider text-acb-500">Ef. Defensiva</div>
+              <div className={`font-mono text-2xl font-bold ${getRatingColor(currentExclusionData.DRtg, true)}`}>
+                {currentExclusionData.DRtg?.toFixed(1)}
+              </div>
+            </div>
+            <div className="p-4 text-center">
+              <div className="mb-1 text-xs uppercase tracking-wider text-acb-500">Ef. Neta</div>
+              <div className={`font-mono text-2xl font-bold ${
+                currentExclusionData.netRtg > 0 ? 'text-positive' :
+                currentExclusionData.netRtg < 0 ? 'text-negative' : 'text-acb-500'
+              }`}>
+                {currentExclusionData.netRtg > 0 ? '+' : ''}{currentExclusionData.netRtg?.toFixed(1)}
+              </div>
+            </div>
+            <div className="bg-acb-50 p-4 text-center">
+              <div className="mb-1 text-xs uppercase tracking-wider text-acb-500">Muestra</div>
+              <div className="font-mono text-lg font-semibold text-acb-800">
+                {currentExclusionData.min?.toFixed(1)} min
+              </div>
+              <div className="text-xs text-acb-500">{currentExclusionData.poss} posesiones</div>
+            </div>
+          </div>
+
+          <div className="border-t border-acb-200">
+            <div className="bg-acb-50 px-4 py-2 text-xs font-bold uppercase tracking-wider text-acb-600">Ataque</div>
+            <div className="grid grid-cols-2 divide-x divide-acb-200 sm:grid-cols-4">
+              {[
+                { label: 'eFG%', value: currentExclusionData.eFG },
+                { label: 'TOV%', value: currentExclusionData.TOV },
+                { label: 'ORB%', value: currentExclusionData.ORB },
+                { label: 'AST%', value: currentExclusionData.AST },
+              ].map(stat => (
+                <div key={stat.label} className="p-3 text-center">
+                  <div className="mb-1 text-xs uppercase tracking-wider text-acb-500">{stat.label}</div>
+                  <div className="font-mono text-lg font-semibold text-acb-700">{stat.value?.toFixed(1)}%</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="border-t border-acb-200">
+            <div className="bg-acb-50 px-4 py-2 text-xs font-bold uppercase tracking-wider text-acb-600">Defensa (rival)</div>
+            <div className="grid grid-cols-3 divide-x divide-acb-200">
+              {[
+                { label: 'eFG% Rival', value: currentExclusionData.oppEFG },
+                { label: 'TOV% Rival', value: currentExclusionData.oppTOV },
+                { label: 'DRB%', value: currentExclusionData.DRB },
+              ].map(stat => (
+                <div key={stat.label} className="p-3 text-center">
+                  <div className="mb-1 text-xs uppercase tracking-wider text-acb-500">{stat.label}</div>
+                  <div className="font-mono text-lg font-semibold text-acb-700">{stat.value?.toFixed(1)}%</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Individual Player Analysis Results */}
-      {selectedPlayers.length === 1 && currentLineupData && (
+      {selectedPlayers.length === 1 && currentLineupData && !excludedPlayer && (
         <div className="bg-white rounded-lg border border-acb-200 overflow-hidden">
           <div className="bg-gradient-to-r from-acb-700 to-acb-800 px-4 py-3">
             <h3 className="font-semibold text-white text-lg">
@@ -644,7 +789,7 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
               <thead>
                 <tr className="text-xs uppercase tracking-wider border-b border-acb-200">
                   <th className="px-4 py-1 bg-acb-50 text-left font-semibold text-acb-600" rowSpan={2}>Jugador</th>
-                  <th colSpan={2} className="px-2 py-1 text-center bg-acb-50 text-acb-500 font-semibold">Ratings (Δ)</th>
+                  <th colSpan={2} className="px-2 py-1 text-center bg-acb-50 text-acb-500 font-semibold">Ratings (dif)</th>
                   <th colSpan={2} className="px-2 py-1 text-center bg-acb-50 text-acb-500 font-semibold">Ef. Neta</th>
                   <th className="px-2 py-1 bg-accent-50 text-accent-700 font-semibold text-center cursor-pointer hover:bg-acb-100 transition-colors" rowSpan={2} onClick={() => handleSort('netDiff')}>
                     <div className="flex items-center justify-center gap-1">
@@ -656,8 +801,8 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
                       )}
                     </div>
                   </th>
-                  <th colSpan={5} className="px-2 py-1 text-center bg-acb-50 text-acb-600 font-semibold">Ataque (Δ)</th>
-                  <th colSpan={3} className="px-2 py-1 text-center bg-acb-50 text-acb-600 font-semibold">Defensa Rival (Δ)</th>
+                  <th colSpan={4} className="px-2 py-1 text-center bg-acb-50 text-acb-600 font-semibold">Ataque (dif)</th>
+                  <th colSpan={3} className="px-2 py-1 text-center bg-acb-50 text-acb-600 font-semibold">Defensa (dif)</th>
                   <th className="px-2 py-1 bg-acb-50 text-acb-500 font-semibold text-center" rowSpan={2}>Min</th>
                 </tr>
                 <tr className="text-xs text-acb-600 uppercase tracking-wider">
