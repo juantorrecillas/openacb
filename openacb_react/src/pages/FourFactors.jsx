@@ -158,6 +158,15 @@ export default function FourFactors({ teams }) {
     return 'bg-negative-100 text-negative-700'                          // Bottom 25%
   }
 
+  const rankedCell = (value, rank, totalTeams, className = '') => (
+    <td className={`data-table-cell data-table-number data-col-number ${className}`}>
+      <div className="data-table-value">
+        <span>{formatValue(value, 1)}</span>
+        <span className={`data-table-badge ${getRankColor(rank, totalTeams)}`}>#{rank}</span>
+      </div>
+    </td>
+  )
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -198,46 +207,46 @@ export default function FourFactors({ teams }) {
       {/* Detailed Table */}
       <div className="bg-white rounded-lg border border-acb-200 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="data-table">
             <thead>
               {/* Header row 1: Column groups */}
               <tr className="bg-acb-100 border-b border-acb-300">
-                <th className="px-4 py-2 text-left text-xs font-semibold text-acb-700 uppercase tracking-wider w-8" rowSpan="2">#</th>
-                <th className="px-4 py-2 text-left text-xs font-semibold text-acb-700 uppercase tracking-wider" rowSpan="2">Equipo</th>
-                <th className="px-2 py-2 text-center text-xs font-semibold text-acb-700 uppercase tracking-wider border-r border-acb-300" colSpan="5">Ataque</th>
-                <th className="px-2 py-2 text-center text-xs font-semibold text-acb-700 uppercase tracking-wider border-r border-acb-300" colSpan="5">Defensa</th>
-                <th className="px-2 py-2 text-center text-xs font-semibold text-acb-700 uppercase tracking-wider" rowSpan="2">Net</th>
+                <th className="data-table-head data-table-number data-table-sticky data-table-sticky-head data-col-rank bg-acb-100" rowSpan="2">#</th>
+                <th className="data-table-head data-table-identity data-table-sticky-after-rank data-table-sticky-head data-col-team bg-acb-100" rowSpan="2">Equipo</th>
+                <th className="data-table-group border-r border-acb-300" colSpan="5">Ataque</th>
+                <th className="data-table-group border-r border-acb-300" colSpan="5">Defensa</th>
+                <th className="data-table-group" rowSpan="2">Neto</th>
               </tr>
               {/* Header row 2: Individual columns */}
               <tr className="bg-acb-50 border-b border-acb-200">
-                <th className={`px-2 py-3 text-center text-xs font-semibold text-acb-600 uppercase tracking-wider cursor-pointer hover:bg-acb-100 ${
+                <th className={`data-table-head data-table-number data-col-number cursor-pointer hover:bg-acb-100 ${
                   sortKey === 'offensiveShooting' ? 'bg-acb-100' : ''}`}
                     onClick={() => handleSort('offensiveShooting')} title="Effective Field Goal %">eFG%</th>
-                <th className={`px-2 py-3 text-center text-xs font-semibold text-acb-600 uppercase tracking-wider cursor-pointer hover:bg-acb-100 ${
+                <th className={`data-table-head data-table-number data-col-number cursor-pointer hover:bg-acb-100 ${
                   sortKey === 'offensiveTurnovers' ? 'bg-acb-100' : ''}`}
                     onClick={() => handleSort('offensiveTurnovers')} title="Pérdidas %">PER%</th>
-                <th className={`px-2 py-3 text-center text-xs font-semibold text-acb-600 uppercase tracking-wider cursor-pointer hover:bg-acb-100 ${
+                <th className={`data-table-head data-table-number data-col-number cursor-pointer hover:bg-acb-100 ${
                   sortKey === 'offensiveRebounding' ? 'bg-acb-100' : ''}`}
                     onClick={() => handleSort('offensiveRebounding')} title="Rebote Ofensivo %">RO%</th>
-                <th className={`px-2 py-3 text-center text-xs font-semibold text-acb-600 uppercase tracking-wider cursor-pointer hover:bg-acb-100 ${
+                <th className={`data-table-head data-table-number data-col-number cursor-pointer hover:bg-acb-100 ${
                   sortKey === 'offensiveFreeThrows' ? 'bg-acb-100' : ''}`}
                     onClick={() => handleSort('offensiveFreeThrows')} title="Tasa de Tiros Libres">TLr</th>
-                <th className={`px-2 py-3 text-center text-xs font-semibold text-acb-600 uppercase tracking-wider cursor-pointer hover:bg-acb-100 border-r border-acb-300 ${
+                <th className={`data-table-head data-table-number data-col-number cursor-pointer hover:bg-acb-100 border-r border-acb-300 ${
                   sortKey === 'offensiveRating' ? 'bg-acb-100' : ''}`}
                     onClick={() => handleSort('offensiveRating')} title="Offensive Rating">ORtg</th>
-                <th className={`px-2 py-3 text-center text-xs font-semibold text-acb-600 uppercase tracking-wider cursor-pointer hover:bg-acb-100 ${
+                <th className={`data-table-head data-table-number data-col-number cursor-pointer hover:bg-acb-100 ${
                   sortKey === 'defensiveShooting' ? 'bg-acb-100' : ''}`}
                     onClick={() => handleSort('defensiveShooting')} title="eFG% Rival">eFG%</th>
-                <th className={`px-2 py-3 text-center text-xs font-semibold text-acb-600 uppercase tracking-wider cursor-pointer hover:bg-acb-100 ${
+                <th className={`data-table-head data-table-number data-col-number cursor-pointer hover:bg-acb-100 ${
                   sortKey === 'defensiveTurnovers' ? 'bg-acb-100' : ''}`}
                     onClick={() => handleSort('defensiveTurnovers')} title="PER% Rival">PER%</th>
-                <th className={`px-2 py-3 text-center text-xs font-semibold text-acb-600 uppercase tracking-wider cursor-pointer hover:bg-acb-100 ${
+                <th className={`data-table-head data-table-number data-col-number cursor-pointer hover:bg-acb-100 ${
                   sortKey === 'defensiveRebounding' ? 'bg-acb-100' : ''}`}
                     onClick={() => handleSort('defensiveRebounding')} title="Rebote Defensivo %">RD%</th>
-                <th className={`px-2 py-3 text-center text-xs font-semibold text-acb-600 uppercase tracking-wider cursor-pointer hover:bg-acb-100 ${
+                <th className={`data-table-head data-table-number data-col-number cursor-pointer hover:bg-acb-100 ${
                   sortKey === 'defensiveFreeThrows' ? 'bg-acb-100' : ''}`}
                     onClick={() => handleSort('defensiveFreeThrows')} title="Tasa de Tiros Libres Rival">TLr</th>
-                <th className={`px-2 py-3 text-center text-xs font-semibold text-acb-600 uppercase tracking-wider cursor-pointer hover:bg-acb-100 border-r border-acb-300 ${
+                <th className={`data-table-head data-table-number data-col-number cursor-pointer hover:bg-acb-100 border-r border-acb-300 ${
                   sortKey === 'defensiveRating' ? 'bg-acb-100' : ''}`}
                     onClick={() => handleSort('defensiveRating')} title="Defensive Rating">DRtg</th>
               </tr>
@@ -248,105 +257,25 @@ export default function FourFactors({ teams }) {
                 return (
                   <tr
                     key={`${team.team}-${team.season}`}
-                    className={`border-b border-acb-100 hover:bg-acb-50 transition-colors ${
+                    className={`data-table-row border-b border-acb-100 ${
                       highlightTeam === team.team ? 'bg-accent-50' : ''
                     }`}
                     onMouseEnter={() => setHighlightTeam(team.team)}
                     onMouseLeave={() => setHighlightTeam(null)}
                   >
-                    <td className="px-4 py-3 text-sm text-acb-400 font-mono">{i + 1}</td>
-                    <td className="px-4 py-3 text-sm font-medium text-acb-900">{team.team}</td>
-                    {/* Offensive Four Factors */}
-                    <td className="px-2 py-3 text-sm text-center">
-                      <div className="flex flex-col items-center gap-1">
-                        <span className="font-mono">{formatValue(team.offensiveShooting, 1)}</span>
-                        <span className={`text-xs px-1.5 py-0.5 rounded ${getRankColor(team.offensiveShootingRank, totalTeams)}`}>
-                          #{team.offensiveShootingRank}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-2 py-3 text-sm text-center">
-                      <div className="flex flex-col items-center gap-1">
-                        <span className="font-mono">{formatValue(team.offensiveTurnovers, 1)}</span>
-                        <span className={`text-xs px-1.5 py-0.5 rounded ${getRankColor(team.offensiveTurnoversRank, totalTeams)}`}>
-                          #{team.offensiveTurnoversRank}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-2 py-3 text-sm text-center">
-                      <div className="flex flex-col items-center gap-1">
-                        <span className="font-mono">{formatValue(team.offensiveRebounding, 1)}</span>
-                        <span className={`text-xs px-1.5 py-0.5 rounded ${getRankColor(team.offensiveReboundingRank, totalTeams)}`}>
-                          #{team.offensiveReboundingRank}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-2 py-3 text-sm text-center">
-                      <div className="flex flex-col items-center gap-1">
-                        <span className="font-mono">{formatValue(team.offensiveFreeThrows, 1)}</span>
-                        <span className={`text-xs px-1.5 py-0.5 rounded ${getRankColor(team.offensiveFreeThrowsRank, totalTeams)}`}>
-                          #{team.offensiveFreeThrowsRank}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-2 py-3 text-sm text-center border-r border-acb-300">
-                      <div className="flex flex-col items-center gap-1">
-                        <span className="font-mono font-semibold">{formatValue(team.offensiveRating, 1)}</span>
-                        <span className={`text-xs px-1.5 py-0.5 rounded ${getRankColor(team.offensiveRatingRank, totalTeams)}`}>
-                          #{team.offensiveRatingRank}
-                        </span>
-                      </div>
-                    </td>
-                    {/* Defensive Four Factors */}
-                    <td className="px-2 py-3 text-sm text-center">
-                      <div className="flex flex-col items-center gap-1">
-                        <span className="font-mono">{formatValue(team.defensiveShooting, 1)}</span>
-                        <span className={`text-xs px-1.5 py-0.5 rounded ${getRankColor(team.defensiveShootingRank, totalTeams)}`}>
-                          #{team.defensiveShootingRank}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-2 py-3 text-sm text-center">
-                      <div className="flex flex-col items-center gap-1">
-                        <span className="font-mono">{formatValue(team.defensiveTurnovers, 1)}</span>
-                        <span className={`text-xs px-1.5 py-0.5 rounded ${getRankColor(team.defensiveTurnoversRank, totalTeams)}`}>
-                          #{team.defensiveTurnoversRank}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-2 py-3 text-sm text-center">
-                      <div className="flex flex-col items-center gap-1">
-                        <span className="font-mono">{formatValue(team.defensiveRebounding, 1)}</span>
-                        <span className={`text-xs px-1.5 py-0.5 rounded ${getRankColor(team.defensiveReboundingRank, totalTeams)}`}>
-                          #{team.defensiveReboundingRank}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-2 py-3 text-sm text-center">
-                      <div className="flex flex-col items-center gap-1">
-                        <span className="font-mono">{formatValue(team.defensiveFreeThrows, 1)}</span>
-                        <span className={`text-xs px-1.5 py-0.5 rounded ${getRankColor(team.defensiveFreeThrowsRank, totalTeams)}`}>
-                          #{team.defensiveFreeThrowsRank}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-2 py-3 text-sm text-center border-r border-acb-300">
-                      <div className="flex flex-col items-center gap-1">
-                        <span className="font-mono font-semibold">{formatValue(team.defensiveRating, 1)}</span>
-                        <span className={`text-xs px-1.5 py-0.5 rounded ${getRankColor(team.defensiveRatingRank, totalTeams)}`}>
-                          #{team.defensiveRatingRank}
-                        </span>
-                      </div>
-                    </td>
-                    {/* Net Rating */}
-                    <td className="px-2 py-3 text-sm text-center">
-                      <div className="flex flex-col items-center gap-1">
-                        <span className="font-mono font-bold">{formatValue(team.netRating, 1)}</span>
-                        <span className={`text-xs px-1.5 py-0.5 rounded ${getRankColor(team.netRatingRank, totalTeams)}`}>
-                          #{team.netRatingRank}
-                        </span>
-                      </div>
-                    </td>
+                    <td className="data-table-cell data-table-number data-table-sticky data-col-rank text-acb-400">{i + 1}</td>
+                    <td className="data-table-cell data-table-identity data-table-sticky-after-rank data-col-team">{team.team}</td>
+                    {rankedCell(team.offensiveShooting, team.offensiveShootingRank, totalTeams)}
+                    {rankedCell(team.offensiveTurnovers, team.offensiveTurnoversRank, totalTeams)}
+                    {rankedCell(team.offensiveRebounding, team.offensiveReboundingRank, totalTeams)}
+                    {rankedCell(team.offensiveFreeThrows, team.offensiveFreeThrowsRank, totalTeams)}
+                    {rankedCell(team.offensiveRating, team.offensiveRatingRank, totalTeams, 'border-r border-acb-300 font-semibold')}
+                    {rankedCell(team.defensiveShooting, team.defensiveShootingRank, totalTeams)}
+                    {rankedCell(team.defensiveTurnovers, team.defensiveTurnoversRank, totalTeams)}
+                    {rankedCell(team.defensiveRebounding, team.defensiveReboundingRank, totalTeams)}
+                    {rankedCell(team.defensiveFreeThrows, team.defensiveFreeThrowsRank, totalTeams)}
+                    {rankedCell(team.defensiveRating, team.defensiveRatingRank, totalTeams, 'border-r border-acb-300 font-semibold')}
+                    {rankedCell(team.netRating, team.netRatingRank, totalTeams, 'font-semibold')}
                   </tr>
                 )
               })}

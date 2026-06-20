@@ -514,7 +514,7 @@ export default function TeamFingerprint({ teams, teamLogos = {} }) {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold text-acb-900">Estilo de Equipo</h2>
+        <h2 className="text-2xl font-semibold text-acb-900">Estilo de Equipo</h2>
         <p className="text-acb-500 mt-1">Perfil de juego de cada equipo: fortalezas, debilidades y características destacables.</p>
       </div>
 

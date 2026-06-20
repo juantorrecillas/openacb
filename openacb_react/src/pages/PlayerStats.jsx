@@ -2,6 +2,8 @@ import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Search, ArrowUp, ArrowDown, Filter, Download } from 'lucide-react'
 import { downloadTableAsCsv } from '../utils/csvDownload'
+import { statTitle } from '../utils/statLabels'
+import { getPlayerDisplayName, getPlayerSearchText } from '../utils/playerNames'
 
 const positionCol = { key: 'position', label: 'Pos', align: 'left', sortable: true }
 
@@ -74,12 +76,12 @@ const frequencyColumns = [
   positionCol,
   { key: 'games', label: 'PJ', align: 'right', sortable: true },
   { key: 'mpg', label: 'MPP', align: 'right', sortable: true },
-  { key: 'freqRim', label: 'Zona restr.', align: 'right', sortable: true, zone: true, fgaKey: 'fgaRim' },
-  { key: 'freqShortMid', label: 'Zona no restr.', align: 'right', sortable: true, zone: true, fgaKey: 'fgaShortMid' },
-  { key: 'freqLongMid', label: 'Media Distancia', align: 'right', sortable: true, zone: true, fgaKey: 'fgaLongMid' },
-  { key: 'freqCornerThree', label: 'Esquina 3', align: 'right', sortable: true, zone: true, fgaKey: 'fgaCornerThree' },
-  { key: 'freqNcThree', label: 'Centro 3', align: 'right', sortable: true, zone: true, fgaKey: 'fgaNcThree' },
-  { key: 'freqAllThree', label: 'Total 3P', align: 'right', sortable: true, zone: true, fgaKey: 'fgaAllThree' },
+  { key: 'freqRim', label: 'Aro', title: 'Zona restringida', align: 'right', sortable: true, zone: true, fgaKey: 'fgaRim' },
+  { key: 'freqShortMid', label: 'Pintura', title: 'Zona no restringida', align: 'right', sortable: true, zone: true, fgaKey: 'fgaShortMid' },
+  { key: 'freqLongMid', label: 'Media', title: 'Media distancia', align: 'right', sortable: true, zone: true, fgaKey: 'fgaLongMid' },
+  { key: 'freqCornerThree', label: '3P esq.', title: 'Triple desde la esquina', align: 'right', sortable: true, zone: true, fgaKey: 'fgaCornerThree' },
+  { key: 'freqNcThree', label: '3P frontal', title: 'Triple fuera de la esquina', align: 'right', sortable: true, zone: true, fgaKey: 'fgaNcThree' },
+  { key: 'freqAllThree', label: '3P total', title: 'Total de triples', align: 'right', sortable: true, zone: true, fgaKey: 'fgaAllThree' },
 ]
 
 // Zone shooting accuracy columns (FG% per zone)
@@ -89,12 +91,12 @@ const accuracyColumns = [
   positionCol,
   { key: 'games', label: 'PJ', align: 'right', sortable: true },
   { key: 'mpg', label: 'MPP', align: 'right', sortable: true },
-  { key: 'fgpctRim', label: 'Zona restr.', align: 'right', sortable: true, zone: true, fgaKey: 'fgaRim' },
-  { key: 'fgpctShortMid', label: 'Zona no restr.', align: 'right', sortable: true, zone: true, fgaKey: 'fgaShortMid' },
-  { key: 'fgpctLongMid', label: 'Media Distancia', align: 'right', sortable: true, zone: true, fgaKey: 'fgaLongMid' },
-  { key: 'fgpctCornerThree', label: 'Esquina 3', align: 'right', sortable: true, zone: true, fgaKey: 'fgaCornerThree' },
-  { key: 'fgpctNcThree', label: 'Centro 3', align: 'right', sortable: true, zone: true, fgaKey: 'fgaNcThree' },
-  { key: 'fgpctAllThree', label: 'Total 3P', align: 'right', sortable: true, zone: true, fgaKey: 'fgaAllThree' },
+  { key: 'fgpctRim', label: 'Aro', title: 'Zona restringida', align: 'right', sortable: true, zone: true, fgaKey: 'fgaRim' },
+  { key: 'fgpctShortMid', label: 'Pintura', title: 'Zona no restringida', align: 'right', sortable: true, zone: true, fgaKey: 'fgaShortMid' },
+  { key: 'fgpctLongMid', label: 'Media', title: 'Media distancia', align: 'right', sortable: true, zone: true, fgaKey: 'fgaLongMid' },
+  { key: 'fgpctCornerThree', label: '3P esq.', title: 'Triple desde la esquina', align: 'right', sortable: true, zone: true, fgaKey: 'fgaCornerThree' },
+  { key: 'fgpctNcThree', label: '3P frontal', title: 'Triple fuera de la esquina', align: 'right', sortable: true, zone: true, fgaKey: 'fgaNcThree' },
+  { key: 'fgpctAllThree', label: '3P total', title: 'Total de triples', align: 'right', sortable: true, zone: true, fgaKey: 'fgaAllThree' },
 ]
 
 // Raw counting totals — no per-game normalization
@@ -124,12 +126,12 @@ const defenseColumns = [
   positionCol,
   { key: 'games', label: 'PJ', align: 'right', sortable: true },
   { key: 'mpg', label: 'MPP', align: 'right', sortable: true },
-  { key: 'oppDiffRim', label: 'Zona restr.', align: 'right', sortable: true, defense: true, fgpctKey: 'oppOnFgpctRim', fgaKey: 'oppFgaRim' },
-  { key: 'oppDiffShortMid', label: 'Zona no restr.', align: 'right', sortable: true, defense: true, fgpctKey: 'oppOnFgpctShortMid', fgaKey: 'oppFgaShortMid' },
-  { key: 'oppDiffLongMid', label: 'Media Distancia', align: 'right', sortable: true, defense: true, fgpctKey: 'oppOnFgpctLongMid', fgaKey: 'oppFgaLongMid' },
-  { key: 'oppDiffCornerThree', label: 'Esquina 3', align: 'right', sortable: true, defense: true, fgpctKey: 'oppOnFgpctCornerThree', fgaKey: 'oppFgaCornerThree' },
-  { key: 'oppDiffNcThree', label: 'Centro 3', align: 'right', sortable: true, defense: true, fgpctKey: 'oppOnFgpctNcThree', fgaKey: 'oppFgaNcThree' },
-  { key: 'oppDiffAllThree', label: 'Total 3P', align: 'right', sortable: true, defense: true, fgpctKey: 'oppOnFgpctAllThree', fgaKey: 'oppFgaAllThree' },
+  { key: 'oppDiffRim', label: 'Aro', title: 'Zona restringida', align: 'right', sortable: true, defense: true, fgpctKey: 'oppOnFgpctRim', fgaKey: 'oppFgaRim' },
+  { key: 'oppDiffShortMid', label: 'Pintura', title: 'Zona no restringida', align: 'right', sortable: true, defense: true, fgpctKey: 'oppOnFgpctShortMid', fgaKey: 'oppFgaShortMid' },
+  { key: 'oppDiffLongMid', label: 'Media', title: 'Media distancia', align: 'right', sortable: true, defense: true, fgpctKey: 'oppOnFgpctLongMid', fgaKey: 'oppFgaLongMid' },
+  { key: 'oppDiffCornerThree', label: '3P esq.', title: 'Triple desde la esquina', align: 'right', sortable: true, defense: true, fgpctKey: 'oppOnFgpctCornerThree', fgaKey: 'oppFgaCornerThree' },
+  { key: 'oppDiffNcThree', label: '3P frontal', title: 'Triple fuera de la esquina', align: 'right', sortable: true, defense: true, fgpctKey: 'oppOnFgpctNcThree', fgaKey: 'oppFgaNcThree' },
+  { key: 'oppDiffAllThree', label: '3P total', title: 'Total de triples', align: 'right', sortable: true, defense: true, fgpctKey: 'oppOnFgpctAllThree', fgaKey: 'oppFgaAllThree' },
 ]
 
 export default function PlayerStats({ players, playerBio = {} }) {
@@ -256,7 +258,7 @@ export default function PlayerStats({ players, playerBio = {} }) {
 
     return basePlayers
       .filter(p => {
-        if (search && !p.playerFull?.toLowerCase().includes(search.toLowerCase())) {
+        if (search && !getPlayerSearchText(p).includes(search.toLocaleLowerCase('es'))) {
           return false
         }
         if (teamFilter && p.team !== teamFilter && teamFilter !== '') return false
@@ -268,9 +270,9 @@ export default function PlayerStats({ players, playerBio = {} }) {
         let bVal = (typeof b[sortKey] === 'string' || typeof b[sortKey] === 'number') ? b[sortKey] : 0
 
         // When sorting by player name, use playerAbbrev if available
-        if (sortKey === 'playerFull' && typeof aVal === 'string') {
-          aVal = a.playerAbbrev || aVal
-          bVal = b.playerAbbrev || bVal
+        if (sortKey === 'playerFull') {
+          aVal = getPlayerDisplayName(a)
+          bVal = getPlayerDisplayName(b)
         }
 
         if (typeof aVal === 'string') {
@@ -300,13 +302,13 @@ export default function PlayerStats({ players, playerBio = {} }) {
   }
 
   const formatValue = (value, key, player) => {
+    if (key === 'playerFull') return getPlayerDisplayName(player)
     if (value === undefined || value === null) {
       const isZoneStat = key.startsWith('freq') || key.startsWith('fgpct') ||
         (key.startsWith('fga') && key.length > 3) ||
         key.startsWith('oppOnFgpct') || key.startsWith('oppDiff') || key.startsWith('oppFga')
       return isZoneStat ? 'N/D' : '-'
     }
-    if (key === 'playerFull') return player?.playerAbbrev || value
     if (key === 'team') return typeof value === 'string' ? value : '-'
     if (key === 'position') return typeof value === 'string' && value ? value : '-'
 
@@ -403,7 +405,7 @@ export default function PlayerStats({ players, playerBio = {} }) {
       columns.forEach(col => {
         const v = p[col.key]
         if (col.key === 'playerFull') {
-          row[col.key] = p.playerFull ?? ''
+          row[col.key] = getPlayerDisplayName(p, '')
         } else if (col.key === 'team' || col.key === 'position') {
           row[col.key] = (typeof v === 'string' && v) ? v : ''
         } else if (v == null) {
@@ -655,22 +657,20 @@ export default function PlayerStats({ players, playerBio = {} }) {
       {/* Table */}
       <div className="bg-white rounded-lg border border-acb-200 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full">
+          <table className="data-table min-w-full">
             <thead>
               <tr className="bg-acb-50 border-b border-acb-200">
-                <th className="px-4 py-3 text-left text-xs font-semibold text-acb-600 uppercase tracking-wider" style={{ width: '2.5rem', minWidth: '2.5rem' }}>
+                <th className="data-table-head data-table-number data-table-sticky data-table-sticky-head data-col-rank bg-acb-50">
                   #
                 </th>
                 {columns.map(col => (
                   <th
                     key={col.key}
                     onClick={() => col.sortable && handleSort(col.key)}
-                    style={{
-                      width: col.key === 'playerFull' ? '10rem' : col.key === 'team' ? '7rem' : col.key === 'position' ? '6rem' : col.key === 'games' ? '3.5rem' : '5.5rem',
-                      minWidth: col.key === 'playerFull' ? '10rem' : col.key === 'team' ? '7rem' : col.key === 'position' ? '6rem' : col.key === 'games' ? '3.5rem' : '5.5rem',
-                    }}
-                    className={`px-4 py-3 text-xs font-semibold text-acb-600 uppercase tracking-wider
-                      ${col.align === 'right' ? 'text-right' : 'text-left'}
+                    title={col.title || statTitle(col.label)}
+                    className={`data-table-head
+                      ${col.align === 'right' ? 'data-table-number' : 'text-left'}
+                      ${col.key === 'playerFull' ? 'data-table-sticky-after-rank data-table-sticky-head data-col-player bg-acb-50' : col.key === 'team' ? 'data-col-team' : col.key === 'position' ? 'data-col-position' : col.key === 'games' ? 'data-col-games' : 'data-col-number'}
                       ${col.sortable ? 'cursor-pointer hover:bg-acb-100' : ''}`}
                   >
                     <span className="inline-flex items-center gap-1">
@@ -688,9 +688,9 @@ export default function PlayerStats({ players, playerBio = {} }) {
                 <tr
                   key={player.playerId || `${player.player}-${player.team}-${player.season}`}
                   onClick={() => navigate(`/jugador/${player.licenseId}`)}
-                  className="border-b border-acb-100 hover:bg-acb-50 transition-colors cursor-pointer"
+                  className="data-table-row border-b border-acb-100 cursor-pointer"
                 >
-                  <td className="px-4 py-3 text-sm text-acb-400 font-mono">
+                  <td className="data-table-cell data-table-number data-table-sticky data-col-rank text-acb-400">
                     {i + 1}
                   </td>
                   {columns.map(col => {
@@ -707,44 +707,40 @@ export default function PlayerStats({ players, playerBio = {} }) {
                     return (
                       <td
                         key={col.key}
-                        style={{
-                          width: col.key === 'playerFull' ? '10rem' : col.key === 'team' ? '7rem' : col.key === 'position' ? '6rem' : col.key === 'games' ? '3.5rem' : '5.5rem',
-                          minWidth: col.key === 'playerFull' ? '10rem' : col.key === 'team' ? '7rem' : col.key === 'position' ? '6rem' : col.key === 'games' ? '3.5rem' : '5.5rem',
-                        }}
-                        className={`px-4 py-3 text-sm whitespace-nowrap
-                          ${col.align === 'right' ? 'text-right' : ''}
-                          ${col.key === 'playerFull' ? 'font-medium text-acb-900' : ''}
+                        className={`data-table-cell
+                          ${col.align === 'right' ? 'data-table-number' : ''}
+                          ${col.key === 'playerFull' ? 'data-table-identity data-table-sticky-after-rank data-col-player' : col.key === 'team' ? 'data-col-team' : col.key === 'position' ? 'data-col-position' : col.key === 'games' ? 'data-col-games' : 'data-col-number'}
                           ${col.key === 'team' ? 'text-acb-600' : ''}`}
                       >
                         {hasDefense ? (
-                          <div className="flex flex-col items-end gap-0.5">
-                            <span className="font-mono text-acb-700">
+                          <div className="data-table-value">
+                            <span className="text-acb-700">
                               {formatValue(diffValue, col.key, player)}
                             </span>
-                            <span className="text-xs text-acb-400">
+                            <span className="text-[10px] text-acb-400">
                               {defenseFgpct.toFixed(1)}% / {defenseFga}
                             </span>
                           </div>
                         ) : hasZoneFga ? (
-                          <div className="flex flex-col items-end gap-0.5">
-                            <span className="font-mono text-acb-900">
+                          <div className="data-table-value">
+                            <span className="text-acb-900">
                               {formatValue(player[col.key], col.key, player)}
                             </span>
-                            <span className="text-xs text-acb-400">
+                            <span className="text-[10px] text-acb-400">
                               {fgaValue}
                             </span>
                           </div>
                         ) : hasPercentile ? (
-                          <div className="flex flex-col items-end gap-1">
-                            <span className={`font-mono ${getPercentileColor(player[col.key], col.key)}`}>
+                          <div className="data-table-value">
+                            <span className={getPercentileColor(player[col.key], col.key)}>
                               {formatValue(player[col.key], col.key, player)}
                             </span>
-                            <span className={`text-xs px-1.5 py-0.5 rounded ${getPercentileBadgeColor(percentileValue)}`}>
+                            <span className={`data-table-badge ${getPercentileBadgeColor(percentileValue)}`}>
                               {Math.round(percentileValue)}%
                             </span>
                           </div>
                         ) : (
-                          <span className={`${col.align === 'right' ? 'font-mono' : ''} ${col.align === 'right' ? getPercentileColor(player[col.key], col.key) : 'text-acb-700'}`}>
+                          <span className={col.align === 'right' ? getPercentileColor(player[col.key], col.key) : 'text-acb-700'}>
                             {formatValue(player[col.key], col.key, player)}
                           </span>
                         )}

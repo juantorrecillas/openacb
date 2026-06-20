@@ -1,9 +1,22 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Trophy, TrendingDown, ChevronDown, ChevronUp, Filter } from 'lucide-react'
+import { statTitle } from '../utils/statLabels'
+import { getPlayerDisplayName } from '../utils/playerNames'
 
 // Extract licenseId from player key format "Name_12345"
 const getIdFromKey = (key) => key?.split('_').pop() || ''
+
+const getPlayerName = (key, player, playerNameById) => {
+  const licenseId = player.id || player.licenseId || getIdFromKey(key)
+  return playerNameById.get(String(licenseId)) || player.name || player.nickname || key
+}
+
+const getCombinationName = (ids, fallback, playerNameById) => {
+  if (!Array.isArray(ids) || ids.length === 0) return fallback
+  const names = ids.map(id => playerNameById.get(String(id))).filter(Boolean)
+  return names.length === ids.length ? names.join(' · ') : fallback
+}
 
 /**
  * Lineup Rankings Page
@@ -27,7 +40,7 @@ const MIN_MINUTES_PAST = {
   lineups: 25
 }
 
-export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCache, loadingLineups }) {
+export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCache, loadingLineups, playerRecords = [] }) {
   const navigate = useNavigate()
 
   // State
@@ -35,6 +48,16 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
   const [selectedCategory, setSelectedCategory] = useState('players') // players, pairs, trios, lineups
   const [sortByImpact, setSortByImpact] = useState(true) // true = Impact (netDiff), false = ORtg
   const [showBottom, setShowBottom] = useState(false) // Show bottom instead of top
+
+  const playerNameById = useMemo(() => {
+    const names = new Map()
+    playerRecords.forEach(player => {
+      if (player.licenseId != null) {
+        names.set(String(player.licenseId), getPlayerDisplayName(player))
+      }
+    })
+    return names
+  }, [playerRecords])
 
   // Available seasons
   const availableSeasons = useMemo(() => {
@@ -96,7 +119,7 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
               ...player,
               key,
               team: teamName,
-              displayName: player.name || player.nickname || key
+              displayName: getPlayerName(key, player, playerNameById)
             })
           }
         })
@@ -110,7 +133,7 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
               ...pair,
               key,
               team: teamName,
-              displayName: pair.players || key
+              displayName: getCombinationName([pair.player1Id, pair.player2Id], pair.players || key, playerNameById)
             })
           }
         })
@@ -124,7 +147,7 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
               ...trio,
               key,
               team: teamName,
-              displayName: trio.players || key
+              displayName: getCombinationName(trio.playerIds, trio.players || key, playerNameById)
             })
           }
         })
@@ -138,7 +161,7 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
               ...lineup,
               key,
               team: teamName,
-              displayName: lineup.players || key
+              displayName: getCombinationName(lineup.playerIds, lineup.players || key, playerNameById)
             })
           }
         })
@@ -146,7 +169,7 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
     })
 
     return { players, pairs, trios, lineups }
-  }, [lineupData, minMinutes])
+  }, [lineupData, minMinutes, playerNameById])
 
   // Get data for selected team only
   const teamFilteredData = useMemo(() => {
@@ -168,7 +191,7 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
             ...player,
             key,
             team: selectedTeam,
-            displayName: player.name || player.nickname || key
+            displayName: getPlayerName(key, player, playerNameById)
           })
         }
       })
@@ -182,7 +205,7 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
             ...pair,
             key,
             team: selectedTeam,
-            displayName: pair.players || key
+            displayName: getCombinationName([pair.player1Id, pair.player2Id], pair.players || key, playerNameById)
           })
         }
       })
@@ -196,7 +219,7 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
             ...trio,
             key,
             team: selectedTeam,
-            displayName: trio.players || key
+            displayName: getCombinationName(trio.playerIds, trio.players || key, playerNameById)
           })
         }
       })
@@ -210,14 +233,14 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
             ...lineup,
             key,
             team: selectedTeam,
-            displayName: lineup.players || key
+            displayName: getCombinationName(lineup.playerIds, lineup.players || key, playerNameById)
           })
         }
       })
     }
 
     return { players, pairs, trios, lineups }
-  }, [lineupData, selectedTeam, minMinutes])
+  }, [lineupData, selectedTeam, minMinutes, playerNameById])
 
   // Get current dataset based on view
   const currentData = activeView === 'league' ? allData : teamFilteredData
@@ -443,22 +466,22 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
 
         {rankedData.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="data-table">
               <thead>
                 <tr className="bg-acb-50 text-left text-xs text-acb-600 uppercase tracking-wider">
-                  <th className="px-4 py-3 font-semibold w-12">#</th>
-                  <th className="px-4 py-3 font-semibold">
+                  <th className="data-table-head data-table-number data-table-sticky data-table-sticky-head data-col-rank bg-acb-50">#</th>
+                  <th className="data-table-head data-table-identity data-table-sticky-after-rank data-table-sticky-head data-col-player bg-acb-50">
                     {selectedCategory === 'players' ? 'Jugador' : 'Combinación'}
                   </th>
                   {activeView === 'league' && (
-                    <th className="px-4 py-3 font-semibold">Equipo</th>
+                    <th className="data-table-head text-left data-col-team">Equipo</th>
                   )}
-                  <th className="px-4 py-3 font-semibold text-center">Min</th>
-                  <th className="px-4 py-3 font-semibold text-center">ORtg</th>
-                  <th className="px-4 py-3 font-semibold text-center">DRtg</th>
-                  <th className="px-4 py-3 font-semibold text-center">Ef. Neta</th>
+                  <th className="data-table-head data-table-number data-col-games" title={statTitle('Min')}>Min</th>
+                  <th className="data-table-head data-table-number data-col-number" title={statTitle('ORtg')}>ORtg</th>
+                  <th className="data-table-head data-table-number data-col-number" title={statTitle('DRtg')}>DRtg</th>
+                  <th className="data-table-head data-table-number data-col-number" title={statTitle('Neto')}>Neto</th>
                   {selectedCategory !== 'lineups' && (
-                    <th className={`px-4 py-3 font-semibold text-center ${
+                    <th className={`data-table-head data-table-number data-col-number ${
                       (activeView === 'team' || sortByImpact) ? 'bg-accent-50' : ''
                     }`}>
                       Impacto
@@ -468,11 +491,11 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
               </thead>
               <tbody className="divide-y divide-acb-100">
                 {rankedData.map((item, index) => (
-                  <tr key={item.key} className="hover:bg-acb-50 transition-colors">
-                    <td className="px-4 py-3 font-mono text-acb-400">
+                  <tr key={item.key} className="data-table-row">
+                    <td className="data-table-cell data-table-number data-table-sticky data-col-rank text-acb-400">
                       {showBottom ? rankedData.length - index : index + 1}
                     </td>
-                    <td className="px-4 py-3 font-medium text-acb-900">
+                    <td className="data-table-cell data-table-identity data-table-sticky-after-rank data-col-player">
                       {selectedCategory === 'players' ? (
                         <span
                           className="cursor-pointer hover:text-accent-600 hover:underline"
@@ -483,24 +506,24 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
                       ) : item.displayName}
                     </td>
                     {activeView === 'league' && (
-                      <td className="px-4 py-3 text-acb-600">{item.team}</td>
+                      <td className="data-table-cell data-col-team text-acb-600">{item.team}</td>
                     )}
-                    <td className="px-4 py-3 text-center font-mono text-acb-500">
+                    <td className="data-table-cell data-table-number data-col-games text-acb-500">
                       {item.onMin?.toFixed(0)}
                     </td>
-                    <td className="px-4 py-3 text-center font-mono font-medium text-acb-700">
+                    <td className="data-table-cell data-table-number data-col-number text-acb-700">
                       {item.onORtg?.toFixed(1)}
                     </td>
-                    <td className="px-4 py-3 text-center font-mono font-medium text-acb-700">
+                    <td className="data-table-cell data-table-number data-col-number text-acb-700">
                       {item.onDRtg?.toFixed(1)}
                     </td>
-                    <td className={`px-4 py-3 text-center font-mono font-semibold ${
+                    <td className={`data-table-cell data-table-number data-col-number font-semibold ${
                       item.onNetRtg > 5 ? 'text-positive' : item.onNetRtg < -5 ? 'text-negative' : 'text-acb-700'
                     }`}>
                       {item.onNetRtg > 0 ? '+' : ''}{item.onNetRtg?.toFixed(1)}
                     </td>
                     {selectedCategory !== 'lineups' && (
-                      <td className={`px-4 py-3 text-center font-mono font-bold ${
+                      <td className={`data-table-cell data-table-number data-col-number font-semibold ${
                         (activeView === 'team' || sortByImpact) ? 'bg-accent-50' : ''
                       } ${
                         item.netDiff > 5 ? 'text-positive' : item.netDiff < -5 ? 'text-negative' : 'text-acb-700'

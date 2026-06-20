@@ -1,6 +1,8 @@
 import { useState, useMemo, useEffect } from 'react'
 import { ArrowUp, ArrowDown, Search, Filter } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { statTitle } from '../utils/statLabels'
+import { getPlayerDisplayName, getPlayerSearchText } from '../utils/playerNames'
 
 function seasonLabel(s) {
   return `${s - 1}-${String(s).slice(-2)}`
@@ -189,7 +191,7 @@ export default function ClutchStats({ teams, players = [], playerBio = {}, loadC
         ...p,
         playerFull,
         playerAbbrev,
-        playerDisplay: playerAbbrev || p.nick,
+        playerDisplay: getPlayerDisplayName(bio || { playerFull, playerAbbrev, nick: p.nick }),
         position,
         fgmPg, fgaPg, fgPct,
         fg3mPg, fg3aPg,
@@ -214,8 +216,7 @@ export default function ClutchStats({ teams, players = [], playerBio = {}, loadC
       if (positionFilter && p.position !== positionFilter) return false
       if (search) {
         const q = search.toLowerCase()
-        const name = (p.playerFull || p.nick || '').toLowerCase()
-        if (!name.includes(q) && !p.team?.toLowerCase().includes(q)) return false
+        if (!getPlayerSearchText(p).includes(q) && !p.team?.toLowerCase().includes(q)) return false
       }
       return true
     })
@@ -364,21 +365,18 @@ export default function ClutchStats({ teams, players = [], playerBio = {}, loadC
       {/* Table */}
       <div className="bg-white rounded-lg border border-acb-200 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full">
+          <table className="data-table min-w-full">
             <thead>
               <tr className="bg-acb-50 border-b border-acb-200">
-                <th className="px-4 py-3 text-left text-xs font-semibold text-acb-600 uppercase tracking-wider w-10">#</th>
+                <th className="data-table-head data-table-number data-table-sticky data-table-sticky-head data-col-rank bg-acb-50">#</th>
                 {cols.map(col => (
                   <th
                     key={col.key}
                     onClick={() => !nonSortable.has(col.key) && handleSort(col.key)}
-                    title={col.title}
-                    style={{
-                      width: col.key === 'playerDisplay' ? '10rem' : col.key === 'team' ? '7rem' : col.key === 'position' ? '5rem' : col.key === 'games' ? '3.5rem' : col.key === 'wins' || col.key === 'losses' ? '3rem' : '5rem',
-                      minWidth: col.key === 'playerDisplay' ? '10rem' : col.key === 'team' ? '7rem' : col.key === 'position' ? '5rem' : col.key === 'games' ? '3.5rem' : col.key === 'wins' || col.key === 'losses' ? '3rem' : '5rem',
-                    }}
-                    className={`px-4 py-3 text-xs font-semibold text-acb-600 uppercase tracking-wider whitespace-nowrap
-                      ${col.left ? 'text-left' : 'text-right'}
+                    title={col.title || statTitle(col.label)}
+                    className={`data-table-head
+                      ${col.left ? 'text-left' : 'data-table-number'}
+                      ${col.key === 'playerDisplay' ? 'data-table-sticky-after-rank data-table-sticky-head data-col-player bg-acb-50' : col.key === 'team' ? 'data-col-team' : col.key === 'position' ? 'data-col-position' : col.key === 'games' ? 'data-col-games' : 'data-col-number'}
                       ${!nonSortable.has(col.key) ? 'cursor-pointer hover:bg-acb-100' : ''}
                       ${sortKey === col.key ? 'bg-acb-100' : ''}`}
                   >
@@ -403,9 +401,9 @@ export default function ClutchStats({ teams, players = [], playerBio = {}, loadC
                 <tr
                   key={`${p.licenseId}-${p.team}`}
                   onClick={() => p.licenseId && navigate(`/jugador/${p.licenseId}`)}
-                  className="border-b border-acb-100 hover:bg-acb-50 transition-colors cursor-pointer"
+                  className="data-table-row border-b border-acb-100 cursor-pointer"
                 >
-                  <td className="px-4 py-3 text-sm text-acb-400 font-mono">{i + 1}</td>
+                  <td className="data-table-cell data-table-number data-table-sticky data-col-rank text-acb-400">{i + 1}</td>
                   {cols.map(col => {
                     const v = p[col.key]
                     const rankKey = col.rank ? `${col.key}Rank` : null
@@ -415,20 +413,16 @@ export default function ClutchStats({ teams, players = [], playerBio = {}, loadC
                     return (
                       <td
                         key={col.key}
-                        style={{
-                          width: col.key === 'playerDisplay' ? '10rem' : col.key === 'team' ? '7rem' : col.key === 'position' ? '5rem' : col.key === 'games' ? '3.5rem' : col.key === 'wins' || col.key === 'losses' ? '3rem' : '5rem',
-                          minWidth: col.key === 'playerDisplay' ? '10rem' : col.key === 'team' ? '7rem' : col.key === 'position' ? '5rem' : col.key === 'games' ? '3.5rem' : col.key === 'wins' || col.key === 'losses' ? '3rem' : '5rem',
-                        }}
-                        className={`px-4 py-3 text-sm whitespace-nowrap
-                          ${col.left ? '' : 'text-right'}
-                          ${col.key === 'playerDisplay' ? 'font-medium text-acb-900' : ''}
+                        className={`data-table-cell
+                          ${col.left ? '' : 'data-table-number'}
+                          ${col.key === 'playerDisplay' ? 'data-table-identity data-table-sticky-after-rank data-col-player' : col.key === 'team' ? 'data-col-team' : col.key === 'position' ? 'data-col-position' : col.key === 'games' ? 'data-col-games' : 'data-col-number'}
                           ${col.key === 'team' ? 'text-acb-600' : ''}
                           ${col.key === 'position' ? 'text-acb-500 text-xs' : ''}`}
                       >
                         {percentile != null ? (
-                          <div className="flex flex-col items-end gap-1">
-                            <span className="font-mono text-acb-700">{fmtVal(v, col.key)}</span>
-                            <span className={`text-xs px-1.5 py-0.5 rounded ${getPercentileColor(percentile)}`}>
+                          <div className="data-table-value">
+                            <span className="text-acb-700">{fmtVal(v, col.key)}</span>
+                            <span className={`data-table-badge ${getPercentileColor(percentile)}`}>
                               {percentile}%
                             </span>
                           </div>

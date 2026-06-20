@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { Search, Loader2, Filter, GitCompareArrows, Flame, Download } from 'lucide-react'
 import { getPlayerPhoto } from '../utils/playerPhotos'
 import { downloadTableAsCsv } from '../utils/csvDownload'
+import { getPlayerDisplayName, getPlayerSearchText } from '../utils/playerNames'
 
 
 // ─── Helpers ───────────────────────────────────────────────────
@@ -87,11 +88,18 @@ function PlayerSelector({ players, onSelect, selectedLicenseId }) {
     filtered.forEach(p => {
       const key = p.licenseId
       if (!map.has(key)) {
-        map.set(key, { licenseId: key, name: p.playerFull?.trim(), abbrev: p.playerAbbrev, team: p.team, season: p.season })
+        map.set(key, {
+          licenseId: key,
+          name: getPlayerDisplayName(p),
+          abbrev: p.playerAbbrev,
+          searchText: getPlayerSearchText(p),
+          team: p.team,
+          season: p.season,
+        })
       }
     })
     return [...map.values()].sort((a, b) =>
-      (a.abbrev || a.name).localeCompare(b.abbrev || b.name)
+      (a.name || a.abbrev || '').localeCompare(b.name || b.abbrev || '', 'es')
     )
   }, [players, teamFilter, seasonFilter])
 
@@ -99,7 +107,7 @@ function PlayerSelector({ players, onSelect, selectedLicenseId }) {
     if (!query.trim()) return uniquePlayers.slice(0, 50)
     const q = query.toLowerCase()
     return uniquePlayers.filter(p =>
-      p.name.toLowerCase().includes(q) || p.abbrev?.toLowerCase().includes(q)
+      p.searchText.includes(q)
     ).slice(0, 50)
   }, [uniquePlayers, query])
 
@@ -157,12 +165,12 @@ function PlayerSelector({ players, onSelect, selectedLicenseId }) {
             {filtered.map(p => (
               <li
                 key={p.licenseId}
-                onClick={() => { onSelect(p.licenseId); setQuery(p.abbrev || p.name); setOpen(false) }}
+                onClick={() => { onSelect(p.licenseId); setQuery(p.name || p.abbrev); setOpen(false) }}
                 className={`px-4 py-2 text-sm cursor-pointer hover:bg-accent-50 flex items-center justify-between ${
                   String(selectedLicenseId) === String(p.licenseId) ? 'bg-accent-50 font-medium' : ''
                 }`}
               >
-                <span>{p.abbrev || p.name}</span>
+                <span>{p.name || p.abbrev}</span>
                 {(teamFilter || seasonFilter) && (
                   <span className="text-xs text-acb-400 ml-2">{p.team}</span>
                 )}
@@ -202,13 +210,13 @@ function PlayerHeader({ records, photoUrl, bio, selectedSeason }) {
       {photoUrl && (
         <img
           src={photoUrl}
-          alt={latest.playerFull?.trim()}
+          alt={getPlayerDisplayName(latest)}
           className="w-20 h-20 rounded-full object-cover object-top border-2 border-acb-200 flex-shrink-0"
         />
       )}
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <h2 className="text-2xl font-bold text-acb-900">{latest.playerFull?.trim()}</h2>
+          <h2 className="text-2xl font-bold text-acb-900">{getPlayerDisplayName(latest)}</h2>
           {bio?.position && (
             <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-accent-100 text-accent-700 border border-accent-200">
               {bio.position}
@@ -350,7 +358,7 @@ function CareerTable({ records }) {
         </div>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="data-table">
           <thead>
             <tr className="bg-acb-50 border-b border-acb-200">
               {cols.map(c => (
@@ -452,7 +460,7 @@ const profileSections = [
       { label: 'APP', value: 'apg', pctKey: 'apgPct', posPctKey: 'apgPosPct' },
       { label: 'AST%', value: 'astPct', pctKey: 'astPctPct', posPctKey: 'astPctPosPct', fmtKey: 'astPct' },
       { label: 'PER', value: 'topg', pctKey: 'topgPct', posPctKey: 'topgPosPct', inverse: true },
-      { label: 'TOV%', value: 'tovPct', pctKey: 'tovPctPct', posPctKey: 'tovPctPosPct', fmtKey: 'tovPct' },
+      { label: 'PER%', value: 'tovPct', pctKey: 'tovPctPct', posPctKey: 'tovPctPosPct', fmtKey: 'tovPct' },
     ],
   },
   {
@@ -483,8 +491,8 @@ function PercentileProfile({ player }) {
     <div className="bg-white rounded-lg border border-acb-200 p-5">
       <div className="mb-4 flex items-start justify-between">
         <div>
-          <h3 className="font-semibold text-acb-900">Perfil de Rendimiento</h3>
-          <p className="text-xs text-acb-500">{player.team} - {seasonLabel(player.season)} - {player.games} partidos - Percentiles {usePos ? `(vs. ${player.position || 'posición'})` : '(vs. liga)'}</p>
+          <h3 className="font-semibold text-acb-900">Rendimiento</h3>
+          <p className="text-xs text-acb-500">{player.team} - {seasonLabel(player.season)} - {player.games} partidos</p>
         </div>
         {hasPosPct && (
           <div className="flex rounded-md border border-acb-200 text-xs overflow-hidden shrink-0">
@@ -516,7 +524,6 @@ function PercentileProfile({ player }) {
         <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-info-500" /> 50-74</span>
         <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-info-400" /> 25-49</span>
         <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-negative-400" /> 0-24</span>
-        <span className="ml-auto">La línea central marca el percentil 50</span>
       </div>
     </div>
   )
@@ -1015,11 +1022,11 @@ function RadarArchetypeCard({ player, bio }) {
 // ─── Shooting Stats Card ───────────────────────────────────────
 const zones = [
   { key: 'Rim', label: 'Zona Restringida' },
-  { key: 'ShortMid', label: 'Zona No Restringida' },
-  { key: 'LongMid', label: 'Media Distancia' },
-  { key: 'CornerThree', label: 'Esquina 3' },
-  { key: 'NcThree', label: 'Centro 3' },
-  { key: 'AllThree', label: 'Total 3PT' },
+  { key: 'ShortMid', label: 'Pintura' },
+  { key: 'LongMid', label: 'Media distancia' },
+  { key: 'CornerThree', label: '3P esquina' },
+  { key: 'NcThree', label: '3P frontal' },
+  { key: 'AllThree', label: '3P total' },
 ]
 
 function ShootingStatsCard({ player }) {
@@ -1033,9 +1040,9 @@ function ShootingStatsCard({ player }) {
     if (shotTab === 'own') {
       const cols = [
         { key: 'zone', label: 'Zona' },
-        { key: 'freq', label: 'Freq%' },
-        { key: 'fgpct', label: 'FG%' },
-        { key: 'fga', label: 'FGA' },
+        { key: 'freq', label: 'Frec.' },
+        { key: 'fgpct', label: 'TC%' },
+        { key: 'fga', label: 'Tiros' },
       ]
       const rows = zones.map(z => ({
         zone: z.label,
@@ -1047,9 +1054,9 @@ function ShootingStatsCard({ player }) {
     } else {
       const cols = [
         { key: 'zone', label: 'Zona' },
-        { key: 'diff', label: 'Dif. vs equipo' },
-        { key: 'fgpct', label: 'FG% Rival' },
-        { key: 'fga', label: 'FGA Rival' },
+        { key: 'diff', label: 'Δ equipo' },
+        { key: 'fgpct', label: 'TC% riv.' },
+        { key: 'fga', label: 'Tiros riv.' },
       ]
       const rows = zones.map(z => ({
         zone: z.label,
@@ -1100,13 +1107,13 @@ function ShootingStatsCard({ player }) {
       </p>
       <div className="overflow-x-auto">
         {shotTab === 'own' ? (
-          <table className="w-full text-sm">
+          <table className="data-table">
             <thead>
               <tr className="border-b border-acb-200">
                 <th className="px-3 py-2 text-left text-xs font-semibold text-acb-600 uppercase whitespace-nowrap">Zona</th>
-                <th className="px-3 py-2 text-right text-xs font-semibold text-acb-600 uppercase whitespace-nowrap">Freq%</th>
-                <th className="px-3 py-2 text-right text-xs font-semibold text-acb-600 uppercase whitespace-nowrap">FG%</th>
-                <th className="px-3 py-2 text-right text-xs font-semibold text-acb-600 uppercase whitespace-nowrap">FGA</th>
+                <th className="px-3 py-2 text-right text-xs font-semibold text-acb-600 uppercase whitespace-nowrap" title="Frecuencia de tiro">Frec.</th>
+                <th className="px-3 py-2 text-right text-xs font-semibold text-acb-600 uppercase whitespace-nowrap" title="Porcentaje de tiro de campo">TC%</th>
+                <th className="px-3 py-2 text-right text-xs font-semibold text-acb-600 uppercase whitespace-nowrap">Tiros</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-acb-100">
@@ -1126,13 +1133,13 @@ function ShootingStatsCard({ player }) {
             </tbody>
           </table>
         ) : (
-          <table className="w-full text-sm">
+          <table className="data-table">
             <thead>
               <tr className="border-b border-acb-200">
                 <th className="px-3 py-2 text-left text-xs font-semibold text-acb-600 uppercase whitespace-nowrap">Zona</th>
-                <th className="px-3 py-2 text-right text-xs font-semibold text-acb-600 uppercase whitespace-nowrap">Dif. vs equipo</th>
-                <th className="px-3 py-2 text-right text-xs font-semibold text-acb-600 uppercase whitespace-nowrap">FG% Rival</th>
-                <th className="px-3 py-2 text-right text-xs font-semibold text-acb-600 uppercase whitespace-nowrap">FGA Rival</th>
+                <th className="px-3 py-2 text-right text-xs font-semibold text-acb-600 uppercase whitespace-nowrap" title="Diferencia respecto al equipo">Δ equipo</th>
+                <th className="px-3 py-2 text-right text-xs font-semibold text-acb-600 uppercase whitespace-nowrap" title="Porcentaje de tiro permitido al rival">TC% riv.</th>
+                <th className="px-3 py-2 text-right text-xs font-semibold text-acb-600 uppercase whitespace-nowrap">Tiros riv.</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-acb-100">
@@ -1252,7 +1259,6 @@ function OnOffCard({ records, loadLineupsForSeason, lineupsCache, loadingLineups
       <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
         <div className="flex items-center gap-2">
           <h3 className="font-semibold text-acb-900">Impacto On/Off Court</h3>
-          <span className="text-xs text-acb-400">temporada completa</span>
         </div>
         {hasAnyData && (
           <button
@@ -1276,7 +1282,7 @@ function OnOffCard({ records, loadLineupsForSeason, lineupsCache, loadingLineups
       )}
       {hasAnyData && (
         <div className="overflow-x-auto">
-          <table className="w-full text-sm border-collapse">
+          <table className="data-table border-collapse">
             <thead>
               <tr className="text-xs font-semibold text-acb-600 uppercase border-b border-acb-200">
                 <th className="px-2 py-1.5 text-left whitespace-nowrap" rowSpan={2}>Temp.</th>
@@ -1422,8 +1428,7 @@ function ClutchCard({ records, loadClutchForSeason, clutchCache, loadingClutch }
       <div className="px-5 py-3 border-b border-acb-100 flex items-center gap-2 flex-wrap">
         <Flame className="w-4 h-4 text-orange-500" />
         <h3 className="font-semibold text-acb-900 text-sm">Estadísticas Clutch</h3>
-        <span className="text-xs text-acb-400">temporada completa</span>
-        <span className="text-xs text-acb-400 ml-1">últimos 5 min, diferencia ≤ 5 pts</span>
+        <span className="text-xs text-acb-400 ml-1">Últimos 5 min con diferencia de ≤ 5 pts</span>
         {clutchRows.length > 0 && (
           <button
             onClick={handleDownload}
@@ -1441,7 +1446,7 @@ function ClutchCard({ records, loadClutchForSeason, clutchCache, loadingClutch }
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="data-table">
             <thead>
               <tr className="bg-acb-50 border-b border-acb-200">
                 {['Temporada','Equipo','PJ','Pts','Reb','Ast','Rob','Tap','Pér','T2%','3P%','TL%','eFG%','TS%','3PAr'].map(h => (
@@ -1563,7 +1568,7 @@ export default function PlayerProfile({ players, allPlayers = players, playerPho
       <div>
         <h2 className="text-2xl font-semibold text-acb-900">Perfil de Jugador</h2>
         <p className="text-acb-500 text-sm mt-1">
-          Selecciona un jugador para ver su perfil completo con estadísticas históricas
+          Selecciona un jugador para ver sus estadísticas históricas, estilo de juego y arquetipo
         </p>
       </div>
 

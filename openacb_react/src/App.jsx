@@ -139,31 +139,38 @@ function App() {
   useEffect(() => {
     async function loadData() {
       try {
-        const [teamsRes, teamsByStageRes, playersRes, playersByStageRes, similarityRes, teamLogosRes, playerPhotosRes, playerBioRes] = await Promise.all([
+        const [teamsRes, teamsByStageRes, playersRes, playersByStageRes, playerNamesRes, similarityRes, teamLogosRes, playerPhotosRes, playerBioRes] = await Promise.all([
           fetch('/data/teams.json'),
           fetch('/data/teams-by-stage.json'),
           fetch('/data/players.json'),
           fetch('/data/players-by-stage.json'),
+          fetch('/data/player-names.json'),
           fetch('/data/similarity.json'),
           fetch('/data/team-logos.json'),
           fetch('/data/player-photos.json'),
           fetch('/data/player-bio.json'),
         ])
-        const [teams, teamsByStage, players, playersByStage, similarity, teamLogos, playerPhotos, playerBio] = await Promise.all([
+        const [teams, teamsByStage, players, playersByStage, playerNames, similarity, teamLogos, playerPhotos, playerBio] = await Promise.all([
           teamsRes.json(),
           teamsByStageRes.ok ? teamsByStageRes.json() : [],
           playersRes.json(),
           playersByStageRes.ok ? playersByStageRes.json() : [],
+          playerNamesRes.ok ? playerNamesRes.json() : {},
           similarityRes.ok ? similarityRes.json() : [],
           teamLogosRes.ok ? teamLogosRes.json() : {},
           playerPhotosRes.ok ? playerPhotosRes.json() : {},
           playerBioRes.ok ? playerBioRes.json() : {},
         ])
+        const addDisplayNames = records => records.map(player => ({
+          ...player,
+          playerDisplay: playerNames[String(player.licenseId)] || undefined,
+        }))
+
         setData({
           teams,
           teamsByStage,
-          players,
-          playersByStage,
+          players: addDisplayNames(players),
+          playersByStage: addDisplayNames(playersByStage),
           similarity,
           teamLogos,
           playerPhotos,
@@ -557,6 +564,7 @@ function App() {
                 lineupsCache={lineupsCache}
                 loadingLineups={loadingLineups}
                 playerPhotos={data.playerPhotos}
+                playerRecords={data.players}
               />
             } />
             <Route path="/alineaciones/:season/:team" element={
@@ -566,6 +574,7 @@ function App() {
                 lineupsCache={lineupsCache}
                 loadingLineups={loadingLineups}
                 playerPhotos={data.playerPhotos}
+                playerRecords={data.players}
               />
             } />
             <Route path="/mejores-alineaciones" element={
@@ -574,6 +583,7 @@ function App() {
                 loadLineupsForSeason={loadLineupsForSeason}
                 lineupsCache={lineupsCache}
                 loadingLineups={loadingLineups}
+                playerRecords={data.players}
               />
             } />
             <Route path="/cartas-tiro" element={

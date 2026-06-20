@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { getPlayerPhoto } from '../utils/playerPhotos'
+import { getPlayerDisplayName } from '../utils/playerNames'
 import Court, { ShotMarker } from '../components/Court'
 import ZoneHeatmap from '../components/ZoneHeatmap'
 import DensityHeatmap from '../components/DensityHeatmap'
@@ -9,11 +10,11 @@ import { Filter, Circle, X } from 'lucide-react'
 // Note: Zone calculation functions removed since we now use pre-calculated
 // zone and zoned fields from the CSV data
 
-// Helper to get abbreviated name from player data
+// get the canonical medium-length player name
 // Uses pre-calculated playerAbbrev field from data (e.g., "J. Fernández")
-const getPlayerAbbrev = (players, playerId) => {
+const getPlayerName = (players, playerId) => {
   const player = players.find(p => String(p.licenseId) === String(playerId))
-  return player?.playerAbbrev || player?.playerFull || '-'
+  return player ? getPlayerDisplayName(player) : null
 }
 
 export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShots, teams, players, playerPhotos = {} }) {
@@ -94,7 +95,7 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
     return Array.from(playerMap.entries())
       .map(([id, name]) => {
         // Get abbreviated name from players data if available
-        const displayName = getPlayerAbbrev(players, id)
+        const displayName = getPlayerName(players, id) || name
         return { id, name, displayName }
       })
       .sort((a, b) => {
@@ -402,8 +403,8 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
               {displayMode === 'heatmap' && (
                 <span>
                   {heatmapMode === 'frequency'
-                    ? 'Frecuencia'
-                    : 'Densidad'}
+                    ? 'Frecuencia respecto a la media de la liga'
+                    : 'Mapa de densidad'}
                 </span>
               )}
               {displayMode === 'zones' && (

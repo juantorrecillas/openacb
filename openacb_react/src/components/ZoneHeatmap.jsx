@@ -423,7 +423,7 @@ export default function ZoneHeatmap({ shots, leagueShots = [], metric = 'efficie
                 fontSize={fontSize}
                 fontWeight="bold"
                 fill="#111"
-                fontFamily="Consolas, monospace"
+                fontFamily="JetBrains Mono, Consolas, monospace"
               >
                 {metricValue.toFixed(1)}%
               </text>
@@ -435,7 +435,7 @@ export default function ZoneHeatmap({ shots, leagueShots = [], metric = 'efficie
                 textAnchor="middle"
                 fontSize={fontSize}
                 fill="#333"
-                fontFamily="Consolas, monospace"
+                fontFamily="JetBrains Mono, Consolas, monospace"
               >
                 {isFrequencyMetric ? `${stats.attempts} tiros` : `${stats.makes}/${stats.attempts}`}
               </text>
@@ -448,7 +448,7 @@ export default function ZoneHeatmap({ shots, leagueShots = [], metric = 'efficie
                   textAnchor="middle"
                   fontSize={fontSize * 0.85}
                   fill={metricDiff > 0 ? '#7c2d12' : '#1e3a8a'}
-                  fontFamily="Consolas, monospace"
+                  fontFamily="JetBrains Mono, Consolas, monospace"
                   fontWeight="bold"
                 >
                   {metricDiff > 0 ? '+' : ''}{metricDiff.toFixed(1)}%

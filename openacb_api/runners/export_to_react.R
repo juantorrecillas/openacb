@@ -96,6 +96,43 @@ export_shot_data <- function() {
   }
 }
 
+export_player_names <- function() {
+  cat("Exporting player display names...\n")
+
+  player_names <- list()
+
+  for (year in SEASONS) {
+    paths <- c(
+      file.path(SHINY_DATA_DIR, paste0("PbP_adjustedData", year, ".Rds")),
+      file.path(SHINY_DATA_DIR, paste0("PbP_adjustedData", year, ".csv"))
+    )
+    source_path <- paths[file.exists(paths)][1]
+    if (is.na(source_path)) next
+
+    pbp <- if (grepl("\\.Rds$", source_path)) {
+      readRDS(source_path)
+    } else {
+      read.csv(source_path, encoding = "UTF-8", stringsAsFactors = FALSE)
+    }
+
+    if (!all(c("license.id", "license.licenseStr15") %in% names(pbp))) next
+
+    names_for_season <- unique(pbp[c("license.id", "license.licenseStr15")])
+    for (i in seq_len(nrow(names_for_season))) {
+      license_id <- names_for_season$license.id[i]
+      display_name <- trimws(names_for_season$license.licenseStr15[i])
+      if (!is.na(license_id) && !is.na(display_name) && nzchar(display_name)) {
+        player_names[[as.character(license_id)]] <- display_name
+      }
+    }
+  }
+
+  output_file <- file.path(REACT_APP_DIR, "public/data", "player-names.json")
+  dir.create(dirname(output_file), showWarnings = FALSE, recursive = TRUE)
+  write_json(player_names, output_file, pretty = TRUE, auto_unbox = TRUE)
+  cat(sprintf("  - Exported %d player display names\n\n", length(player_names)))
+}
+
 export_team_data <- function(competition_stages = NULL, output_name = "teams.json") {
   cat("Exporting team statistics...\n")
   
@@ -660,6 +697,7 @@ cat("OpenACB Data Export\n")
 cat("========================================\n\n")
 
 export_shot_data()
+export_player_names()
 export_team_data()
 export_team_data(c("regular", "playoffs"), "teams-by-stage.json")
 all_players <- load_all_player_data()

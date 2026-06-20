@@ -2,6 +2,8 @@ import { useState, useMemo, useEffect, useRef } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Search, Filter, GitCompareArrows, Loader2, ArrowRight } from 'lucide-react'
 import { getPlayerPhoto } from '../utils/playerPhotos'
+import { statTitle } from '../utils/statLabels'
+import { getPlayerDisplayName, getPlayerSearchText } from '../utils/playerNames'
 
 function seasonLabel(s) {
   return `${s - 1}-${String(s).slice(-2)}`
@@ -91,21 +93,22 @@ function PlayerSelector({ players, label, selectedLicenseId, onSelect }) {
       if (!map.has(key)) {
         map.set(key, {
           licenseId: p.licenseId,
-          name: p.playerFull?.trim() || p.player,
+          name: getPlayerDisplayName(p),
           abbrev: p.playerAbbrev,
+          searchText: getPlayerSearchText(p),
           team: p.team,
           season: p.season,
         })
       }
     })
-    return [...map.values()].sort((a, b) => (a.abbrev || a.name).localeCompare(b.abbrev || b.name))
+    return [...map.values()].sort((a, b) => (a.name || a.abbrev || '').localeCompare(b.name || b.abbrev || '', 'es'))
   }, [players, seasonFilter, teamFilter])
 
   const filtered = useMemo(() => {
     if (!query.trim()) return uniquePlayers.slice(0, 50)
     const q = query.toLowerCase()
     return uniquePlayers.filter(p =>
-      p.name?.toLowerCase().includes(q) || p.abbrev?.toLowerCase().includes(q)
+      p.searchText.includes(q)
     ).slice(0, 50)
   }, [uniquePlayers, query])
 
@@ -165,14 +168,14 @@ function PlayerSelector({ players, label, selectedLicenseId, onSelect }) {
                   key={p.licenseId}
                   onClick={() => {
                     onSelect(p.licenseId)
-                    setQuery(p.abbrev || p.name)
+                    setQuery(p.name || p.abbrev)
                     setOpen(false)
                   }}
                   className={`px-4 py-2 text-sm cursor-pointer hover:bg-accent-50 flex items-center justify-between ${
                     String(selectedLicenseId) === String(p.licenseId) ? 'bg-accent-50 font-medium' : ''
                   }`}
                 >
-                  <span>{p.abbrev || p.name}</span>
+                  <span>{p.name || p.abbrev}</span>
                   <span className="text-xs text-acb-400 ml-2">{p.team}</span>
                 </li>
               ))}
@@ -193,7 +196,7 @@ function PlayerSummary({ record, bio, photoUrl, colorClass, season, onSeasonChan
         {photoUrl ? (
           <img
             src={photoUrl}
-            alt={record.playerFull?.trim()}
+            alt={getPlayerDisplayName(record)}
             className={`w-20 h-20 rounded-full object-cover object-top border-2 ${colorClass}`}
           />
         ) : (
@@ -202,7 +205,7 @@ function PlayerSummary({ record, bio, photoUrl, colorClass, season, onSeasonChan
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h3 className="text-xl font-bold text-acb-900 truncate">{record.playerFull?.trim()}</h3>
+              <h3 className="text-xl font-bold text-acb-900 truncate">{getPlayerDisplayName(record)}</h3>
               <p className="text-sm text-acb-500">{record.team} - {seasonLabel(record.season)}</p>
             </div>
             <select
@@ -362,11 +365,11 @@ function RadarOverlay({ playerA, playerB }) {
       <div className="flex flex-wrap justify-center gap-4 text-xs text-acb-600 mt-2">
         <span className="flex items-center gap-1.5">
           <span className="w-3 h-3 rounded-full bg-accent-500" />
-          {playerA?.playerAbbrev || playerA?.playerFull?.trim()}
+          {getPlayerDisplayName(playerA)}
         </span>
         <span className="flex items-center gap-1.5">
           <span className="w-3 h-3 rounded-full bg-info-500" />
-          {playerB?.playerAbbrev || playerB?.playerFull?.trim()}
+          {getPlayerDisplayName(playerB)}
         </span>
       </div>
     </div>
@@ -404,7 +407,7 @@ const metricGroups = [
     metrics: [
       { key: 'possPg', label: 'Pos/PJ', scale: 30 },
       { key: 'astPct', label: 'AST%', scale: 25 },
-      { key: 'tovPct', label: 'TOV%', lowerIsBetter: true, scale: 10 },
+      { key: 'tovPct', label: 'PER%', lowerIsBetter: true, scale: 10 },
       { key: 'astToRatio', label: 'AST/PER', scale: 3 },
       { key: 'assistedFgm', label: '% asistidos', scale: 0.3 },
       { key: 'offTo', label: 'Pts Robo%', scale: 0.2 },
@@ -445,80 +448,72 @@ function MetricComparison({ playerA, playerB }) {
         <p className="text-xs text-acb-500 mt-0.5">La barra central indica dirección y magnitud de la ventaja</p>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="data-table">
           <thead>
             <tr className="bg-acb-50 border-b border-acb-200">
-              <th className="px-4 py-2 text-left text-xs font-semibold text-acb-600 uppercase w-[38%]">Métrica</th>
-              <th className="px-4 py-2 text-right text-xs font-semibold text-accent-600 uppercase w-[22%]">
+              <th className="data-table-head text-left w-[38%]">Métrica</th>
+              <th className="data-table-head text-right text-accent-600 w-[22%]">
                 <span className="flex items-center justify-end gap-1">
                   <span className="w-2 h-2 rounded-full bg-accent-500 inline-block" />
-                  {playerA.playerAbbrev || 'Jugador A'}
+                  {getPlayerDisplayName(playerA, 'Jugador A')}
                 </span>
               </th>
-              <th className="px-4 py-2 text-center text-xs font-semibold text-acb-500 uppercase w-[18%]">Dif.</th>
-              <th className="px-4 py-2 text-right text-xs font-semibold text-info-600 uppercase w-[22%]">
+              <th className="data-table-head text-center text-acb-500 w-[18%]" title="Diferencia entre ambos jugadores">Δ</th>
+              <th className="data-table-head text-right text-info-600 w-[22%]">
                 <span className="flex items-center justify-end gap-1">
                   <span className="w-2 h-2 rounded-full bg-info-500 inline-block" />
-                  {playerB.playerAbbrev || 'Jugador B'}
+                  {getPlayerDisplayName(playerB, 'Jugador B')}
                 </span>
               </th>
             </tr>
           </thead>
-          <tbody>
-            {metricGroups.map(group => (
-              <tr key={group.title}>
-                <td colSpan={4} className="p-0">
-                  <table className="w-full text-sm">
-                    <tbody>
-                      <tr className="bg-acb-50/70">
-                        <td colSpan={4} className="px-4 py-2 text-xs font-semibold text-acb-500 uppercase tracking-wider border-t border-acb-100">
-                          {group.title}
-                        </td>
-                      </tr>
-                      {group.metrics.map(metric => {
-                        const a = playerA[metric.key]
-                        const b = playerB[metric.key]
-                        const diff = a != null && b != null && !Number.isNaN(Number(a)) && !Number.isNaN(Number(b))
-                          ? Number(a) - Number(b)
-                          : null
-                        const aWins = diff != null && (metric.lowerIsBetter ? diff < 0 : diff > 0)
-                        const barPct = diff != null && metric.scale ? Math.min(100, (Math.abs(diff) / metric.scale) * 100) : 0
-                        return (
-                          <tr key={metric.key} className="border-t border-acb-100 hover:bg-acb-50">
-                            <td className="px-4 py-2 text-acb-700 w-[38%]">{metric.label}</td>
-                            <td className={`px-4 py-2 text-right font-mono w-[22%] ${valueColor(a, b, metric, 'a')}`}>
-                              {fmt(a, metric.key)}
-                            </td>
-                            <td className="px-4 py-2 text-center w-[18%]">
-                              <div className="flex flex-col items-center gap-0.5">
-                                <span className="font-mono text-[10px] text-acb-500">
-                                  {diff != null ? `${diff > 0 ? '+' : ''}${fmt(diff, metric.key)}` : '-'}
-                                </span>
-                                {diff != null && (
-                                  <div className="flex w-full h-[3px]">
-                                    <div className="flex-1 flex justify-end overflow-hidden">
-                                      {aWins && <div className="h-full bg-accent-400 rounded-l-full" style={{ width: `${barPct}%` }} />}
-                                    </div>
-                                    <div className="w-px bg-acb-200 shrink-0" />
-                                    <div className="flex-1 overflow-hidden">
-                                      {!aWins && diff !== 0 && <div className="h-full bg-info-400 rounded-r-full" style={{ width: `${barPct}%` }} />}
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            </td>
-                            <td className={`px-4 py-2 text-right font-mono w-[22%] ${valueColor(a, b, metric, 'b')}`}>
-                              {fmt(b, metric.key)}
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </td>
+          {metricGroups.map(group => (
+            <tbody key={group.title}>
+              <tr className="bg-acb-50/70">
+                <th colSpan={4} className="data-table-group text-left border-t border-acb-100">
+                  {group.title}
+                </th>
               </tr>
-            ))}
-          </tbody>
+              {group.metrics.map(metric => {
+                const a = playerA[metric.key]
+                const b = playerB[metric.key]
+                const diff = a != null && b != null && !Number.isNaN(Number(a)) && !Number.isNaN(Number(b))
+                  ? Number(a) - Number(b)
+                  : null
+                const aWins = diff != null && (metric.lowerIsBetter ? diff < 0 : diff > 0)
+                const barPct = diff != null && metric.scale ? Math.min(100, (Math.abs(diff) / metric.scale) * 100) : 0
+                return (
+                  <tr key={metric.key} className="data-table-row border-t border-acb-100">
+                    <td className="data-table-cell w-[38%]" title={statTitle(metric.label)}>{metric.label}</td>
+                    <td className={`data-table-cell data-table-number w-[22%] ${valueColor(a, b, metric, 'a')}`}>
+                      {fmt(a, metric.key)}
+                    </td>
+                    <td className="data-table-cell text-center w-[18%]">
+                      <div className="flex flex-col items-center gap-0.5">
+                        <span className="font-mono text-[10px] text-acb-500">
+                          {diff != null ? `${diff > 0 ? '+' : ''}${fmt(diff, metric.key)}` : '-'}
+                        </span>
+                        {diff != null && (
+                          <div className="flex w-full h-[3px]">
+                            <div className="flex-1 flex justify-end overflow-hidden">
+                              {aWins && <div className="h-full bg-accent-400 rounded-l-full" style={{ width: `${barPct}%` }} />}
+                            </div>
+                            <div className="w-px bg-acb-200 shrink-0" />
+                            <div className="flex-1 overflow-hidden">
+                              {!aWins && diff !== 0 && <div className="h-full bg-info-400 rounded-r-full" style={{ width: `${barPct}%` }} />}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className={`data-table-cell data-table-number w-[22%] ${valueColor(a, b, metric, 'b')}`}>
+                      {fmt(b, metric.key)}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          ))}
         </table>
       </div>
     </div>
@@ -589,20 +584,20 @@ function OnOffComparison({ playerA, playerB, loadLineupsForSeason, lineupsCache,
       )}
       {hasAny && (
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="data-table">
             <thead>
               <tr className="text-xs font-semibold text-acb-600 uppercase border-b border-acb-200 bg-acb-50">
-                <th className="text-left px-4 py-2">Jugador</th>
-                <th className="text-left px-4 py-2">Temp.</th>
-                <th className="text-right px-4 py-2">Min</th>
-                <th className="text-right px-4 py-2">ORtg On</th>
-                <th className="text-right px-4 py-2">ORtg Off</th>
-                <th className="text-right px-4 py-2">Dif. O</th>
-                <th className="text-right px-4 py-2">DRtg On</th>
-                <th className="text-right px-4 py-2">DRtg Off</th>
-                <th className="text-right px-4 py-2">Dif. D</th>
-                <th className="text-right px-4 py-2">Neto</th>
-                <th className="text-right px-4 py-2">Impacto</th>
+                <th className="data-table-head data-table-identity data-table-sticky data-table-sticky-head data-col-player bg-acb-50">Jugador</th>
+                <th className="data-table-head text-left">Temp.</th>
+                <th className="data-table-head data-table-number" title={statTitle('Min')}>Min</th>
+                <th className="data-table-head data-table-number">ORtg On</th>
+                <th className="data-table-head data-table-number">ORtg Off</th>
+                <th className="data-table-head data-table-number">Δ ORtg</th>
+                <th className="data-table-head data-table-number">DRtg On</th>
+                <th className="data-table-head data-table-number">DRtg Off</th>
+                <th className="data-table-head data-table-number">Δ DRtg</th>
+                <th className="data-table-head data-table-number">Neto</th>
+                <th className="data-table-head data-table-number">Impacto</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-acb-100">
@@ -610,24 +605,24 @@ function OnOffComparison({ playerA, playerB, loadLineupsForSeason, lineupsCache,
                 const ortgD = row.onORtg != null && row.offORtg != null ? row.onORtg - row.offORtg : null
                 const drtgD = row.onDRtg != null && row.offDRtg != null ? row.onDRtg - row.offDRtg : null
                 return (
-                  <tr key={id} className="hover:bg-acb-50">
-                    <td className={`px-4 py-2 font-semibold ${color}`}>{record.playerAbbrev || record.playerFull?.trim()}</td>
-                    <td className="px-4 py-2 text-acb-600">{seasonLabel(record.season)}</td>
-                    <td className="px-4 py-2 text-right font-mono text-acb-600">{row.onMin?.toFixed(0) ?? '-'}</td>
-                    <td className="px-4 py-2 text-right font-mono text-acb-700">{row.onORtg?.toFixed(1) ?? '-'}</td>
-                    <td className="px-4 py-2 text-right font-mono text-acb-500">{row.offORtg?.toFixed(1) ?? '-'}</td>
-                    <td className={`px-4 py-2 text-right font-mono ${onOffDiff(ortgD)}`}>
+                  <tr key={id} className="data-table-row">
+                    <td className={`data-table-cell data-table-identity data-table-sticky data-col-player ${color}`}>{getPlayerDisplayName(record)}</td>
+                    <td className="data-table-cell text-acb-600">{seasonLabel(record.season)}</td>
+                    <td className="data-table-cell data-table-number text-acb-600">{row.onMin?.toFixed(0) ?? '-'}</td>
+                    <td className="data-table-cell data-table-number">{row.onORtg?.toFixed(1) ?? '-'}</td>
+                    <td className="data-table-cell data-table-number text-acb-500">{row.offORtg?.toFixed(1) ?? '-'}</td>
+                    <td className={`data-table-cell data-table-number ${onOffDiff(ortgD)}`}>
                       {ortgD != null ? `${ortgD > 0 ? '+' : ''}${ortgD.toFixed(1)}` : '-'}
                     </td>
-                    <td className="px-4 py-2 text-right font-mono text-acb-700">{row.onDRtg?.toFixed(1) ?? '-'}</td>
-                    <td className="px-4 py-2 text-right font-mono text-acb-500">{row.offDRtg?.toFixed(1) ?? '-'}</td>
-                    <td className={`px-4 py-2 text-right font-mono ${onOffDiff(drtgD, true)}`}>
+                    <td className="data-table-cell data-table-number">{row.onDRtg?.toFixed(1) ?? '-'}</td>
+                    <td className="data-table-cell data-table-number text-acb-500">{row.offDRtg?.toFixed(1) ?? '-'}</td>
+                    <td className={`data-table-cell data-table-number ${onOffDiff(drtgD, true)}`}>
                       {drtgD != null ? `${drtgD > 0 ? '+' : ''}${drtgD.toFixed(1)}` : '-'}
                     </td>
-                    <td className="px-4 py-2 text-right font-mono text-acb-700">
+                    <td className="data-table-cell data-table-number">
                       {row.onNetRtg != null ? `${row.onNetRtg > 0 ? '+' : ''}${row.onNetRtg.toFixed(1)}` : '-'}
                     </td>
-                    <td className={`px-4 py-2 text-right font-mono ${onOffDiff(row.netDiff)}`}>
+                    <td className={`data-table-cell data-table-number ${onOffDiff(row.netDiff)}`}>
                       {row.netDiff != null ? `${row.netDiff > 0 ? '+' : ''}${row.netDiff.toFixed(1)}` : '-'}
                     </td>
                   </tr>
@@ -764,14 +759,14 @@ export default function PlayerComparison({
               className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-md border border-acb-200 text-acb-600 hover:bg-acb-50"
             >
               <span className="w-2 h-2 rounded-full bg-accent-500 shrink-0" />
-              {playerA.playerAbbrev || playerA.playerFull?.trim()} <ArrowRight className="w-3.5 h-3.5" />
+              {getPlayerDisplayName(playerA)} <ArrowRight className="w-3.5 h-3.5" />
             </Link>
             <Link
               to={`/jugador/${playerB.licenseId}`}
               className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-md border border-acb-200 text-acb-600 hover:bg-acb-50"
             >
               <span className="w-2 h-2 rounded-full bg-info-500 shrink-0" />
-              {playerB.playerAbbrev || playerB.playerFull?.trim()} <ArrowRight className="w-3.5 h-3.5" />
+              {getPlayerDisplayName(playerB)} <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
         )}

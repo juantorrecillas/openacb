@@ -4,6 +4,98 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+  .data-table {
+    @apply w-full text-sm;
+  }
+
+  .data-table th,
+  .data-table td {
+    @apply px-2 py-2;
+  }
+
+  .data-table-head {
+    @apply px-2.5 py-2 text-xs font-semibold uppercase tracking-wider text-acb-600 whitespace-nowrap;
+  }
+
+  .data-table-group {
+    @apply px-2.5 py-2 text-center text-xs font-semibold uppercase tracking-wider text-acb-700 whitespace-nowrap;
+  }
+
+  .data-table-cell {
+    @apply px-2.5 py-2 text-sm text-acb-700 whitespace-nowrap;
+  }
+
+  .data-table-number {
+    @apply text-right font-mono tabular-nums;
+  }
+
+  .data-table-identity {
+    @apply text-left font-medium text-acb-900;
+  }
+
+  .data-table-value {
+    @apply inline-flex items-center justify-end gap-1 whitespace-nowrap;
+  }
+
+  .data-table-badge {
+    @apply rounded px-1 py-0.5 font-sans text-[9px] leading-3;
+  }
+
+  .data-table-row {
+    @apply bg-white hover:bg-acb-50 transition-colors;
+  }
+
+  .data-table-sticky,
+  .data-table-sticky-after-rank {
+    @apply sticky z-10;
+    background-color: inherit;
+    box-shadow: 1px 0 0 #d9e2ec;
+  }
+
+  .data-table-sticky {
+    left: 0;
+  }
+
+  .data-table-sticky-after-rank {
+    left: 2.5rem;
+  }
+
+  .data-table-sticky-head {
+    @apply z-20;
+  }
+
+  .data-col-rank {
+    width: 2.5rem;
+    min-width: 2.5rem;
+  }
+
+  .data-col-player {
+    width: 12rem;
+    min-width: 12rem;
+  }
+
+  .data-col-team {
+    width: 10rem;
+    min-width: 10rem;
+  }
+
+  .data-col-position {
+    width: 5rem;
+    min-width: 5rem;
+  }
+
+  .data-col-games {
+    width: 3.5rem;
+    min-width: 3.5rem;
+  }
+
+  .data-col-number {
+    width: 4.5rem;
+    min-width: 4.5rem;
+  }
+}
+
 /* Custom properties for our color scheme */
 :root {
   --color-positive: #2aa867;

@@ -112,7 +112,7 @@ function ClutchTeamsView({ tabBar, teams, selectedSeason, setSelectedSeason, ava
 
   const sl = s => `${s - 1}-${String(s).slice(-2)}`
   const fmt = (v, pct) => v == null || isNaN(v) ? '-' : pct ? `${Number(v).toFixed(1)}%` : Number(v).toFixed(1)
-  const thCls = key => `px-2 py-3 text-center text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-acb-100 whitespace-nowrap select-none ${sortCol === key ? 'bg-acb-100 text-acb-800' : 'text-acb-600'}`
+  const thCls = key => `data-table-head data-table-number data-col-number cursor-pointer hover:bg-acb-100 select-none ${sortCol === key ? 'bg-acb-100 text-acb-800' : 'text-acb-600'}`
   const sortIcon = key => sortCol === key
     ? (sortDir === 'desc' ? <ArrowDown className="inline w-3 h-3 ml-0.5" /> : <ArrowUp className="inline w-3 h-3 ml-0.5" />)
     : <span className="ml-0.5 opacity-20">↕</span>
@@ -122,13 +122,13 @@ function ClutchTeamsView({ tabBar, teams, selectedSeason, setSelectedSeason, ava
     const rank = t[`${k}Rank`]
     let display, colorClass = 'text-acb-700'
     if (v == null || isNaN(v)) display = '-'
-    else if (signed) { display = v > 0 ? `+${v.toFixed(1)}` : v.toFixed(1); colorClass = v > 0 ? 'text-green-700' : v < 0 ? 'text-red-600' : 'text-acb-700' }
+    else if (signed) { display = v > 0 ? `+${v.toFixed(1)}` : v.toFixed(1); colorClass = v > 0 ? 'text-positive' : v < 0 ? 'text-negative' : 'text-acb-700' }
     else display = pct ? `${Number(v).toFixed(1)}%` : Number(v).toFixed(1)
     return (
-      <td className={`px-2 py-3 text-sm text-center ${sortCol === k ? 'bg-acb-50/60' : ''}`}>
-        <div className="flex flex-col items-center gap-1">
-          <span className={`font-mono ${colorClass}`}>{display}</span>
-          {rank != null && <span className={`text-xs px-1.5 py-0.5 rounded ${getRankColor(rank, n)}`}>#{rank}</span>}
+      <td className={`data-table-cell data-table-number data-col-number ${sortCol === k ? 'bg-acb-50/60' : ''}`}>
+        <div className="data-table-value">
+          <span className={colorClass}>{display}</span>
+          {rank != null && <span className={`data-table-badge ${getRankColor(rank, n)}`}>#{rank}</span>}
         </div>
       </td>
     )
@@ -177,39 +177,39 @@ function ClutchTeamsView({ tabBar, teams, selectedSeason, setSelectedSeason, ava
       ) : (
         <div className="bg-white rounded-lg border border-acb-200 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="data-table">
               <thead>
                 <tr className="bg-acb-100 border-b border-acb-300">
-                  <th className="px-4 py-2 text-left text-xs font-semibold text-acb-700 uppercase tracking-wider" rowSpan="2">Equipo</th>
-                  <th className="px-2 py-2 text-center text-xs font-semibold text-acb-700 uppercase tracking-wider" rowSpan="2">PJ</th>
+                  <th className="data-table-head data-table-identity data-table-sticky data-table-sticky-head data-col-team bg-acb-100" rowSpan="2">Equipo</th>
+                  <th className="data-table-head data-table-number data-col-games" rowSpan="2">PJ</th>
                   {viewTab === 'basico' && <>
-                    <th className="px-2 py-2 text-center text-xs font-semibold text-acb-700 uppercase tracking-wider border-l border-acb-300" colSpan="4">Marcador</th>
-                    <th className="px-2 py-2 text-center text-xs font-semibold text-acb-700 uppercase tracking-wider border-l border-acb-300" colSpan="5">Tiro</th>
-                    <th className="px-2 py-2 text-center text-xs font-semibold text-acb-700 uppercase tracking-wider border-l border-acb-300" colSpan="3">Rebotes</th>
-                    <th className="px-2 py-2 text-center text-xs font-semibold text-acb-700 uppercase tracking-wider border-l border-acb-300" colSpan="4">Misc</th>
+                    <th className="data-table-group border-l border-acb-300" colSpan="4">Marcador</th>
+                    <th className="data-table-group border-l border-acb-300" colSpan="5">Tiro</th>
+                    <th className="data-table-group border-l border-acb-300" colSpan="3">Rebotes</th>
+                    <th className="data-table-group border-l border-acb-300" colSpan="4">Otros</th>
                   </>}
                   {viewTab === 'avanzado' && <>
-                    <th className="px-2 py-2 text-center text-xs font-semibold text-acb-700 uppercase tracking-wider border-l border-acb-300" colSpan="4">Rating</th>
-                    <th className="px-2 py-2 text-center text-xs font-semibold text-acb-700 uppercase tracking-wider border-l border-acb-300" colSpan="3">Tiro Avanzado</th>
-                    <th className="px-2 py-2 text-center text-xs font-semibold text-acb-700 uppercase tracking-wider border-l border-acb-300" colSpan="2">Rebotes</th>
-                    <th className="px-2 py-2 text-center text-xs font-semibold text-acb-700 uppercase tracking-wider border-l border-acb-300" colSpan="5">Ratios</th>
+                    <th className="data-table-group border-l border-acb-300" colSpan="4">Rating</th>
+                    <th className="data-table-group border-l border-acb-300" colSpan="3">Tiro</th>
+                    <th className="data-table-group border-l border-acb-300" colSpan="2">Rebotes</th>
+                    <th className="data-table-group border-l border-acb-300" colSpan="5">Ratios</th>
                   </>}
                   {viewTab === 'rival' && <>
-                    <th className="px-2 py-2 text-center text-xs font-semibold text-acb-700 uppercase tracking-wider border-l border-acb-300" colSpan="1">Pts</th>
-                    <th className="px-2 py-2 text-center text-xs font-semibold text-acb-700 uppercase tracking-wider border-l border-acb-300" colSpan="5">Tiro Rival</th>
-                    <th className="px-2 py-2 text-center text-xs font-semibold text-acb-700 uppercase tracking-wider border-l border-acb-300" colSpan="2">Reb. Rival</th>
-                    <th className="px-2 py-2 text-center text-xs font-semibold text-acb-700 uppercase tracking-wider border-l border-acb-300" colSpan="4">Misc Rival</th>
+                    <th className="data-table-group border-l border-acb-300" colSpan="1">Puntos</th>
+                    <th className="data-table-group border-l border-acb-300" colSpan="5">Tiro</th>
+                    <th className="data-table-group border-l border-acb-300" colSpan="2">Rebotes</th>
+                    <th className="data-table-group border-l border-acb-300" colSpan="4">Otros</th>
                   </>}
                   {viewTab === 'rivalAvanzado' && <>
-                    <th className="px-2 py-2 text-center text-xs font-semibold text-acb-700 uppercase tracking-wider border-l border-acb-300" colSpan="3">Rating Rival</th>
-                    <th className="px-2 py-2 text-center text-xs font-semibold text-acb-700 uppercase tracking-wider border-l border-acb-300" colSpan="3">Tiro Rival Avz</th>
-                    <th className="px-2 py-2 text-center text-xs font-semibold text-acb-700 uppercase tracking-wider border-l border-acb-300" colSpan="2">Reb. Rival</th>
-                    <th className="px-2 py-2 text-center text-xs font-semibold text-acb-700 uppercase tracking-wider border-l border-acb-300" colSpan="5">Ratios Rival</th>
+                    <th className="data-table-group border-l border-acb-300" colSpan="3">Rating</th>
+                    <th className="data-table-group border-l border-acb-300" colSpan="3">Tiro</th>
+                    <th className="data-table-group border-l border-acb-300" colSpan="2">Rebotes</th>
+                    <th className="data-table-group border-l border-acb-300" colSpan="5">Ratios</th>
                   </>}
                 </tr>
                 <tr className="bg-acb-50 border-b border-acb-200">
                   {viewTab === 'basico' && <>
-                    <th className={`${thCls('winPct')} border-l border-acb-200`} onClick={() => handleSort('winPct')}>W-L {sortIcon('winPct')}</th>
+                    <th className={`${thCls('winPct')} border-l border-acb-200`} onClick={() => handleSort('winPct')}>V-D {sortIcon('winPct')}</th>
                     <th className={thCls('plusMinus')} onClick={() => handleSort('plusMinus')}>+/- {sortIcon('plusMinus')}</th>
                     <th className={thCls('ptsScoredAvg')} onClick={() => handleSort('ptsScoredAvg')}>Pts/G {sortIcon('ptsScoredAvg')}</th>
                     <th className={thCls('ptsAllowedAvg')} onClick={() => handleSort('ptsAllowedAvg')}>Pts Riv/G {sortIcon('ptsAllowedAvg')}</th>
@@ -275,14 +275,14 @@ function ClutchTeamsView({ tabBar, teams, selectedSeason, setSelectedSeason, ava
               </thead>
               <tbody className="divide-y divide-acb-100">
                 {sorted.map(t => (
-                  <tr key={t.team} className="border-b border-acb-100 hover:bg-acb-50 transition-colors">
-                    <td className="px-4 py-3 text-sm font-medium text-acb-900 whitespace-nowrap">{t.team}</td>
-                    <td className="px-2 py-3 text-sm text-center font-mono text-acb-600">{t.games}</td>
+                  <tr key={t.team} className="data-table-row border-b border-acb-100">
+                    <td className="data-table-cell data-table-identity data-table-sticky data-col-team">{t.team}</td>
+                    <td className="data-table-cell data-table-number data-col-games text-acb-600">{t.games}</td>
                     {viewTab === 'basico' && <>
-                      <td className={`px-2 py-3 text-sm text-center border-l border-acb-100 ${sortCol === 'winPct' ? 'bg-acb-50/60' : ''}`}>
-                        <div className="flex flex-col items-center gap-1">
-                          <span className="font-mono text-acb-700">{t.wins}-{t.losses}</span>
-                          {t.winPctRank != null && <span className={`text-xs px-1.5 py-0.5 rounded ${getRankColor(t.winPctRank, n)}`}>#{t.winPctRank}</span>}
+                      <td className={`data-table-cell data-table-number data-col-number border-l border-acb-100 ${sortCol === 'winPct' ? 'bg-acb-50/60' : ''}`}>
+                        <div className="data-table-value">
+                          <span className="text-acb-700">{t.wins}-{t.losses}</span>
+                          {t.winPctRank != null && <span className={`data-table-badge ${getRankColor(t.winPctRank, n)}`}>#{t.winPctRank}</span>}
                         </div>
                       </td>
                       <StatCell t={t} k="plusMinus" signed />
@@ -291,7 +291,7 @@ function ClutchTeamsView({ tabBar, teams, selectedSeason, setSelectedSeason, ava
                       <StatCell t={t} k="fgPct" pct />
                       <StatCell t={t} k="fg3Pct" pct />
                       <StatCell t={t} k="ftPct" pct />
-                      <td className={`px-2 py-3 text-sm text-center ${sortCol === 'fg3Rate' ? 'bg-acb-50/60' : ''}`}>
+                      <td className={`data-table-cell data-table-number data-col-number ${sortCol === 'fg3Rate' ? 'bg-acb-50/60' : ''}`}>
                         <span className="font-mono text-acb-700">{fmt(t.fg3Rate, true)}</span>
                       </td>
                       <StatCell t={t} k="efgPct" pct />
@@ -310,7 +310,7 @@ function ClutchTeamsView({ tabBar, teams, selectedSeason, setSelectedSeason, ava
                       <StatCell t={t} k="plusMinus" signed />
                       <StatCell t={t} k="efgPct" pct />
                       <StatCell t={t} k="tsPct" pct />
-                      <td className={`px-2 py-3 text-sm text-center ${sortCol === 'fg3Rate' ? 'bg-acb-50/60' : ''}`}>
+                      <td className={`data-table-cell data-table-number data-col-number ${sortCol === 'fg3Rate' ? 'bg-acb-50/60' : ''}`}>
                         <span className="font-mono text-acb-700">{fmt(t.fg3Rate, true)}</span>
                       </td>
                       <StatCell t={t} k="orbPct" pct />
@@ -319,10 +319,10 @@ function ClutchTeamsView({ tabBar, teams, selectedSeason, setSelectedSeason, ava
                       <StatCell t={t} k="stlRate" pct />
                       <StatCell t={t} k="blkRate" pct />
                       <StatCell t={t} k="tovRate" pct />
-                      <td className={`px-2 py-3 text-sm text-center ${sortCol === 'astToRatio' ? 'bg-acb-50/60' : ''}`}>
-                        <div className="flex flex-col items-center gap-1">
-                          <span className="font-mono text-acb-700">{fmt(t.astToRatio, false)}</span>
-                          {t.astToRatioRank != null && <span className={`text-xs px-1.5 py-0.5 rounded ${getRankColor(t.astToRatioRank, n)}`}>#{t.astToRatioRank}</span>}
+                      <td className={`data-table-cell data-table-number data-col-number ${sortCol === 'astToRatio' ? 'bg-acb-50/60' : ''}`}>
+                        <div className="data-table-value">
+                          <span className="text-acb-700">{fmt(t.astToRatio, false)}</span>
+                          {t.astToRatioRank != null && <span className={`data-table-badge ${getRankColor(t.astToRatioRank, n)}`}>#{t.astToRatioRank}</span>}
                         </div>
                       </td>
                     </>}
@@ -332,7 +332,7 @@ function ClutchTeamsView({ tabBar, teams, selectedSeason, setSelectedSeason, ava
                       <StatCell t={t} k="plusMinus" signed />
                       <StatCell t={t} k="opp_efgPct" pct />
                       <StatCell t={t} k="opp_tsPct" pct />
-                      <td className={`px-2 py-3 text-sm text-center ${sortCol === 'opp_fg3Rate' ? 'bg-acb-50/60' : ''}`}>
+                      <td className={`data-table-cell data-table-number data-col-number ${sortCol === 'opp_fg3Rate' ? 'bg-acb-50/60' : ''}`}>
                         <span className="font-mono text-acb-700">{fmt(t.opp_fg3Rate, true)}</span>
                       </td>
                       <StatCell t={t} k="opp_orbPct" pct />
@@ -341,10 +341,10 @@ function ClutchTeamsView({ tabBar, teams, selectedSeason, setSelectedSeason, ava
                       <StatCell t={t} k="opp_stlRate" pct />
                       <StatCell t={t} k="opp_blkRate" pct />
                       <StatCell t={t} k="opp_tovRate" pct />
-                      <td className={`px-2 py-3 text-sm text-center ${sortCol === 'opp_astToRatio' ? 'bg-acb-50/60' : ''}`}>
-                        <div className="flex flex-col items-center gap-1">
-                          <span className="font-mono text-acb-700">{fmt(t.opp_astToRatio, false)}</span>
-                          {t.opp_astToRatioRank != null && <span className={`text-xs px-1.5 py-0.5 rounded ${getRankColor(t.opp_astToRatioRank, n)}`}>#{t.opp_astToRatioRank}</span>}
+                      <td className={`data-table-cell data-table-number data-col-number ${sortCol === 'opp_astToRatio' ? 'bg-acb-50/60' : ''}`}>
+                        <div className="data-table-value">
+                          <span className="text-acb-700">{fmt(t.opp_astToRatio, false)}</span>
+                          {t.opp_astToRatioRank != null && <span className={`data-table-badge ${getRankColor(t.opp_astToRatioRank, n)}`}>#{t.opp_astToRatioRank}</span>}
                         </div>
                       </td>
                     </>}
@@ -353,7 +353,7 @@ function ClutchTeamsView({ tabBar, teams, selectedSeason, setSelectedSeason, ava
                       <StatCell t={t} k="opp_fgPct" pct />
                       <StatCell t={t} k="opp_fg3Pct" pct />
                       <StatCell t={t} k="opp_ftPct" pct />
-                      <td className={`px-2 py-3 text-sm text-center ${sortCol === 'opp_fg3Rate' ? 'bg-acb-50/60' : ''}`}>
+                      <td className={`data-table-cell data-table-number data-col-number ${sortCol === 'opp_fg3Rate' ? 'bg-acb-50/60' : ''}`}>
                         <span className="font-mono text-acb-700">{fmt(t.opp_fg3Rate, true)}</span>
                       </td>
                       <StatCell t={t} k="opp_efgPct" pct />
@@ -744,11 +744,11 @@ export default function GameFlow({ teams, loadGameFlowForSeason, gameFlowCache, 
             </div>
             <div className="flex items-center gap-4 text-xs">
               <div className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded-full bg-green-500/30 border border-green-500"></span>
+                <span className="w-3 h-3 rounded-full bg-positive-100 border border-positive-500"></span>
                 <span className="text-acb-500">{game.local} anota</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded-full bg-red-500/30 border border-red-500"></span>
+                <span className="w-3 h-3 rounded-full bg-negative-100 border border-negative-500"></span>
                 <span className="text-acb-500">{game.visitor} anota</span>
               </div>
             </div>
@@ -904,11 +904,11 @@ export default function GameFlow({ teams, loadGameFlowForSeason, gameFlowCache, 
                     <div
                       key={i}
                       className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs border ${
-                        isLocal ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'
+                        isLocal ? 'border-positive-200 bg-positive-50' : 'border-negative-200 bg-negative-50'
                       }`}
                     >
-                      <span className={`font-semibold ${isLocal ? 'text-green-700' : 'text-red-700'}`}>{teamName}</span>
-                      <span className={`font-bold ${isLocal ? 'text-green-800' : 'text-red-800'}`}>{wonPts}-{lostPts}</span>
+                      <span className={`font-semibold ${isLocal ? 'text-positive-700' : 'text-negative-700'}`}>{teamName}</span>
+                      <span className={`font-semibold ${isLocal ? 'text-positive-800' : 'text-negative-800'}`}>{wonPts}-{lostPts}</span>
                       <span className="text-acb-400">{formatClock(run.tStart)} → {formatClock(run.tEnd)}</span>
                     </div>
                   )

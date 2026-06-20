@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import Court from '../components/Court'
 import { getPlayerPhoto } from '../utils/playerPhotos'
+import { getPlayerDisplayName } from '../utils/playerNames'
 import { Filter } from 'lucide-react'
 
 
@@ -175,16 +176,9 @@ function getPolygonCentroid(points) {
 
 // ─── Player name helpers ──────────────────────────────────────────────────────
 
-const getPlayerAbbrev = (players, playerId) => {
+const getPlayerName = (players, playerId) => {
   const player = players.find(p => String(p.licenseId) === String(playerId))
-  return player?.playerAbbrev || player?.playerFull || null
-}
-
-const abbreviateName = (name) => {
-  if (!name) return '-'
-  const parts = name.trim().split(/\s+/)
-  if (parts.length <= 1) return name
-  return parts[0][0] + '. ' + parts.slice(1).join(' ')
+  return player ? getPlayerDisplayName(player) : null
 }
 
 // Shorten for tight zones: "T. Luwawu-Cabarrot" -> "T. Luw.-Cab."
@@ -314,15 +308,13 @@ export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingSho
 
   // Get display name for a leader
   const getDisplayName = (leader) => {
-    const abbrev = getPlayerAbbrev(players, leader.playerId)
-    if (abbrev && abbrev !== '-') return abbrev
-    return abbreviateName(leader.playerName)
+    return getPlayerName(players, leader.playerId) || leader.playerName || '-'
   }
 
   // Zone short labels for the table
   const ZONE_SHORT = {
-    'Zona (Restringida)': 'Restringida',
-    'Zona no restringida': 'Pintura',
+    'Zona (Restringida)': 'Zona Restringida',
+    'Zona no restringida': 'Zona',
     'Media Distancia Centro': 'MD Centro',
     'Media Distancia Codo Derecha': 'MD Codo Der.',
     'Media Distancia Codo Izquierda': 'MD Codo Izq.',
@@ -458,7 +450,7 @@ export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingSho
         <div className="lg:col-span-2 bg-white rounded-lg border border-acb-200 p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-medium text-acb-900">
-              {selectedTeam || 'Toda la Liga'} — {metric === 'points' ? 'Máx. Anotador' : 'Mejor TC%'} por zona
+              {selectedTeam || 'Toda la Liga'} — {metric === 'points' ? 'Máximo Anotador' : 'Mejor TC%'} por zona
             </h3>
 
           </div>
@@ -511,7 +503,7 @@ export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingSho
                       <text
                         x={labelX} y={labelY}
                         textAnchor="middle" fontSize={fonts.sub}
-                        fill="#94a3b8" fontFamily="system-ui, sans-serif"
+                        fill="#94a3b8" fontFamily="Inter, system-ui, sans-serif"
                       >
                         Sin datos
                       </text>
@@ -557,7 +549,7 @@ export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingSho
                       x={labelX} y={textBaseY}
                       textAnchor="middle" fontSize={fonts.name}
                       fontWeight="600" fill="#0f172a"
-                      fontFamily="system-ui, sans-serif"
+                      fontFamily="Inter, system-ui, sans-serif"
                     >
                       {displayName}
                     </text>
@@ -567,7 +559,7 @@ export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingSho
                       x={labelX} y={textBaseY + fonts.stat + 2}
                       textAnchor="middle" fontSize={fonts.stat + 1}
                       fontWeight="bold" fill="#0f172a"
-                      fontFamily="Consolas, monospace"
+                      fontFamily="JetBrains Mono, Consolas, monospace"
                     >
                       {statValue}
                     </text>
@@ -577,7 +569,7 @@ export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingSho
                       x={labelX} y={textBaseY + fonts.stat + fonts.sub + 6}
                       textAnchor="middle" fontSize={fonts.sub}
                       fill="#0f172a"
-                      fontFamily="Consolas, monospace"
+                      fontFamily="JetBrains Mono, Consolas, monospace"
                     >
                       {subLine}
                     </text>
@@ -587,18 +579,11 @@ export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingSho
             </svg>
 
           </div>
-
-          {/* Legend */}
-          <div className="mt-3 bg-acb-50 p-2 rounded border border-acb-200 text-xs">
-            <span className="font-medium text-acb-700">
-              {metric === 'points' ? 'Máx. anotador' : 'Mejor TC%'} por zona — Mín. {minAttempts} intentos ({getMinAttempts('Zona (Restringida)', minAttempts)} en restringida)
-            </span>
-          </div>
         </div>
 
         {/* Table sidebar */}
         <div className="bg-white rounded-lg border border-acb-200 p-4">
-          <h3 className="text-sm font-medium text-acb-700 mb-3">Detalle por zona</h3>
+          <h3 className="text-sm font-medium text-acb-700 mb-3">Detalle</h3>
           <div className="space-y-1">
             {ZONE_ORDER.map(zone => {
               const leader = zoneLeaders[zone]
@@ -623,7 +608,7 @@ export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingSho
                           )}
                         </>
                       ) : (
-                        <div className="text-xs text-acb-400 italic">Sin datos</div>
+                        <div className="text-xs text-acb-400">Sin datos</div>
                       )}
                     </div>
                   </div>

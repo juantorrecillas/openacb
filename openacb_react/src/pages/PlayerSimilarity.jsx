@@ -1,6 +1,8 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Search, Filter, ArrowRight } from 'lucide-react'
+import { statTitle } from '../utils/statLabels'
+import { getPlayerDisplayName, getPlayerSearchText } from '../utils/playerNames'
 
 
 function seasonLabel(s) {
@@ -40,11 +42,18 @@ function PlayerSelector({ players, onSelect, selectedLicenseId }) {
     filtered.forEach(p => {
       const key = p.licenseId
       if (!map.has(key)) {
-        map.set(key, { licenseId: key, name: p.playerFull?.trim(), abbrev: p.playerAbbrev, team: p.team, season: p.season })
+        map.set(key, {
+          licenseId: key,
+          name: getPlayerDisplayName(p),
+          abbrev: p.playerAbbrev,
+          searchText: getPlayerSearchText(p),
+          team: p.team,
+          season: p.season,
+        })
       }
     })
     return [...map.values()].sort((a, b) =>
-      (a.abbrev || a.name).localeCompare(b.abbrev || b.name)
+      (a.name || a.abbrev || '').localeCompare(b.name || b.abbrev || '', 'es')
     )
   }, [players, teamFilter, seasonFilter])
 
@@ -52,7 +61,7 @@ function PlayerSelector({ players, onSelect, selectedLicenseId }) {
     if (!query.trim()) return uniquePlayers.slice(0, 50)
     const q = query.toLowerCase()
     return uniquePlayers.filter(p =>
-      p.name?.toLowerCase().includes(q) || p.abbrev?.toLowerCase().includes(q)
+      p.searchText.includes(q)
     ).slice(0, 50)
   }, [uniquePlayers, query])
 
@@ -107,12 +116,12 @@ function PlayerSelector({ players, onSelect, selectedLicenseId }) {
             {filtered.map(p => (
               <li
                 key={p.licenseId}
-                onClick={() => { onSelect(p.licenseId); setQuery(p.abbrev || p.name); setOpen(false) }}
+                onClick={() => { onSelect(p.licenseId); setQuery(p.name || p.abbrev); setOpen(false) }}
                 className={`px-4 py-2 text-sm cursor-pointer hover:bg-accent-50 flex items-center justify-between ${
                   String(selectedLicenseId) === String(p.licenseId) ? 'bg-accent-50 font-medium' : ''
                 }`}
               >
-                <span>{p.abbrev || p.name}</span>
+                <span>{p.name || p.abbrev}</span>
                 {(teamFilter || seasonFilter) && (
                   <span className="text-xs text-acb-400 ml-2">{p.team}</span>
                 )}
@@ -260,7 +269,7 @@ export default function PlayerSimilarity({ players, similarity }) {
         licenseId: s.licenseId,
         season: s.season,
         score: s.score,
-        name: player?.playerAbbrev || player?.playerFull?.trim() || `ID ${s.licenseId}`,
+        name: getPlayerDisplayName(player, `ID ${s.licenseId}`),
         team: player?.team || '-',
         _record: player, // keep full record for dynamic stat access
       }
@@ -310,7 +319,7 @@ export default function PlayerSimilarity({ players, similarity }) {
         <div className="bg-white rounded-lg border border-acb-200 p-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h3 className="font-bold text-acb-900 text-lg">{currentRecord.playerFull?.trim()}</h3>
+              <h3 className="font-bold text-acb-900 text-lg">{getPlayerDisplayName(currentRecord)}</h3>
               <p className="text-sm text-acb-500">{currentRecord.team} - {seasonLabel(currentRecord.season)} - {currentRecord.games} partidos</p>
             </div>
             <div className="flex gap-4 text-xs text-acb-500">
@@ -330,21 +339,21 @@ export default function PlayerSimilarity({ players, similarity }) {
       {currentRecord && standoutCols.length > 0 && similarPlayers.length > 0 && (
         <div className="bg-white rounded-lg border border-acb-200 overflow-hidden">
           <div className="px-5 py-3 border-b border-acb-200">
-            <h3 className="font-semibold text-acb-900">Top 20 Jugadores-Temporada Más Similares</h3>
+            <h3 className="font-semibold text-acb-900">20 perfiles más similares</h3>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="data-table">
               <thead>
                 <tr className="border-b border-acb-200 bg-acb-50">
-                  <th className="text-left py-2 px-4 text-xs font-semibold text-acb-600 uppercase w-10">#</th>
-                  <th className="text-left py-2 px-4 text-xs font-semibold text-acb-600 uppercase">Jugador</th>
-                  <th className="text-left py-2 px-4 text-xs font-semibold text-acb-600 uppercase">Equipo</th>
-                  <th className="text-left py-2 px-4 text-xs font-semibold text-acb-600 uppercase">Temp.</th>
+                  <th className="data-table-head data-table-number data-table-sticky data-table-sticky-head data-col-rank bg-acb-50">#</th>
+                  <th className="data-table-head data-table-identity data-table-sticky-after-rank data-table-sticky-head data-col-player bg-acb-50">Jugador</th>
+                  <th className="data-table-head text-left data-col-team">Equipo</th>
+                  <th className="data-table-head text-left">Temp.</th>
                   {standoutCols.map(col => (
-                    <th key={col.key} className="text-right py-2 px-4 text-xs font-semibold text-accent-600 uppercase">{col.label}</th>
+                    <th key={col.key} title={statTitle(col.label)} className="data-table-head data-table-number data-col-number text-accent-600">{col.label}</th>
                   ))}
-                  <th className="text-right py-2 px-4 text-xs font-semibold text-acb-600 uppercase">Similitud</th>
-                  <th className="py-2 px-2 w-8"></th>
+                  <th className="data-table-head data-table-number">Similitud</th>
+                  <th className="data-table-head w-8"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-acb-100">
@@ -352,19 +361,19 @@ export default function PlayerSimilarity({ players, similarity }) {
                   <tr
                     key={`${p.licenseId}_${p.season}`}
                     onClick={() => navigate(`/jugador/${p.licenseId}`)}
-                    className="hover:bg-accent-50 cursor-pointer transition-colors"
+                    className="data-table-row cursor-pointer hover:bg-accent-50"
                   >
-                    <td className="py-2.5 px-4 font-mono text-acb-400">{p.rank}</td>
-                    <td className="py-2.5 px-4 font-medium text-acb-900">{p.name}</td>
-                    <td className="py-2.5 px-4 text-acb-600">{p.team}</td>
-                    <td className="py-2.5 px-4 text-acb-600">{seasonLabel(p.season)}</td>
+                    <td className="data-table-cell data-table-number data-table-sticky data-col-rank text-acb-400">{p.rank}</td>
+                    <td className="data-table-cell data-table-identity data-table-sticky-after-rank data-col-player">{p.name}</td>
+                    <td className="data-table-cell data-col-team text-acb-600">{p.team}</td>
+                    <td className="data-table-cell text-acb-600">{seasonLabel(p.season)}</td>
                     {standoutCols.map(col => (
-                      <td key={col.key} className="py-2.5 px-4 text-right font-mono text-acb-700">
+                      <td key={col.key} className="data-table-cell data-table-number data-col-number">
                         {col.fmt(p._record?.[col.key])}
                       </td>
                     ))}
-                    <td className="py-2.5 px-4 text-right"><ScoreBar score={p.score} /></td>
-                    <td className="py-2.5 px-2 text-acb-400"><ArrowRight className="w-4 h-4" /></td>
+                    <td className="data-table-cell text-right"><ScoreBar score={p.score} /></td>
+                    <td className="data-table-cell text-acb-400"><ArrowRight className="w-4 h-4" /></td>
                   </tr>
                 ))}
               </tbody>

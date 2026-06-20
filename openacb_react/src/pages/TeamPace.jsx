@@ -223,12 +223,12 @@ export default function TeamPace({ teams, loadTeamPaceForSeason, teamPaceCache, 
             </h3>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="data-table">
               <thead>
                 <tr className="border-b border-acb-200 bg-acb-50">
                   <th
                     onClick={() => handleSort('team')}
-                    className="text-left py-2 px-4 text-xs font-semibold text-acb-600 uppercase cursor-pointer hover:text-acb-900 w-48"
+                    className="data-table-head data-table-identity data-table-sticky data-table-sticky-head data-col-team bg-acb-50 cursor-pointer hover:text-acb-900"
                   >
                     Equipo{sortIcon('team')}
                   </th>
@@ -266,11 +266,11 @@ export default function TeamPace({ teams, loadTeamPaceForSeason, teamPaceCache, 
                     <tr
                       key={t.team}
                       onClick={() => setSelectedTeam(isSelected ? null : t.team)}
-                      className={`cursor-pointer transition-colors ${
+                      className={`data-table-row cursor-pointer ${
                         isSelected ? 'bg-accent-50' : 'hover:bg-acb-50'
                       }`}
                     >
-                      <td className="py-2 px-4 font-medium text-acb-900 truncate">{t.team}</td>
+                      <td className="data-table-cell data-table-identity data-table-sticky data-col-team truncate">{t.team}</td>
                       {arr.map((v, qi) => {
                         let colorValue
                         if (viewMode === 'diff') colorValue = v
@@ -367,7 +367,7 @@ export default function TeamPace({ teams, loadTeamPaceForSeason, teamPaceCache, 
                 {viewMode === 'diff' ? 'Diferencial' : viewMode === 'scored' ? 'Anotado' : 'Recibido'} por tramo de 2 minutos
               </p>
               <div className="overflow-x-auto">
-                <table className="w-full text-xs">
+                <table className="data-table text-xs">
                   <thead>
                     <tr className="border-b border-acb-200">
                       <th className="py-1 px-2 text-left text-acb-500 font-medium"></th>

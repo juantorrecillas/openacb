@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, LabelList } from 'recharts'
 import { ArrowUpDown, ArrowUp, ArrowDown, Download } from 'lucide-react'
 import { downloadTableAsCsv } from '../utils/csvDownload'
+import { statTitle } from '../utils/statLabels'
 
 
 // Add a color palette for teams (or generate colors dynamically)
@@ -174,10 +175,10 @@ const oppAdvancedColumns = [
   { key: 'opp_assistedFgm', label: 'Pts Ast%', align: 'right', inverse: true },
 ]
 
-const basicGroups      = [{ label:'Marcador', span:3 },{ label:'Tiro', span:4 },{ label:'Rebotes', span:3 },{ label:'Misc', span:4 }]
-const advancedGroups   = [{ label:'Rating', span:4 },{ label:'Tiro Avanzado', span:3 },{ label:'Rebotes', span:3 },{ label:'Ratios', span:5 },{ label:'Tipo', span:3 }]
-const oppBasicGroups   = [{ label:'Pts', span:1 },{ label:'Tiro Rival', span:4 },{ label:'Reb. Rival', span:3 },{ label:'Misc Rival', span:4 }]
-const oppAdvancedGroups= [{ label:'Rating Rival', span:4 },{ label:'Tiro Rival Avz', span:3 },{ label:'Reb. Rival', span:3 },{ label:'Ratios Rival', span:5 },{ label:'Tipo Rival', span:3 }]
+const basicGroups      = [{ label:'Marcador', span:3 },{ label:'Tiro', span:4 },{ label:'Rebotes', span:3 },{ label:'Otros', span:4 }]
+const advancedGroups   = [{ label:'Rating', span:4 },{ label:'Tiro', span:3 },{ label:'Rebotes', span:3 },{ label:'Ratios', span:5 },{ label:'Tipo', span:3 }]
+const oppBasicGroups   = [{ label:'Puntos', span:1 },{ label:'Tiro', span:4 },{ label:'Rebotes', span:3 },{ label:'Otros', span:4 }]
+const oppAdvancedGroups= [{ label:'Rating', span:4 },{ label:'Tiro', span:3 },{ label:'Rebotes', span:3 },{ label:'Ratios', span:5 },{ label:'Tipo', span:3 }]
 
 // Custom scatter shape: logo image if available, else colored circle
 function TeamDot({ cx, cy, payload, teamLogos, color, highlighted }) {
@@ -663,15 +664,15 @@ export default function TeamStats({ teams, teamLogos = {} }) {
       {/* Table */}
       <div className="bg-white rounded-lg border border-acb-200 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full">
+          <table className="data-table min-w-full">
             <thead>
               <tr className="bg-acb-100 border-b border-acb-300">
-                <th rowSpan={2} style={{ width:'10rem', minWidth:'10rem' }} className="px-4 py-2 text-left text-xs font-semibold text-acb-700 uppercase tracking-wider">Equipo</th>
-                <th rowSpan={2} onClick={() => handleSort('games')} style={{ width:'3.5rem', minWidth:'3.5rem' }} className="px-4 py-2 text-center text-xs font-semibold text-acb-700 uppercase tracking-wider cursor-pointer hover:bg-acb-100">
+                <th rowSpan={2} className="data-table-head data-table-identity data-table-sticky data-table-sticky-head data-col-team bg-acb-100">Equipo</th>
+                <th rowSpan={2} onClick={() => handleSort('games')} title={statTitle('PJ')} className="data-table-head data-table-number data-col-games cursor-pointer hover:bg-acb-100">
                   <span className="inline-flex items-center gap-1">PJ {sortKey === 'games' && (sortDir === 'desc' ? <ArrowDown className="w-3 h-3"/> : <ArrowUp className="w-3 h-3"/>)}</span>
                 </th>
                 {columnGroups.map(g => (
-                  <th key={g.label} colSpan={g.span} className="px-2 py-2 text-center text-xs font-semibold text-acb-700 uppercase tracking-wider border-l border-acb-300">{g.label}</th>
+                  <th key={g.label} colSpan={g.span} className="data-table-group border-l border-acb-300">{g.label}</th>
                 ))}
               </tr>
               <tr className="bg-acb-50 border-b border-acb-200">
@@ -679,8 +680,8 @@ export default function TeamStats({ teams, teamLogos = {} }) {
                   <th
                     key={col.key}
                     onClick={() => handleSort(col.key)}
-                    style={{ width:'5.5rem', minWidth:'5.5rem' }}
-                    className={`px-4 py-3 text-xs font-semibold text-acb-600 uppercase tracking-wider text-right cursor-pointer hover:bg-acb-100
+                    title={statTitle(col.label)}
+                    className={`data-table-head data-table-number data-col-number cursor-pointer hover:bg-acb-100
                       ${groupBorderKeys.has(col.key) ? 'border-l border-acb-200' : ''}`}
                   >
                     <span className="inline-flex items-center gap-1">
@@ -695,7 +696,7 @@ export default function TeamStats({ teams, teamLogos = {} }) {
               {sortedTeams.map((team, i) => (
                 <tr
                   key={team.team}
-                  className={`border-b border-acb-100 hover:bg-acb-50 transition-colors
+                  className={`data-table-row border-b border-acb-100
                     ${highlightTeam === team.team ? 'bg-accent-50' : ''}`}
                   onMouseEnter={() => setHighlightTeam(team.team)}
                   onMouseLeave={() => setHighlightTeam(null)}
@@ -708,24 +709,23 @@ export default function TeamStats({ teams, teamLogos = {} }) {
                     return (
                       <td
                         key={col.key}
-                        style={{ width: col.key === 'team' ? '10rem' : col.key === 'games' ? '3.5rem' : '5.5rem', minWidth: col.key === 'team' ? '10rem' : col.key === 'games' ? '3.5rem' : '5.5rem' }}
-                        className={`px-4 py-3 text-sm whitespace-nowrap
-                          ${col.align === 'right' ? 'text-right' : ''}
-                          ${col.key === 'team' ? 'font-medium text-acb-900' : ''}`}
+                        className={`data-table-cell
+                          ${col.align === 'right' ? 'data-table-number' : ''}
+                          ${col.key === 'team' ? 'data-table-identity data-table-sticky data-col-team' : col.key === 'games' ? 'data-col-games' : 'data-col-number'}`}
                       >
                         {col.key === 'team' ? (
                           team.team
                         ) : showRank ? (
-                          <div className="flex flex-col items-end gap-0.5">
-                            <span className={`font-mono ${col.highlight ? getValueColor(team[col.key], col.key, col.inverse) : 'text-acb-700'}`}>
+                          <div className="data-table-value">
+                            <span className={col.highlight ? getValueColor(team[col.key], col.key, col.inverse) : 'text-acb-700'}>
                               {formatValue(team[col.key], col.key)}
                             </span>
-                            <span className={`text-xs px-1.5 py-0.5 rounded ${getRankBadgeColor(rank, totalTeams)}`}>
+                            <span className={`data-table-badge ${getRankBadgeColor(rank, totalTeams)}`}>
                               #{rank}
                             </span>
                           </div>
                         ) : (
-                          <span className={`font-mono ${col.highlight ? getValueColor(team[col.key], col.key, col.inverse) : 'text-acb-700'}`}>
+                          <span className={col.highlight ? getValueColor(team[col.key], col.key, col.inverse) : 'text-acb-700'}>
                             {formatValue(team[col.key], col.key)}
                           </span>
                         )}
