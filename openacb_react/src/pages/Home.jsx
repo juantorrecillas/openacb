@@ -108,7 +108,7 @@ function CategoryBlock({ category }) {
 
 function Home() {
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="app-page max-w-5xl mx-auto">
       {/* Hero Section */}
       <div className="text-center mb-10">
         <div className="flex justify-center mb-6">

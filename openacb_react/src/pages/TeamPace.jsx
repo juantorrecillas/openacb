@@ -156,7 +156,7 @@ export default function TeamPace({ teams, loadTeamPaceForSeason, teamPaceCache, 
   }, [teamDetail])
 
   return (
-    <div className="space-y-6">
+    <div className="app-page space-y-6">
       {/* Header */}
       <div>
         <h2 className="text-2xl font-semibold text-acb-900">Ritmo y Parciales</h2>

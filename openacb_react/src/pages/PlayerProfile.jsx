@@ -1258,7 +1258,7 @@ function OnOffCard({ records, loadLineupsForSeason, lineupsCache, loadingLineups
     <div className="bg-white rounded-lg border border-acb-200 p-5">
       <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
         <div className="flex items-center gap-2">
-          <h3 className="font-semibold text-acb-900">Impacto On/Off Court</h3>
+          <h3 className="text-sm font-semibold text-acb-900">Impacto On/Off Court</h3>
         </div>
         {hasAnyData && (
           <button
@@ -1311,7 +1311,7 @@ function OnOffCard({ records, loadLineupsForSeason, lineupsCache, loadingLineups
                 return (
                   <tr key={`${r.season}-${r.team}`} className="hover:bg-acb-50">
                     <td className="px-2 py-2 font-medium text-acb-900 whitespace-nowrap">{seasonLabel(r.season)}</td>
-                    <td className="px-2 py-2 text-acb-700 whitespace-nowrap">{r.team}</td>
+                    <td className="profile-history-team">{r.team}</td>
                     <td className="px-2 py-2 text-right font-mono text-acb-700 whitespace-nowrap border-l border-acb-100">{r.onORtg?.toFixed(1) ?? '-'}</td>
                     <td className="px-2 py-2 text-right font-mono text-acb-500 whitespace-nowrap">{r.offORtg?.toFixed(1) ?? '-'}</td>
                     <td className={`px-2 py-2 text-right font-mono font-medium whitespace-nowrap ${ortgD == null ? 'text-acb-400' : ortgD > 0 ? 'text-positive' : ortgD < 0 ? 'text-negative' : 'text-acb-500'}`}>
@@ -1464,7 +1464,7 @@ function ClutchCard({ records, loadClutchForSeason, clutchCache, loadingClutch }
                 return (
                   <tr key={r.season} className="hover:bg-acb-50">
                     <td className="px-3 py-2 text-left font-medium text-acb-900 whitespace-nowrap">{seasonLabel(r.season)}</td>
-                    <td className="px-3 py-2 text-left text-acb-600 whitespace-nowrap text-xs">{r.team}</td>
+                    <td className="profile-history-team">{r.team}</td>
                     <td className="px-3 py-2 text-right font-mono text-acb-700">{r.games}</td>
                     <td className="px-3 py-2 text-right font-mono text-acb-700">{fmt(r.pts)}</td>
                     <td className="px-3 py-2 text-right font-mono text-acb-700">{fmt(r.reb)}</td>
@@ -1563,7 +1563,7 @@ export default function PlayerProfile({ players, allPlayers = players, playerPho
   }, [allPlayerRecords, playerBio, selectedLicenseId])
 
   return (
-    <div className="space-y-6">
+    <div className="app-page space-y-6">
       {/* Header */}
       <div>
         <h2 className="text-2xl font-semibold text-acb-900">Perfil de Jugador</h2>

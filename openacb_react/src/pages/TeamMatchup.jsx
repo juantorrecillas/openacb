@@ -761,7 +761,7 @@ export default function TeamMatchup({
   const isShotsLoading = loadingShots[selectedSeason] || false
 
   return (
-    <div className="space-y-6">
+    <div className="app-page space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2 className="text-2xl font-semibold text-acb-900">Cara a Cara</h2>

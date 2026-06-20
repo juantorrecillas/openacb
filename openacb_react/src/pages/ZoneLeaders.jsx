@@ -355,7 +355,7 @@ export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingSho
   const defaultFont = { name: 10, stat: 11, sub: 9, photo: 82 }
 
   return (
-    <div className="space-y-6">
+    <div className="app-page space-y-6">
       {/* Header */}
       <div>
         <h2 className="text-2xl font-semibold text-acb-900">Líderes por Zona</h2>

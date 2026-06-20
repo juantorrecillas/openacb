@@ -6,7 +6,7 @@
 
 @layer components {
   .data-table {
-    @apply w-full text-sm;
+    @apply w-full text-xs sm:text-sm;
   }
 
   .data-table th,
@@ -23,7 +23,11 @@
   }
 
   .data-table-cell {
-    @apply px-2.5 py-2 text-sm text-acb-700 whitespace-nowrap;
+    @apply px-2.5 py-2 text-xs sm:text-sm text-acb-700 whitespace-nowrap;
+  }
+
+  .profile-history-team {
+    @apply px-2 py-2 text-left text-xs sm:text-sm font-sans font-normal text-acb-700 whitespace-nowrap;
   }
 
   .data-table-number {
@@ -108,6 +112,70 @@ body {
   background-color: #f8fafc;
   color: #1e293b;
   -webkit-font-smoothing: antialiased;
+}
+
+.app-page {
+  font-size: 1rem;
+  line-height: 1.5rem;
+}
+
+.app-page .text-xs { font-size: 0.75rem; line-height: 1rem; }
+.app-page .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+.app-page .text-base { font-size: 1rem; line-height: 1.5rem; }
+.app-page .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+.app-page .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+.app-page .text-2xl { font-size: 1.5rem; line-height: 2rem; }
+.app-page .text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
+.app-page .text-4xl { font-size: 2.25rem; line-height: 2.5rem; }
+
+.app-page .data-table {
+  font-size: 0.75rem;
+  line-height: 1.125rem;
+}
+
+.app-page .data-table th {
+  font-size: 0.65625rem;
+  line-height: 0.9375rem;
+}
+
+.app-page .data-table td {
+  font-size: 0.75rem;
+  line-height: 1.125rem;
+}
+
+.app-page :where(button, input, select, textarea).text-xs,
+.app-page .text-xs > button,
+.app-page label.text-xs,
+.app-page :where(label, span).text-xs:has(+ :where(input, select, textarea)) {
+  font-size: 0.6875rem;
+  line-height: 1rem;
+}
+
+.app-page :where(button, input, select, textarea).text-sm,
+.app-page .text-sm > button,
+.app-page label.text-sm,
+.app-page :where(label, span).text-sm:has(+ :where(input, select, textarea)) {
+  font-size: 0.78125rem;
+  line-height: 1.125rem;
+}
+
+@media (max-width: 639px) {
+  .app-page .data-table th { font-size: 0.59375rem; line-height: 0.8125rem; }
+  .app-page .data-table td { font-size: 0.6875rem; line-height: 1rem; }
+  .app-page :where(button, input, select, textarea).text-xs,
+  .app-page .text-xs > button,
+  .app-page label.text-xs,
+  .app-page :where(label, span).text-xs:has(+ :where(input, select, textarea)) {
+    font-size: 0.625rem;
+    line-height: 0.875rem;
+  }
+  .app-page :where(button, input, select, textarea).text-sm,
+  .app-page .text-sm > button,
+  .app-page label.text-sm,
+  .app-page :where(label, span).text-sm:has(+ :where(input, select, textarea)) {
+    font-size: 0.71875rem;
+    line-height: 1rem;
+  }
 }
 
 /* Utility classes using CSS variables */

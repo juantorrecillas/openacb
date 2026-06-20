@@ -319,7 +319,7 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
 
   if (loading) {
     return (
-      <div className="space-y-6">
+      <div className="app-page space-y-6">
         <div>
           <h2 className="text-2xl font-semibold text-acb-900">Análisis de Alineaciones</h2>
           <p className="text-acb-500 text-sm mt-1">Cargando datos de combinaciones...</p>
@@ -334,7 +334,7 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
   }
 
   return (
-    <div className="space-y-6">
+    <div className="app-page space-y-6">
       {/* Header */}
       <div>
         <h2 className="text-2xl font-semibold text-acb-900">Análisis de Alineaciones</h2>

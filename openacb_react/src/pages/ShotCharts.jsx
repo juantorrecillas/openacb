@@ -213,7 +213,7 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
   }, [filteredShots])
 
   return (
-    <div className="space-y-6">
+    <div className="app-page space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

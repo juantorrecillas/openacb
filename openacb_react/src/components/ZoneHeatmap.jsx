@@ -339,7 +339,7 @@ export default function ZoneHeatmap({ shots, leagueShots = [], metric = 'efficie
   };
 
   // Fixed font size for all labels
-  const fontSize = 11;
+  const fontSize = 10;
   const isFrequencyMetric = metric === 'frequency';
 
   if (shots.length === 0) {

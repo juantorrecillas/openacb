@@ -449,7 +449,7 @@ export default function TeamStats({ teams, teamLogos = {} }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="app-page space-y-6">
       {/* Header */}
       <div>
         <h2 className="text-2xl font-semibold text-acb-900">Estadísticas de Equipo</h2>
@@ -537,12 +537,12 @@ export default function TeamStats({ teams, teamLogos = {} }) {
                 name={statOptions.find(s => s.value === xAxis)?.label}
                 domain={xDomain}
                 stroke="#64748b"
-                fontSize={12}
+                fontSize={11}
                 tickFormatter={(v) => formatAxisValue(v, xAxis)}
                 label={{
                   value: statOptions.find(s => s.value === xAxis)?.label,
                   position: 'bottom',
-                  style: { fill: '#64748b', fontSize: 12 }
+                  style: { fill: '#64748b', fontSize: 11 }
                 }}
               />
               <YAxis
@@ -551,13 +551,13 @@ export default function TeamStats({ teams, teamLogos = {} }) {
                 name={statOptions.find(s => s.value === yAxis)?.label}
                 domain={yDomain}
                 stroke="#64748b"
-                fontSize={12}
+                fontSize={11}
                 tickFormatter={(v) => formatAxisValue(v, yAxis)}
                 label={{
                   value: statOptions.find(s => s.value === yAxis)?.label,
                   angle: -90,
                   position: 'left',
-                  style: { fill: '#64748b', fontSize: 12 }
+                  style: { fill: '#64748b', fontSize: 11 }
                 }}
               />
               <ReferenceLine x={avgX} stroke="#94a3b8" strokeDasharray="5 5" />
@@ -601,7 +601,7 @@ export default function TeamStats({ teams, teamLogos = {} }) {
                       dataKey="team"
                       position="right"
                       offset={10}
-                      style={{ fontSize: '10px', fontWeight: 'bold', fill: '#374151' }}
+                      style={{ fontSize: '9px', fontWeight: 'bold', fill: '#374151' }}
                     />
                   )}
                 </Scatter>

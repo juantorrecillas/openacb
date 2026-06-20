@@ -135,7 +135,7 @@ function ClutchTeamsView({ tabBar, teams, selectedSeason, setSelectedSeason, ava
   }
 
   return (
-    <div className="space-y-6">
+    <div className="app-page space-y-6">
       {tabBar('clutch')}
 
       <div>
@@ -608,7 +608,7 @@ export default function GameFlow({ teams, loadGameFlowForSeason, gameFlowCache, 
 
   if (view === 'teampace') {
     return (
-      <div className="space-y-6">
+      <div className="app-page space-y-6">
         {tabBar('teampace')}
         <TeamPace
           teams={teams}
@@ -635,7 +635,7 @@ export default function GameFlow({ teams, loadGameFlowForSeason, gameFlowCache, 
   }
 
   return (
-    <div className="space-y-6">
+    <div className="app-page space-y-6">
       {/* Tab switcher */}
       {tabBar('gameflow')}
 

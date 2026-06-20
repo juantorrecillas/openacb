@@ -266,7 +266,7 @@ export default function ClutchStats({ teams, players = [], playerBio = {}, loadC
   const nonSortable = new Set(['playerDisplay', 'team', 'position'])
 
   return (
-    <div className="space-y-6">
+    <div className="app-page space-y-6">
       {/* Header */}
       <div>
         <h2 className="text-2xl font-semibold text-acb-900">Estadísticas Clutch</h2>

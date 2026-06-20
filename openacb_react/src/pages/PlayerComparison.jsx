@@ -744,7 +744,7 @@ export default function PlayerComparison({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="app-page space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
         <div>
           <h2 className="text-2xl font-semibold text-acb-900">Comparación de Jugadores</h2>
