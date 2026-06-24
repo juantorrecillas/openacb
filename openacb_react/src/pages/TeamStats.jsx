@@ -201,6 +201,50 @@ function TeamDot({ cx, cy, payload, teamLogos, color, highlighted }) {
   return <circle cx={cx} cy={cy} r={highlighted ? 10 : 8} fill={color} fillOpacity={highlighted ? 1 : 0.8} />
 }
 
+function getAxisStat(statKey) {
+  return statOptions.find(s => s.value === statKey)
+}
+
+function getAxisDisplayValue(value, statKey) {
+  const stat = getAxisStat(statKey)
+  return stat?.format === 'pct' ? value * 100 : value
+}
+
+function getAxisDataValue(value, statKey) {
+  const stat = getAxisStat(statKey)
+  return stat?.format === 'pct' ? value / 100 : value
+}
+
+function buildNiceScatterAxis(rows, statKey) {
+  const values = rows
+    .map(row => row[statKey])
+    .filter(value => value != null && Number.isFinite(Number(value)))
+    .map(Number)
+
+  if (!values.length) return { domain: ['auto', 'auto'], ticks: undefined }
+
+  const displayValues = values.map(value => getAxisDisplayValue(value, statKey))
+  const min = Math.min(...displayValues)
+  const max = Math.max(...displayValues)
+  const range = max - min
+  const padding = range === 0 ? 1 : Math.max(range * 0.06, 0.4)
+  const low = min - padding
+  const high = max + padding
+  const maxAbs = Math.max(Math.abs(low), Math.abs(high))
+  const stat = getAxisStat(statKey)
+  const step = maxAbs < 5 && stat?.format === 'decimal' ? 0.5 : 5
+  const start = Math.floor(low / step) * step
+  const end = Math.ceil(high / step) * step
+  const count = Math.round((end - start) / step) + 1
+  const displayTicks = Array.from({ length: count }, (_, index) => start + index * step)
+  const dataTicks = displayTicks.map(value => getAxisDataValue(value, statKey))
+
+  return {
+    domain: [getAxisDataValue(start, statKey), getAxisDataValue(end, statKey)],
+    ticks: dataTicks,
+  }
+}
+
 export default function TeamStats({ teams, teamLogos = {} }) {
   // Get available seasons and default to most recent
   const availableSeasons = useMemo(() => {
@@ -293,40 +337,14 @@ export default function TeamStats({ teams, teamLogos = {} }) {
     [seasonFilteredTeams, yAxis]
   )
 
-  // Calculate domains centered around the mean
-  const xDomain = useMemo(() => {
-    const values = seasonFilteredTeams.map(t => t[xAxis] || 0)
-    const min = Math.min(...values)
-    const max = Math.max(...values)
-    const range = max - min
+  // calculate compact domains with readable ticks
+  const xAxisScale = useMemo(() => {
+    return buildNiceScatterAxis(seasonFilteredTeams, xAxis)
+  }, [seasonFilteredTeams, xAxis])
 
-    const padding = range * 0.2
-    const distFromMeanToMin = avgX - min
-    const distFromMeanToMax = max - avgX
-    const maxDist = Math.max(distFromMeanToMin, distFromMeanToMax)
-
-    return [
-      avgX - maxDist - padding,
-      avgX + maxDist + padding
-    ]
-  }, [seasonFilteredTeams, xAxis, avgX])
-
-  const yDomain = useMemo(() => {
-    const values = seasonFilteredTeams.map(t => t[yAxis] || 0)
-    const min = Math.min(...values)
-    const max = Math.max(...values)
-    const range = max - min
-
-    const padding = range * 0.2
-    const distFromMeanToMin = avgY - min
-    const distFromMeanToMax = max - avgY
-    const maxDist = Math.max(distFromMeanToMin, distFromMeanToMax)
-
-    return [
-      avgY - maxDist - padding,
-      avgY + maxDist + padding
-    ]
-  }, [seasonFilteredTeams, yAxis, avgY])
+  const yAxisScale = useMemo(() => {
+    return buildNiceScatterAxis(seasonFilteredTeams, yAxis)
+  }, [seasonFilteredTeams, yAxis])
   
   const handleSort = (key) => {
     if (sortKey === key) {
@@ -439,13 +457,17 @@ export default function TeamStats({ teams, teamLogos = {} }) {
   // Create helper function for axis formatting
   const formatAxisValue = (value, statKey) => {
     const stat = statOptions.find(s => s.value === statKey)
+    const displayValue = getAxisDisplayValue(value, statKey)
     if (stat?.format === 'pct') {
-      return (value * 100).toFixed(1)
+      return Math.round(displayValue).toString()
     }
     if (stat?.format === 'integer') {
-      return Math.round(value).toString()
+      return Math.round(displayValue).toString()
     }
-    return value.toFixed(1)
+    if (displayValue < 5 && displayValue > -5 && stat?.format === 'decimal') {
+      return displayValue.toFixed(1)
+    }
+    return Math.round(displayValue).toString()
   }
 
   return (
@@ -535,7 +557,8 @@ export default function TeamStats({ teams, teamLogos = {} }) {
                 type="number"
                 dataKey={xAxis}
                 name={statOptions.find(s => s.value === xAxis)?.label}
-                domain={xDomain}
+                domain={xAxisScale.domain}
+                ticks={xAxisScale.ticks}
                 stroke="#64748b"
                 fontSize={11}
                 tickFormatter={(v) => formatAxisValue(v, xAxis)}
@@ -549,7 +572,8 @@ export default function TeamStats({ teams, teamLogos = {} }) {
                 type="number"
                 dataKey={yAxis}
                 name={statOptions.find(s => s.value === yAxis)?.label}
-                domain={yDomain}
+                domain={yAxisScale.domain}
+                ticks={yAxisScale.ticks}
                 stroke="#64748b"
                 fontSize={11}
                 tickFormatter={(v) => formatAxisValue(v, yAxis)}

@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 
 // ─── Axis Definitions ─────────────────────────────────────────
@@ -23,6 +24,62 @@ const defensiveAxes = [
   { key: 'stlRate',      label: 'Ratio de Robos',        inverted: false, format: v => `${(v * 100).toFixed(1)}%` },
   { key: 'blkRate',      label: 'Ratio de Tapones',      inverted: false, format: v => `${(v * 100).toFixed(1)}%` },
   { key: 'drbPct',       label: 'Rebote Defensivo',      inverted: false, format: v => `${(v * 100).toFixed(1)}%` },
+]
+
+const trendStatOptions = [
+  { key: 'wins', label: 'Victorias', format: 'integer' },
+  { key: 'ppg', label: 'Puntos/Partido', format: 'decimal' },
+  { key: 'rpg', label: 'Rebotes/Partido', format: 'decimal' },
+  { key: 'apg', label: 'Asistencias/Partido', format: 'decimal' },
+  { key: 'spg', label: 'Robos/Partido', format: 'decimal' },
+  { key: 'bpg', label: 'Tapones/Partido', format: 'decimal' },
+  { key: 'topg', label: 'Pérdidas/Partido', format: 'decimal' },
+  { key: 'fgPct', label: 'TC%', format: 'pct100' },
+  { key: 'ftPct', label: 'TL%', format: 'pct100' },
+  { key: 'ortg', label: 'Rating Ofensivo', format: 'decimal' },
+  { key: 'drtg', label: 'Rating Defensivo', format: 'decimal' },
+  { key: 'netRtg', label: 'Rating Neto', format: 'decimal' },
+  { key: 'pace', label: 'Ritmo', format: 'decimal' },
+  { key: 'efg', label: 'eFG%', format: 'pctDecimal' },
+  { key: 'ts', label: 'TS%', format: 'pctDecimal' },
+  { key: 'threePct', label: '3P%', format: 'pctDecimal' },
+  { key: 'threeRate', label: 'Ratio 3P', format: 'pctDecimal' },
+  { key: 'astRate', label: 'Ratio Asist.', format: 'pctDecimal' },
+  { key: 'tovRate', label: 'Ratio Pérdidas', format: 'pctDecimal' },
+  { key: 'orbPct', label: 'RO%', format: 'pctDecimal' },
+  { key: 'drbPct', label: 'RD%', format: 'pctDecimal' },
+  { key: 'ftRate', label: 'Ratio TL', format: 'pctDecimal' },
+  { key: 'stlRate', label: 'Ratio Robos', format: 'pctDecimal' },
+  { key: 'blkRate', label: 'Ratio Tapones', format: 'pctDecimal' },
+  { key: 'astToRatio', label: 'Ratio AST/PER', format: 'decimal', digits: 2 },
+]
+
+const franchiseMatchers = [
+  { key: 'real madrid', includes: ['real madrid'] },
+  { key: 'barcelona', includes: ['barca', 'barcelona'] },
+  { key: 'baskonia', includes: ['baskonia'] },
+  { key: 'gran canaria', includes: ['gran canaria'] },
+  { key: 'joventut', includes: ['joventut'] },
+  { key: 'tenerife', includes: ['tenerife'] },
+  { key: 'manresa', includes: ['manresa'] },
+  { key: 'zaragoza', includes: ['zaragoza'] },
+  { key: 'betis', includes: ['betis'] },
+  { key: 'breogan', includes: ['breogan'] },
+  { key: 'bilbao basket', includes: ['bilbao basket'] },
+  { key: 'obradoiro', includes: ['obradoiro'] },
+  { key: 'fuenlabrada', includes: ['fuenlabrada'] },
+  { key: 'san pablo burgos', includes: ['san pablo burgos'] },
+  { key: 'gbc', includes: ['gbc', 'guipuzcoa'] },
+  { key: 'andorra', includes: ['andorra'] },
+  { key: 'estudiantes', includes: ['estudiantes'] },
+  { key: 'unicaja', includes: ['unicaja'] },
+  { key: 'valencia basket', includes: ['valencia basket'] },
+  { key: 'ucam murcia', includes: ['ucam murcia'] },
+  { key: 'basquet girona', includes: ['basquet girona'] },
+  { key: 'coviran granada', includes: ['coviran granada'] },
+  { key: 'hiopos lleida', includes: ['hiopos lleida'] },
+  { key: 'leyma coruna', includes: ['leyma coruna'] },
+  { key: 'zunder palencia', includes: ['zunder palencia'] },
 ]
 
 // ─── Narrative Templates ──────────────────────────────────────
@@ -375,6 +432,192 @@ function TraitCard({ title, items, headerBg, headerText, borderColor, emptyMsg }
   )
 }
 
+function normalizeTeamName(name) {
+  return name
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function franchiseKey(name) {
+  const normalized = normalizeTeamName(name)
+  const match = franchiseMatchers.find(item =>
+    item.includes.some(part => normalized.includes(part))
+  )
+  return match?.key || normalized
+}
+
+function formatTrendValue(value, stat) {
+  if (value == null || Number.isNaN(Number(value))) return '-'
+  const numeric = Number(value)
+
+  if (stat.format === 'integer') return Math.round(numeric).toString()
+  if (stat.format === 'pctDecimal') return `${(numeric * 100).toFixed(1)}%`
+  if (stat.format === 'pct100') return `${numeric.toFixed(1)}%`
+
+  return numeric.toFixed(stat.digits ?? 1)
+}
+
+function getTrendAxisValue(value, stat) {
+  if (stat.format === 'pctDecimal') return value * 100
+  return value
+}
+
+function getTrendDataValue(value, stat) {
+  if (stat.format === 'pctDecimal') return value / 100
+  return value
+}
+
+function formatTrendAxisValue(value, stat) {
+  const axisValue = getTrendAxisValue(Number(value), stat)
+  if (!Number.isFinite(axisValue)) return ''
+  if (axisValue < 5 && axisValue > -5 && stat.format === 'decimal') return axisValue.toFixed(1)
+  return Math.round(axisValue).toString()
+}
+
+function buildNiceTrendAxis(values, stat) {
+  if (!values.length) return { domain: ['auto', 'auto'], ticks: undefined }
+
+  const axisValues = values.map(value => getTrendAxisValue(value, stat))
+  const min = Math.min(...axisValues)
+  const max = Math.max(...axisValues)
+  const spread = max - min
+  const pad = spread === 0 ? 1 : Math.max(spread * 0.12, 0.5)
+  const low = min - pad
+  const high = max + pad
+  const maxAbs = Math.max(Math.abs(low), Math.abs(high))
+  const step = maxAbs < 5 && stat.format === 'decimal' ? 0.5 : 5
+  const start = Math.floor(low / step) * step
+  const end = Math.ceil(high / step) * step
+  const count = Math.round((end - start) / step) + 1
+  const axisTicks = Array.from({ length: count }, (_, index) => start + index * step)
+  const dataTicks = axisTicks.map(value => getTrendDataValue(value, stat))
+
+  return {
+    domain: [getTrendDataValue(start, stat), getTrendDataValue(end, stat)],
+    ticks: dataTicks,
+  }
+}
+
+function TrendTooltip({ active, payload, stat }) {
+  if (!active || !payload?.length) return null
+
+  const row = payload[0].payload
+
+  return (
+    <div className="rounded-lg border border-acb-200 bg-white/95 px-3 py-2 shadow-sm">
+      <p className="text-xs font-semibold text-acb-900">{row.seasonText}</p>
+      <p className="text-[11px] text-acb-500">{row.team}</p>
+      <p className="mt-1 text-xs text-acb-700">
+        {stat.label}: <span className="font-mono font-semibold text-accent-700">{formatTrendValue(row.value, stat)}</span>
+      </p>
+    </div>
+  )
+}
+
+function TeamTrendChart({ teams, selectedTeam, selectedSeason }) {
+  const [trendStat, setTrendStat] = useState('ortg')
+  const selectedStat = trendStatOptions.find(stat => stat.key === trendStat) || trendStatOptions[0]
+
+  const history = useMemo(() => {
+    if (!selectedTeam) return []
+
+    const key = franchiseKey(selectedTeam)
+
+    return teams
+      .filter(row => franchiseKey(row.team) === key)
+      .filter(row => row[selectedStat.key] != null && Number.isFinite(Number(row[selectedStat.key])))
+      .sort((a, b) => a.season - b.season)
+      .map(row => ({
+        season: row.season,
+        seasonText: seasonLabel(row.season),
+        team: row.team,
+        value: Number(row[selectedStat.key]),
+      }))
+  }, [teams, selectedTeam, selectedStat])
+
+  const yAxis = useMemo(() => {
+    return buildNiceTrendAxis(history.map(row => row.value), selectedStat)
+  }, [history])
+
+  return (
+    <div className="bg-white rounded-lg border border-acb-200 p-4 h-full">
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
+        <div>
+          <h3 className="font-semibold text-acb-700">Evolución</h3>
+          <p className="text-xs text-acb-500">{selectedStat.label}</p>
+        </div>
+        <label className="sr-only" htmlFor="team-trend-stat">Métrica</label>
+        <select
+          id="team-trend-stat"
+          value={trendStat}
+          onChange={(e) => setTrendStat(e.target.value)}
+          className="px-2.5 py-1.5 border border-acb-200 rounded text-xs bg-white text-acb-700"
+        >
+          {trendStatOptions.map(stat => (
+            <option key={stat.key} value={stat.key}>{stat.label}</option>
+          ))}
+        </select>
+      </div>
+
+      {history.length < 2 ? (
+        <div className="h-48 flex items-center justify-center rounded bg-acb-50 text-sm text-acb-400">
+          Historial insuficiente
+        </div>
+      ) : (
+        <div className="h-48">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={history} margin={{ top: 8, right: 12, bottom: 2, left: 0 }}>
+              <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" vertical={false} />
+              <XAxis
+                dataKey="seasonText"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 11, fill: '#627d98' }}
+                minTickGap={8}
+              />
+              <YAxis
+                width={48}
+                domain={yAxis.domain}
+                ticks={yAxis.ticks}
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 11, fill: '#627d98' }}
+                tickFormatter={(value) => formatTrendAxisValue(value, selectedStat)}
+              />
+              <Tooltip
+                cursor={{ stroke: '#f0845e', strokeWidth: 1, strokeDasharray: '4 4' }}
+                content={({ active, payload }) => <TrendTooltip active={active} payload={payload} stat={selectedStat} />}
+              />
+              <Line
+                type="monotone"
+                dataKey="value"
+                stroke="#fe5917"
+                strokeWidth={2.5}
+                dot={(props) => {
+                  const isSelected = props.payload.season === selectedSeason
+                  return (
+                    <circle
+                      cx={props.cx}
+                      cy={props.cy}
+                      r={isSelected ? 4.5 : 3.2}
+                      fill={isSelected ? '#fe5917' : '#ffffff'}
+                      stroke="#fe5917"
+                      strokeWidth={isSelected ? 2.2 : 1.6}
+                    />
+                  )
+                }}
+                activeDot={{ r: 5, fill: '#fe5917', stroke: '#ffffff', strokeWidth: 2 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Season Label Helper ──────────────────────────────────────
 
 function seasonLabel(s) {
@@ -564,8 +807,9 @@ export default function TeamFingerprint({ teams, teamLogos = {} }) {
 
       {teamData && (
         <div className="space-y-6">
-          {/* Team Header */}
-          <div className="bg-white rounded-lg border border-acb-200 p-5 flex items-center gap-4">
+          {/* team header */}
+          <div className="grid lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] gap-6">
+            <div className="bg-white rounded-lg border border-acb-200 p-5 flex items-center gap-4">
             {teamLogos[selectedTeam] && (
               <img
                 src={teamLogos[selectedTeam]}
@@ -585,6 +829,13 @@ export default function TeamFingerprint({ teams, teamLogos = {} }) {
                 </p>
               )}
             </div>
+            </div>
+
+            <TeamTrendChart
+              teams={teams}
+              selectedTeam={selectedTeam}
+              selectedSeason={selectedSeason}
+            />
           </div>
 
           {/* Fortalezas / Debilidades */}
