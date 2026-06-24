@@ -398,11 +398,11 @@ function ZBadge({ z }) {
 
 // ─── Trait Card ───────────────────────────────────────────────
 
-function TraitCard({ title, items, headerBg, headerText, borderColor, emptyMsg }) {
+function TraitCard({ title, items, emptyMsg }) {
   return (
-    <div className={`bg-white rounded-lg border border-acb-200 border-l-4 ${borderColor} overflow-hidden`}>
-      <div className={`${headerBg} px-4 py-2`}>
-        <h3 className={`font-semibold text-sm ${headerText}`}>{title}</h3>
+    <div className="bg-white rounded-lg border border-acb-200 overflow-hidden">
+      <div className="px-4 py-2 text-center">
+        <h3 className="font-semibold text-sm text-acb-700">{title}</h3>
       </div>
       <div className="p-4">
         {items.length === 0 ? (
@@ -843,17 +843,11 @@ export default function TeamFingerprint({ teams, teamLogos = {} }) {
             <TraitCard
               title="Fortalezas"
               items={teamData.strengths}
-              headerBg="bg-positive-50"
-              headerText="text-positive-700"
-              borderColor="border-l-positive-500"
               emptyMsg="Sin fortalezas destacadas"
             />
             <TraitCard
               title="Debilidades"
               items={teamData.weaknesses}
-              headerBg="bg-negative-50"
-              headerText="text-negative-700"
-              borderColor="border-l-negative-500"
               emptyMsg="Sin debilidades destacadas"
             />
           </div>
@@ -884,18 +878,18 @@ export default function TeamFingerprint({ teams, teamLogos = {} }) {
           <div className="grid md:grid-cols-2 gap-6">
             {/* Offensive Stats */}
             <div className="bg-white rounded-lg border border-acb-200 p-4">
-              <h3 className="font-semibold text-acb-700 mb-3">Ofensivo</h3>
+              <h3 className="font-semibold text-acb-700 text-center mb-3">Ofensivo</h3>
               <div className="space-y-2">
                 {offensiveAxes.map(axis => {
                   const val = teamData.team[axis.key]
                   const avg = leagueStats[axis.key].mean
                   const z = teamData.offZScores[axis.key]
                   return (
-                    <div key={axis.key} className="flex items-center justify-between text-sm">
-                      <span className="text-acb-600 w-40 shrink-0">{axis.label}</span>
-                      <span className="font-mono text-acb-900">{axis.format(val)}</span>
-                      <span className="font-mono text-acb-400 text-xs">media: {axis.format(avg)}</span>
-                      <ZBadge z={z} />
+                    <div key={axis.key} className="grid grid-cols-[minmax(0,1fr)_4.5rem_7rem_3.25rem] items-center gap-3 text-sm">
+                      <span className="text-acb-600 truncate">{axis.label}</span>
+                      <span className="font-mono text-acb-900 text-right">{axis.format(val)}</span>
+                      <span className="font-mono text-acb-400 text-xs text-right">media: {axis.format(avg)}</span>
+                      <span className="justify-self-end"><ZBadge z={z} /></span>
                     </div>
                   )
                 })}
@@ -904,18 +898,18 @@ export default function TeamFingerprint({ teams, teamLogos = {} }) {
 
             {/* Defensive Stats */}
             <div className="bg-white rounded-lg border border-acb-200 p-4">
-              <h3 className="font-semibold text-acb-700 mb-3">Defensivo</h3>
+              <h3 className="font-semibold text-acb-700 text-center mb-3">Defensivo</h3>
               <div className="space-y-2">
                 {defensiveAxes.map(axis => {
                   const val = teamData.team[axis.key]
                   const avg = leagueStats[axis.key].mean
                   const z = teamData.defZScores[axis.key]
                   return (
-                    <div key={axis.key} className="flex items-center justify-between text-sm">
-                      <span className="text-acb-600 w-40 shrink-0">{axis.label}</span>
-                      <span className="font-mono text-acb-900">{axis.format(val)}</span>
-                      <span className="font-mono text-acb-400 text-xs">media: {axis.format(avg)}</span>
-                      <ZBadge z={z} />
+                    <div key={axis.key} className="grid grid-cols-[minmax(0,1fr)_4.5rem_7rem_3.25rem] items-center gap-3 text-sm">
+                      <span className="text-acb-600 truncate">{axis.label}</span>
+                      <span className="font-mono text-acb-900 text-right">{axis.format(val)}</span>
+                      <span className="font-mono text-acb-400 text-xs text-right">media: {axis.format(avg)}</span>
+                      <span className="justify-self-end"><ZBadge z={z} /></span>
                     </div>
                   )
                 })}
