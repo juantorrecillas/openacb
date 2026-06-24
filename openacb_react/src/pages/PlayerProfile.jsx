@@ -460,7 +460,7 @@ const profileSections = [
       { label: 'APP', value: 'apg', pctKey: 'apgPct', posPctKey: 'apgPosPct' },
       { label: 'AST%', value: 'astPct', pctKey: 'astPctPct', posPctKey: 'astPctPosPct', fmtKey: 'astPct' },
       { label: 'PER', value: 'topg', pctKey: 'topgPct', posPctKey: 'topgPosPct', inverse: true },
-      { label: 'PER%', value: 'tovPct', pctKey: 'tovPctPct', posPctKey: 'tovPctPosPct', fmtKey: 'tovPct' },
+      { label: 'PER%', value: 'tovPct', pctKey: 'tovPctPct', posPctKey: 'tovPctPosPct', fmtKey: 'tovPct', inverse: true },
     ],
   },
   {
