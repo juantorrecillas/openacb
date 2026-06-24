@@ -247,29 +247,50 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
 
     if (!split) return null
     return {
-      ...split,
-      togetherMin: pair.onMin,
-      togetherNetRtg: pair.onNetRtg
+      without: split,
+      together: {
+        min: pair.onMin,
+        poss: pair.onPoss,
+        ORtg: pair.onORtg,
+        DRtg: pair.onDRtg,
+        netRtg: pair.onNetRtg,
+        eFG: pair.onEFG,
+        TOV: pair.onTOV,
+        AST: pair.onAST,
+        oppEFG: pair.onOppEFG,
+        DRB: pair.onDRB
+      }
     }
   }, [currentTeamData, selectedPlayers, excludedPlayer])
 
-  // shape exclusions like combination data so both analyses share one layout
+  // shape exclusions like the duo card, with a clear net comparison row
   const exclusionAnalysisData = useMemo(() => {
     if (!currentExclusionData) return null
 
+    const { without, together } = currentExclusionData
+    const isNumber = (value) => value != null && !Number.isNaN(Number(value))
+    const diff = (a, b) => (
+      !isNumber(a) || !isNumber(b)
+        ? null
+        : Math.round((a - b) * 10) / 10
+    )
+
     return {
-      onMin: currentExclusionData.min,
-      offMin: currentExclusionData.togetherMin,
-      onPoss: currentExclusionData.poss,
-      onORtg: currentExclusionData.ORtg,
-      onDRtg: currentExclusionData.DRtg,
-      onNetRtg: currentExclusionData.netRtg,
-      netDiff: Math.round((currentExclusionData.netRtg - currentExclusionData.togetherNetRtg) * 10) / 10,
-      onEFG: currentExclusionData.eFG,
-      onTOV: currentExclusionData.TOV,
-      onAST: currentExclusionData.AST,
-      onOppEFG: currentExclusionData.oppEFG,
-      onDRB: currentExclusionData.DRB
+      without,
+      together,
+      impact: {
+        netRtg: diff(without.netRtg, together.netRtg)
+      },
+      diff: {
+        ORtg: diff(together.ORtg, without.ORtg),
+        DRtg: diff(together.DRtg, without.DRtg),
+        netRtg: diff(together.netRtg, without.netRtg),
+        eFG: diff(together.eFG, without.eFG),
+        TOV: diff(together.TOV, without.TOV),
+        AST: diff(together.AST, without.AST),
+        oppEFG: diff(together.oppEFG, without.oppEFG),
+        DRB: diff(together.DRB, without.DRB)
+      }
     }
   }, [currentExclusionData])
 
@@ -613,11 +634,17 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
       {/* pair, trio, lineup, and exclusion analysis results */}
       {(() => {
         const isExclusion = Boolean(selectedPlayers.length === 1 && excludedPlayer && exclusionAnalysisData)
-        const analysisData = isExclusion
-          ? exclusionAnalysisData
-          : selectedPlayers.length > 1
-            ? currentLineupData
-            : null
+        if (isExclusion) {
+          return (
+            <ExclusionComparisonCard
+              data={exclusionAnalysisData}
+              focalName={getPlayerDisplayName(selectedPlayers[0])}
+              excludedName={getPlayerDisplayName(excludedPlayer)}
+            />
+          )
+        }
+
+        const analysisData = selectedPlayers.length > 1 ? currentLineupData : null
 
         if (!analysisData) return null
 
@@ -625,22 +652,11 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
           <div className="bg-white rounded-lg border border-acb-200 overflow-hidden">
           <div className="bg-gradient-to-r from-acb-700 to-acb-800 px-4 py-3">
             <h3 className="font-semibold text-white text-lg">
-              {isExclusion
-                ? 'Análisis de Exclusión'
-                : `Análisis de ${selectedPlayers.length === 2 ? 'Dúo' : selectedPlayers.length === 3 ? 'Trío' : 'Quinteto'}`}
+              {`Análisis de ${selectedPlayers.length === 2 ? 'Dúo' : selectedPlayers.length === 3 ? 'Trío' : 'Quinteto'}`}
             </h3>
             <p className="text-acb-200 text-sm">
-              {isExclusion ? (
-                <>
-                  {getPlayerDisplayName(selectedPlayers[0])} sin {getPlayerDisplayName(excludedPlayer)} • {analysisData.onMin?.toFixed(1)} min separados
-                  {analysisData.offMin != null && ` • ${analysisData.offMin?.toFixed(1)} min juntos`}
-                </>
-              ) : (
-                <>
-                  {selectedPlayers.map(k => getPlayerDisplayName(k)).join(' + ')} • {analysisData.onMin?.toFixed(1)} min juntos
-                  {analysisData.offMin != null && ` • ${analysisData.offMin?.toFixed(1)} min separados`}
-                </>
-              )}
+              {selectedPlayers.map(k => getPlayerDisplayName(k)).join(' + ')} • {analysisData.onMin?.toFixed(1)} min juntos
+              {analysisData.offMin != null && ` • ${analysisData.offMin?.toFixed(1)} min separados`}
             </p>
           </div>
 
@@ -674,7 +690,6 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
               <div className="p-4 text-center bg-acb-50">
                 <div
                   className="text-xs text-acb-500 uppercase tracking-wider mb-1"
-                  title={isExclusion ? 'Diferencia de eficiencia neta entre jugar separados y juntos' : undefined}
                 >
                   Impacto
                 </div>
@@ -951,6 +966,168 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
           </ul>
         </div>
       </div>
+    </div>
+  )
+}
+
+const hasNumber = (value) => value != null && !Number.isNaN(Number(value))
+
+const formatDecimal = (value, unit = '') => {
+  if (!hasNumber(value)) return '-'
+  return `${Number(value).toFixed(1)}${unit}`
+}
+
+const formatSignedDecimal = (value, unit = '') => {
+  if (!hasNumber(value)) return '-'
+  const numericValue = Number(value)
+  return `${numericValue > 0 ? '+' : ''}${numericValue.toFixed(1)}${unit}`
+}
+
+const netValueClass = (value) => {
+  if (!hasNumber(value)) return 'text-acb-400'
+  const numericValue = Number(value)
+  if (numericValue > 0) return 'text-positive'
+  if (numericValue < 0) return 'text-negative'
+  return 'text-acb-500'
+}
+
+const ratingValueClass = (value, isDefensive = false) => {
+  if (!hasNumber(value)) return 'text-acb-400'
+  const threshold = isDefensive ? 105 : 110
+  const good = isDefensive ? value < threshold : value > threshold
+  return good ? 'text-positive' : 'text-negative'
+}
+
+const comparisonDeltaClass = (value, inverse = false) => {
+  if (!hasNumber(value)) return 'text-acb-400'
+  const numericValue = Number(value)
+  if (numericValue === 0) return 'text-acb-500'
+  const isGood = inverse ? numericValue < 0 : numericValue > 0
+  return isGood ? 'text-positive' : 'text-negative'
+}
+
+const impactIndicatorEmoji = (value) => {
+  if (!hasNumber(value)) return '➖'
+  const numericValue = Number(value)
+  if (numericValue > 5) return '🔥'
+  if (numericValue > 2) return '✅'
+  if (numericValue > -2) return '➖'
+  if (numericValue > -5) return '⚠️'
+  return '🔻'
+}
+
+const ExclusionComparisonCard = ({ data, focalName, excludedName }) => {
+  const attackStats = [
+    { label: 'eFG%', value: data.without.eFG, unit: '%' },
+    { label: 'PER%', value: data.without.TOV, unit: '%' },
+    { label: 'AST%', value: data.without.AST, unit: '%' },
+  ].filter(stat => hasNumber(stat.value))
+
+  const defenseStats = [
+    { label: 'DRtg', value: data.without.DRtg },
+    { label: 'eFG%', value: data.without.oppEFG, unit: '%' },
+    { label: 'RD%', value: data.without.DRB, unit: '%' },
+  ].filter(stat => hasNumber(stat.value))
+
+  return (
+    <div className="bg-white rounded-lg border border-acb-200 overflow-hidden">
+      <div className="bg-gradient-to-r from-acb-700 to-acb-800 px-4 py-3">
+        <h3 className="font-semibold text-white text-lg">Análisis de Exclusión</h3>
+        <p className="text-acb-200 text-sm">
+          {focalName} sin {excludedName} • {formatDecimal(data.without.min)} min sin
+          {hasNumber(data.together.min) && ` • ${formatDecimal(data.together.min)} min juntos`}
+        </p>
+      </div>
+
+      <div className="grid grid-cols-4 divide-x divide-acb-200">
+        <div className="p-4 text-center">
+          <div className="text-xs text-acb-500 uppercase tracking-wider mb-1">Ef. Ofensiva</div>
+          <div className={`text-2xl font-bold font-mono ${ratingValueClass(data.without.ORtg)}`}>
+            {formatDecimal(data.without.ORtg)}
+          </div>
+        </div>
+        <div className="p-4 text-center">
+          <div className="text-xs text-acb-500 uppercase tracking-wider mb-1">Ef. Defensiva</div>
+          <div className={`text-2xl font-bold font-mono ${ratingValueClass(data.without.DRtg, true)}`}>
+            {formatDecimal(data.without.DRtg)}
+          </div>
+        </div>
+        <div className="p-4 text-center">
+          <div className="text-xs text-acb-500 uppercase tracking-wider mb-1">Ef. Neta</div>
+          <div className={`text-2xl font-bold font-mono ${netValueClass(data.without.netRtg)}`}>
+            {formatSignedDecimal(data.without.netRtg)}
+          </div>
+          <div className="text-lg mt-1">{impactIndicatorEmoji(data.without.netRtg)}</div>
+        </div>
+        <div className="p-4 text-center bg-acb-50">
+          <div className="text-xs text-acb-500 uppercase tracking-wider mb-1">Impacto</div>
+          <div className={`text-2xl font-bold font-mono ${comparisonDeltaClass(data.impact.netRtg)}`}>
+            {formatSignedDecimal(data.impact.netRtg)}
+          </div>
+          <div className="text-lg mt-1">{impactIndicatorEmoji(data.impact.netRtg)}</div>
+        </div>
+      </div>
+
+      <div className="border-t border-acb-200 bg-acb-50 px-4 py-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center">
+          <div>
+            <div className="text-xs text-acb-500 uppercase tracking-wider">Sin {excludedName}</div>
+            <div className={`font-mono font-semibold ${netValueClass(data.without.netRtg)}`}>
+              {formatSignedDecimal(data.without.netRtg)}
+            </div>
+          </div>
+          <div>
+            <div className="text-xs text-acb-500 uppercase tracking-wider">Juntos</div>
+            <div className={`font-mono font-semibold ${netValueClass(data.together.netRtg)}`}>
+              {formatSignedDecimal(data.together.netRtg)}
+            </div>
+          </div>
+          <div>
+            <div className="text-xs text-acb-500 uppercase tracking-wider">Sin - juntos</div>
+            <div className={`font-mono font-semibold ${comparisonDeltaClass(data.impact.netRtg)}`}>
+              {formatSignedDecimal(data.impact.netRtg)}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {attackStats.length > 0 && (
+        <div className="border-t border-acb-200">
+          <div className="px-4 py-2 bg-acb-50 text-xs font-bold text-acb-600 uppercase tracking-wider">Ataque</div>
+          <div className="grid divide-x divide-acb-200 bg-acb-50" style={{ gridTemplateColumns: `repeat(${attackStats.length}, 1fr)` }}>
+            {attackStats.map(stat => (
+              <div key={stat.label} className="p-3 text-center">
+                <div className="text-xs text-acb-500 uppercase tracking-wider mb-1">{stat.label}</div>
+                <div className="text-lg font-semibold font-mono text-acb-700">{formatDecimal(stat.value, stat.unit)}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {defenseStats.length > 0 && (
+        <div className="border-t border-acb-200">
+          <div className="px-4 py-2 bg-acb-50 text-xs font-bold text-acb-600 uppercase tracking-wider">Defensa</div>
+          <div className="grid divide-x divide-acb-200 bg-acb-50" style={{ gridTemplateColumns: `repeat(${defenseStats.length}, 1fr)` }}>
+            {defenseStats.map(stat => (
+              <div key={stat.label} className="p-3 text-center">
+                <div className="text-xs text-acb-500 uppercase tracking-wider mb-1">{stat.label}</div>
+                <div className={`text-lg font-semibold font-mono ${
+                  stat.label === 'DRtg'
+                    ? ratingValueClass(stat.value, true)
+                    : stat.label === 'eFG%'
+                      ? comparisonDeltaClass(stat.value - 50, true)
+                      : stat.label === 'RD%'
+                        ? comparisonDeltaClass(stat.value - 70)
+                        : 'text-acb-700'
+                }`}>
+                  {formatDecimal(stat.value, stat.unit)}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

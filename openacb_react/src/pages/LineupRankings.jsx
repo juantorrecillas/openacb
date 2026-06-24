@@ -25,15 +25,8 @@ const getCombinationName = (ids, fallback, playerNameById) => {
  * Two views: League-wide and Team-wise.
  */
 
-// Minimum minutes thresholds - different for current (unfinished) vs past seasons
-const MIN_MINUTES_CURRENT = {
-  players: 150,
-  pairs: 120,
-  trios: 80,
-  lineups: 15
-}
-
-const MIN_MINUTES_PAST = {
+// minimum minutes thresholds
+const MIN_MINUTES = {
   players: 200,
   pairs: 150,
   trios: 120,
@@ -67,12 +60,7 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
 
   const [selectedSeason, setSelectedSeason] = useState(availableSeasons[0] || 2025)
 
-  // Determine if current season is the most recent (unfinished)
-  const mostRecentSeason = availableSeasons[0]
-  const isCurrentSeason = selectedSeason === mostRecentSeason
-
-  // Get appropriate minute thresholds
-  const minMinutes = isCurrentSeason ? MIN_MINUTES_CURRENT : MIN_MINUTES_PAST
+  const minMinutes = MIN_MINUTES
   const [selectedTeam, setSelectedTeam] = useState('')
 
   // Load lineups when season changes
@@ -439,9 +427,9 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
             </div>
           )}
 
-          {/* Minutes threshold info */}
+          {/* minutes threshold info */}
           <div className="ml-auto text-xs text-acb-400">
-            Min. {minMinutes[selectedCategory]} min {isCurrentSeason && '(temp. actual)'}
+            Min. {minMinutes[selectedCategory]} min
           </div>
         </div>
       </div>
@@ -560,10 +548,7 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
             <strong>Quintetos:</strong> No tienen Impacto calculado, se ordenan por Net Rating en pista.
           </li>
           <li>
-            <strong>Filtros de minutos (temporada actual):</strong> Jugadores {MIN_MINUTES_CURRENT.players}+ min, Dúos {MIN_MINUTES_CURRENT.pairs}+ min, Tríos {MIN_MINUTES_CURRENT.trios}+ min, Quintetos {MIN_MINUTES_CURRENT.lineups}+ min.
-          </li>
-          <li>
-            <strong>Filtros de minutos (temporadas pasadas):</strong> Jugadores {MIN_MINUTES_PAST.players}+ min, Dúos {MIN_MINUTES_PAST.pairs}+ min, Tríos {MIN_MINUTES_PAST.trios}+ min, Quintetos {MIN_MINUTES_PAST.lineups}+ min.
+            <strong>Filtros de minutos:</strong> Jugadores {MIN_MINUTES.players}+ min, Dúos {MIN_MINUTES.pairs}+ min, Tríos {MIN_MINUTES.trios}+ min, Quintetos {MIN_MINUTES.lineups}+ min.
           </li>
         </ul>
       </div>
