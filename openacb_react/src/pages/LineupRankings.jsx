@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Trophy, TrendingDown, ChevronDown, ChevronUp, Filter } from 'lucide-react'
+import { Trophy, TrendingDown, Filter } from 'lucide-react'
 import { statTitle } from '../utils/statLabels'
 import { getPlayerDisplayName } from '../utils/playerNames'
 
@@ -37,7 +37,6 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
   const navigate = useNavigate()
 
   // State
-  const [activeView, setActiveView] = useState('league') // 'league' or 'team'
   const [selectedCategory, setSelectedCategory] = useState('players') // players, pairs, trios, lineups
   const [sortByImpact, setSortByImpact] = useState(true) // true = Impact (netDiff), false = ORtg
   const [showBottom, setShowBottom] = useState(false) // Show bottom instead of top
@@ -82,10 +81,10 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
     return teams.filter(t => t.season === selectedSeason).map(t => t.team).sort()
   }, [teams, selectedSeason])
 
-  // Set default team when season changes
+  // keep the selected team valid when the season changes
   useEffect(() => {
-    if (seasonTeams.length > 0 && !seasonTeams.includes(selectedTeam)) {
-      setSelectedTeam(seasonTeams[0])
+    if (selectedTeam && !seasonTeams.includes(selectedTeam)) {
+      setSelectedTeam('')
     }
   }, [seasonTeams, selectedTeam])
 
@@ -230,8 +229,8 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
     return { players, pairs, trios, lineups }
   }, [lineupData, selectedTeam, minMinutes, playerNameById])
 
-  // Get current dataset based on view
-  const currentData = activeView === 'league' ? allData : teamFilteredData
+  const hasTeamFilter = selectedTeam !== ''
+  const currentData = hasTeamFilter ? teamFilteredData : allData
 
   // Sort and get top/bottom items
   const getRankedData = (items, category) => {
@@ -242,7 +241,7 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
     if (category === 'lineups') {
       // 5-man lineups don't have netDiff, always sort by onNetRtg
       sortKey = 'onNetRtg'
-    } else if (activeView === 'league' && !sortByImpact) {
+    } else if (!hasTeamFilter && !sortByImpact) {
       sortKey = 'onNetRtg'
     } else {
       sortKey = 'netDiff'
@@ -289,15 +288,14 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
       <div>
         <h2 className="text-2xl font-semibold text-acb-900">Rankings de Alineaciones</h2>
         <p className="text-acb-500 text-sm mt-1">
-          Mejores y peores jugadores en on/off por impacto y eficiencia
+          Mejores y peores jugadores, dúos, tríos y quintetos por impacto y eficiencia
         </p>
       </div>
 
       {/* Controls */}
-      <div className="bg-white rounded-lg border border-acb-200 p-4 space-y-4">
-        {/* Season & View Toggle */}
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
+      <div className="bg-white rounded-lg border border-acb-200 p-4 space-y-4 shadow-sm">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-4">
             {/* Season */}
             <div className="flex items-center gap-2">
               <span className="text-sm text-acb-600 font-medium">Temporada:</span>
@@ -312,45 +310,26 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
               </select>
             </div>
 
-            {/* Team selector (only for team view) */}
-            {activeView === 'team' && (
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-acb-600 font-medium">Equipo:</span>
-                <select
-                  value={selectedTeam}
-                  onChange={(e) => setSelectedTeam(e.target.value)}
-                  className="px-3 py-2 border border-acb-200 rounded-md text-sm bg-white font-medium min-w-[180px]"
-                >
-                  {seasonTeams.map(team => (
-                    <option key={team} value={team}>{team}</option>
-                  ))}
-                </select>
-              </div>
-            )}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-acb-600 font-medium">Equipo:</span>
+              <select
+                value={selectedTeam}
+                onChange={(e) => setSelectedTeam(e.target.value)}
+                className="px-3 py-2 border border-acb-200 rounded-md text-sm bg-white font-medium min-w-[220px]"
+              >
+                <option value="">Toda la liga</option>
+                {seasonTeams.map(team => (
+                  <option key={team} value={team}>{team}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
-          {/* View Toggle */}
-          <div className="flex rounded-lg border border-acb-200 overflow-hidden">
-            <button
-              onClick={() => setActiveView('league')}
-              className={`px-4 py-2 text-sm font-medium transition-colors ${
-                activeView === 'league'
-                  ? 'bg-acb-700 text-white'
-                  : 'bg-white text-acb-600 hover:bg-acb-50'
-              }`}
-            >
-              Liga
-            </button>
-            <button
-              onClick={() => setActiveView('team')}
-              className={`px-4 py-2 text-sm font-medium transition-colors ${
-                activeView === 'team'
-                  ? 'bg-acb-700 text-white'
-                  : 'bg-white text-acb-600 hover:bg-acb-50'
-              }`}
-            >
-              Por Equipo
-            </button>
+          <div className="flex items-center gap-2 rounded-md bg-acb-50 px-3 py-2 text-sm text-acb-600">
+            <Filter className="w-4 h-4 text-acb-400" />
+            <span className="font-medium">
+              {hasTeamFilter ? selectedTeam : 'Toda la liga'}
+            </span>
           </div>
         </div>
 
@@ -399,8 +378,8 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
             </button>
           </div>
 
-          {/* Sort Toggle (only for league view and non-lineup categories) */}
-          {activeView === 'league' && selectedCategory !== 'lineups' && (
+          {/* Sort Toggle (only for league rankings and non-lineup categories) */}
+          {!hasTeamFilter && selectedCategory !== 'lineups' && (
             <div className="flex items-center gap-2">
               <Filter className="w-4 h-4 text-acb-400" />
               <span className="text-sm text-acb-600">Ordenar por:</span>
@@ -436,20 +415,14 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
 
       {/* Results Table */}
       <div className="bg-white rounded-lg border border-acb-200 overflow-hidden">
-        <div className={`px-4 py-3 border-b border-acb-200 ${showBottom ? 'bg-accent-50' : 'bg-accent-50'}`}>
+        <div className="px-4 py-3 border-b border-acb-200 bg-accent-50 flex flex-wrap items-center justify-between gap-2">
           <h3 className="font-semibold text-acb-900 flex items-center gap-2">
-            {showBottom ? (
-              <>
-                <TrendingDown className="w-5 h-5 text-accent-500" />
-                Peores 10 {categoryLabels[selectedCategory]}
-              </>
-            ) : (
-              <>
-                <Trophy className="w-5 h-5 text-accent-500" />
-                Mejores 10 {categoryLabels[selectedCategory]}
-              </>
-            )}
+            {showBottom ? <TrendingDown className="w-5 h-5 text-accent-500" /> : <Trophy className="w-5 h-5 text-accent-500" />}
+            {showBottom ? 'Peores' : 'Mejores'} 10 {categoryLabels[selectedCategory]}
           </h3>
+          <span className="text-xs text-acb-500">
+            {hasTeamFilter ? selectedTeam : 'Toda la liga'}
+          </span>
         </div>
 
         {rankedData.length > 0 ? (
@@ -461,7 +434,7 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
                   <th className="data-table-head data-table-identity data-table-sticky-after-rank data-table-sticky-head data-col-player bg-acb-50">
                     {selectedCategory === 'players' ? 'Jugador' : 'Combinación'}
                   </th>
-                  {activeView === 'league' && (
+                  {!hasTeamFilter && (
                     <th className="data-table-head text-left data-col-team">Equipo</th>
                   )}
                   <th className="data-table-head data-table-number data-col-games" title={statTitle('Min')}>Min</th>
@@ -470,7 +443,7 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
                   <th className="data-table-head data-table-number data-col-number" title={statTitle('Neto')}>Neto</th>
                   {selectedCategory !== 'lineups' && (
                     <th className={`data-table-head data-table-number data-col-number ${
-                      (activeView === 'team' || sortByImpact) ? 'bg-accent-50' : ''
+                      (hasTeamFilter || sortByImpact) ? 'bg-accent-50' : ''
                     }`}>
                       Impacto
                     </th>
@@ -493,7 +466,7 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
                         </span>
                       ) : item.displayName}
                     </td>
-                    {activeView === 'league' && (
+                    {!hasTeamFilter && (
                       <td className="data-table-cell data-col-team text-acb-600">{item.team}</td>
                     )}
                     <td className="data-table-cell data-table-number data-col-games text-acb-500">
@@ -512,7 +485,7 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
                     </td>
                     {selectedCategory !== 'lineups' && (
                       <td className={`data-table-cell data-table-number data-col-number font-semibold ${
-                        (activeView === 'team' || sortByImpact) ? 'bg-accent-50' : ''
+                        (hasTeamFilter || sortByImpact) ? 'bg-accent-50' : ''
                       } ${
                         item.netDiff > 5 ? 'text-positive' : item.netDiff < -5 ? 'text-negative' : 'text-acb-700'
                       }`}>
