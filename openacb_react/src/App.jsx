@@ -322,7 +322,7 @@ function App() {
                           key={item.id}
                           to={TAB_PATHS[item.id] || '/'}
                           className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border transition-colors text-xs font-medium whitespace-nowrap
-                            ${isActive ? 'border-accent-200 bg-accent-50 text-accent-700 font-semibold' : 'border-transparent text-acb-600 hover:bg-accent-100 hover:text-accent-700'}`}
+                            ${isActive ? 'border-transparent text-accent-700 font-semibold' : 'border-transparent text-acb-600 hover:text-accent-700'}`}
                         >
                           <Icon className="w-3.5 h-3.5" />
                           <span>{item.short}</span>
@@ -340,7 +340,7 @@ function App() {
                       >
                         <button
                           className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border transition-colors text-xs font-medium whitespace-nowrap
-                            ${isActive ? 'border-accent-200 bg-accent-50 text-accent-700 font-semibold' : 'border-transparent text-acb-600 hover:bg-accent-100 hover:text-accent-700'}`}
+                            ${isActive ? 'border-transparent text-accent-700 font-semibold' : 'border-transparent text-acb-600 hover:text-accent-700'}`}
                         >
                           <Icon className="w-3.5 h-3.5" />
                           <span>{item.short}</span>
@@ -357,10 +357,10 @@ function App() {
                                   key={tab.id}
                                   to={TAB_PATHS[tab.id] || '/'}
                                   onClick={() => setOpenGroup(null)}
-                                  className={`flex items-center gap-2.5 w-full px-4 py-2 text-sm transition-colors border-l-2
+                                  className={`flex items-center gap-2.5 w-full px-4 py-2 text-xs transition-colors
                                     ${activeTab === tab.id
-                                      ? 'border-accent-500 bg-accent-50 text-accent-700 font-semibold'
-                                      : 'border-transparent text-acb-600 hover:bg-accent-100 hover:text-accent-700'}`}
+                                      ? 'text-accent-700 font-semibold'
+                                      : 'text-acb-600 hover:text-accent-700'}`}
                                 >
                                   <TabIcon className="w-4 h-4" />
                                   {tab.label}
@@ -423,8 +423,8 @@ function App() {
                             key={tab.id}
                             to={TAB_PATHS[tab.id] || '/'}
                             onClick={() => setMenuOpen(false)}
-                            className={`flex items-center gap-3 w-full px-3 py-2 pl-7 rounded-md transition-colors text-sm border-l-2
-                              ${activeTab === tab.id ? 'border-accent-500 bg-accent-50 text-accent-700 font-semibold' : 'border-transparent text-acb-600 hover:bg-accent-100 hover:text-accent-700'}`}
+                            className={`flex items-center gap-3 w-full px-3 py-2 pl-7 rounded-md transition-colors text-sm
+                              ${activeTab === tab.id ? 'text-accent-700 font-semibold' : 'text-acb-600 hover:text-accent-700'}`}
                           >
                             <TabIcon className="w-4 h-4" />
                             {tab.label}
