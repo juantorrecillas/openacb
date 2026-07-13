@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getPlayerPhoto } from '../utils/playerPhotos'
 import { getPlayerDisplayName as getCanonicalPlayerName } from '../utils/playerNames'
-import { Users, Info, Plus, X, Search, ChevronDown, ChevronUp } from 'lucide-react'
+import { Users, Info, X, Search, ChevronDown, ChevronUp } from 'lucide-react'
 import PageHeader from '../components/PageHeader'
 
 /**
@@ -91,13 +91,11 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
   // Player selection state
   const [selectedPlayers, setSelectedPlayers] = useState([])
   const [excludedPlayer, setExcludedPlayer] = useState('')
-  const [showExclusionPicker, setShowExclusionPicker] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
 
   // clear exclusions whenever the analysis context changes
   useEffect(() => {
     setExcludedPlayer('')
-    setShowExclusionPicker(false)
   }, [selectedSeason, selectedTeam, selectedPlayers])
 
   // Filter teams by season
@@ -308,8 +306,13 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
 
   // Player selection handlers
   const addPlayer = (player) => {
-    if (selectedPlayers.includes(player) || selectedPlayers.length >= 5) return
+    if (excludedPlayer || selectedPlayers.includes(player) || selectedPlayers.length >= 5) return
     setSelectedPlayers([...selectedPlayers, player])
+  }
+
+  const excludePlayer = (player) => {
+    if (selectedPlayers.length !== 1 || !availableExclusions.includes(player)) return
+    setExcludedPlayer(player)
   }
 
   const removePlayer = (player) => {
@@ -321,7 +324,10 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
     else setSelectedPlayers([player])
   }
 
-  const clearPlayers = () => setSelectedPlayers([])
+  const clearPlayers = () => {
+    setSelectedPlayers([])
+    setExcludedPlayer('')
+  }
 
   // Sort handler
   const handleSort = (key) => {
@@ -433,7 +439,8 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
               placeholder="Buscar jugadores..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="flex-1 px-3 py-2 border border-acb-200 rounded-md text-sm bg-white"
+              disabled={Boolean(excludedPlayer)}
+              className="flex-1 px-3 py-2 border border-acb-200 rounded-md text-sm bg-white disabled:bg-acb-50 disabled:text-acb-400 disabled:cursor-not-allowed"
             />
           </div>
 
@@ -447,56 +454,35 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
                     <img src={getPlayerPhoto(playerPhotos, getIdFromKey(playerKey), selectedSeason)} alt="" className="w-5 h-5 rounded-full object-cover object-top" />
                   )}
                   <span className="text-sm font-medium">{getPlayerDisplayName(playerKey)}</span>
-                  <button onClick={() => removePlayer(playerKey)} className="hover:text-accent-600">
+                  <button
+                    type="button"
+                    onClick={() => removePlayer(playerKey)}
+                    className="hover:text-accent-600"
+                    aria-label={`Quitar ${getPlayerDisplayName(playerKey)}`}
+                  >
                     <X className="w-3 h-3" />
                   </button>
                 </div>
               ))}
-              <button onClick={clearPlayers} className="text-sm text-acb-500 hover:text-acb-700">
-                Limpiar
-              </button>
-            </div>
-          )}
-
-          {selectedPlayers.length === 1 && availableExclusions.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2">
-              {excludedPlayer ? (
+              {excludedPlayer && (
                 <button
                   type="button"
                   onClick={() => setExcludedPlayer('')}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-accent-200 bg-accent-50 px-3 py-1.5 text-sm font-medium text-accent-800"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-acb-300 bg-acb-100 px-3 py-1 text-sm font-medium text-acb-800 hover:bg-acb-200"
                   aria-label={`Quitar comparación sin ${getPlayerDisplayName(excludedPlayer)}`}
                 >
                   Sin {getPlayerDisplayName(excludedPlayer)} <X className="h-3.5 w-3.5" />
                 </button>
-              ) : showExclusionPicker ? (
-                <div className="flex flex-wrap items-center gap-2 rounded-md border border-acb-200 bg-acb-50 p-2">
-                  <label htmlFor="excluded-player" className="text-sm font-medium text-acb-700">Comparar sin</label>
-                  <select
-                    id="excluded-player"
-                    defaultValue=""
-                    onChange={(e) => {
-                      if (e.target.value) setExcludedPlayer(e.target.value)
-                      setShowExclusionPicker(false)
-                    }}
-                    className="min-w-[220px] rounded-md border border-acb-200 bg-white px-3 py-2 text-sm font-medium"
-                  >
-                    <option value="" disabled>Selecciona un compañero</option>
-                    {availableExclusions.map(playerKey => (
-                      <option key={playerKey} value={playerKey}>{getPlayerDisplayName(playerKey)}</option>
-                    ))}
-                  </select>
-                  <button type="button" onClick={() => setShowExclusionPicker(false)} className="text-sm text-acb-500 hover:text-acb-800">Cancelar</button>
-                  <span className="text-xs text-acb-500">Mínimo 2 min juntos y 25 min sin el compañero</span>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setShowExclusionPicker(true)}
-                  className="rounded-md border border-acb-200 bg-white px-3 py-2 text-sm font-medium text-acb-700 hover:bg-acb-50"
-                >
-                  Comparar sin compañero
-                </button>
+              )}
+              <button onClick={clearPlayers} className="text-sm text-acb-500 hover:text-acb-700">
+                Limpiar
+              </button>
+              {selectedPlayers.length === 1 && !excludedPlayer && availableExclusions.length > 0 && (
+                <span className="text-xs text-acb-500">
+                  <span className="hidden sm:inline">Pasa sobre otro jugador y elige </span>
+                  <span className="sm:hidden">Elige </span>
+                  <span className="font-semibold text-acb-700">Con</span> o <span className="font-semibold text-acb-700">Sin</span>.
+                </span>
               )}
             </div>
           )}
@@ -504,26 +490,82 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
           {/* Player Grid */}
           <div className="max-h-48 overflow-y-auto border border-acb-100 rounded-md bg-acb-50/50">
             {filteredPlayers.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1 p-2">
-                {filteredPlayers.map(playerKey => (
-                  <button
-                    key={playerKey}
-                    onClick={() => addPlayer(playerKey)}
-                    disabled={selectedPlayers.includes(playerKey) || selectedPlayers.length >= 5}
-                    className={`px-2 py-1.5 text-sm rounded transition-all flex items-center gap-1.5 ${
-                      selectedPlayers.includes(playerKey)
-                        ? 'bg-accent-100 text-accent-700 font-medium'
-                        : selectedPlayers.length >= 5
-                          ? 'bg-acb-100 text-acb-400 cursor-not-allowed'
-                          : 'bg-white hover:bg-accent-50 text-acb-700 hover:text-accent-700 border border-acb-200'
-                    }`}
-                  >
-                    {getPlayerPhoto(playerPhotos, getIdFromKey(playerKey), selectedSeason) && (
-                      <img src={getPlayerPhoto(playerPhotos, getIdFromKey(playerKey), selectedSeason)} alt="" className="w-5 h-5 rounded-full object-cover object-top" />
-                    )}
-                    {getPlayerDisplayName(playerKey)}
-                  </button>
-                ))}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 items-start gap-1 p-2">
+                {filteredPlayers.map(playerKey => {
+                  const displayName = getPlayerDisplayName(playerKey)
+                  const photo = getPlayerPhoto(playerPhotos, getIdFromKey(playerKey), selectedSeason)
+                  const isSelected = selectedPlayers.includes(playerKey)
+                  const isExcluded = excludedPlayer === playerKey
+                  const selectionClosed = Boolean(excludedPlayer) || selectedPlayers.length >= 5
+                  const showRelationActions = selectedPlayers.length > 0 && !isSelected && !isExcluded && !selectionClosed
+                  const canExclude = selectedPlayers.length === 1 && availableExclusions.includes(playerKey)
+                  const identity = (
+                    <>
+                      {photo && <img src={photo} alt="" className="h-5 w-5 shrink-0 rounded-full object-cover object-top" />}
+                      <span className="min-w-0 truncate" title={displayName}>{displayName}</span>
+                    </>
+                  )
+
+                  return (
+                    <div
+                      key={playerKey}
+                      className={`group relative rounded border text-sm transition-colors ${
+                        isSelected
+                          ? 'border-accent-200 bg-accent-100 font-medium text-accent-800'
+                          : isExcluded
+                            ? 'border-acb-300 bg-acb-200 font-medium text-acb-900'
+                            : selectionClosed
+                              ? 'border-acb-100 bg-acb-100 text-acb-400'
+                              : 'border-acb-200 bg-white text-acb-700 hover:border-accent-200'
+                      }`}
+                    >
+                      {selectedPlayers.length === 0 ? (
+                        <button
+                          type="button"
+                          onClick={() => addPlayer(playerKey)}
+                          className="flex min-h-8 w-full items-center gap-1.5 rounded px-2 py-1.5 text-left hover:bg-accent-50 hover:text-accent-700"
+                          aria-label={`Seleccionar a ${displayName}`}
+                        >
+                          {identity}
+                        </button>
+                      ) : (
+                        <>
+                          <div
+                            className="flex min-h-8 items-center gap-1.5 px-2 py-1.5"
+                            aria-disabled={!isSelected && !isExcluded && selectionClosed ? 'true' : undefined}
+                          >
+                            {identity}
+                            {isExcluded && <span className="ml-auto text-[10px] font-bold uppercase tracking-wide">Sin</span>}
+                          </div>
+                          {showRelationActions && (
+                            <div className="flex items-center justify-end gap-1 border-t border-acb-100 px-1.5 py-1 sm:absolute sm:inset-y-0 sm:right-1 sm:justify-start sm:border-0 sm:bg-white/95 sm:pl-2 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
+                              <button
+                                type="button"
+                                onClick={() => addPlayer(playerKey)}
+                                className="rounded border border-accent-200 bg-accent-50 px-2 py-1 text-xs font-semibold text-accent-800 hover:bg-accent-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent-500"
+                                aria-label={`Analizar con ${displayName}`}
+                              >
+                                Con
+                              </button>
+                              {selectedPlayers.length === 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => excludePlayer(playerKey)}
+                                  disabled={!canExclude}
+                                  className="rounded border border-acb-300 bg-acb-100 px-2 py-1 text-xs font-semibold text-acb-800 hover:bg-acb-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-acb-500 disabled:cursor-not-allowed disabled:opacity-35"
+                                  aria-label={`Analizar sin ${displayName}`}
+                                  title={canExclude ? `Analizar sin ${displayName}` : 'Sin datos suficientes para esta exclusión'}
+                                >
+                                  Sin
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             ) : (
               <div className="p-4 text-center text-acb-400 text-sm">
@@ -559,9 +601,15 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
               <thead>
                 <tr className="bg-acb-50 text-left text-xs text-acb-600 uppercase tracking-wider">
                   <th className="data-table-head text-left">Métrica</th>
-                  <th className="data-table-head text-center" title="Rendimiento con la selección en pista">En cancha</th>
-                  <th className="data-table-head text-center" title="Rendimiento con la selección fuera de pista">Fuera de cancha</th>
-                  <th className="data-table-head text-center" title="En cancha menos fuera de cancha">Diff On−Off</th>
+                  <th className="data-table-head text-center" title="Rendimiento con la selección en pista">
+                    <span className="sm:hidden">On</span><span className="hidden sm:inline">En cancha</span>
+                  </th>
+                  <th className="data-table-head text-center" title="Rendimiento con la selección fuera de pista">
+                    <span className="sm:hidden">Off</span><span className="hidden sm:inline">Fuera de cancha</span>
+                  </th>
+                  <th className="data-table-head text-center" title="En cancha menos fuera de cancha">
+                    <span className="sm:hidden">Diff</span><span className="hidden sm:inline">Diff On−Off</span>
+                  </th>
                   <th className="data-table-head text-center">Impacto</th>
                 </tr>
               </thead>
@@ -869,17 +917,17 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
                   <th className="data-table-head data-table-number data-col-games bg-acb-50" rowSpan={2}>Min</th>
                 </tr>
                 <tr className="text-xs text-acb-600 uppercase tracking-wider">
-                  <SortableHeader label="Diff ORtg On−Off" sortKey="deltaORtg" current={sortConfig} onSort={handleSort} />
-                  <SortableHeader label="Diff DRtg On−Off" sortKey="deltaDRtg" current={sortConfig} onSort={handleSort} />
+                  <SortableHeader label="ORtg" title="Diff ORtg On−Off" sortKey="deltaORtg" current={sortConfig} onSort={handleSort} />
+                  <SortableHeader label="DRtg" title="Diff DRtg On−Off" sortKey="deltaDRtg" current={sortConfig} onSort={handleSort} />
                   <SortableHeader label="On" sortKey="onNetRtg" current={sortConfig} onSort={handleSort} />
                   <SortableHeader label="Off" sortKey="offNetRtg" current={sortConfig} onSort={handleSort} />
-                  <SortableHeader label="Diff eFG On−Off (pp)" sortKey="deltaEFG" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
-                  <SortableHeader label="Diff PER On−Off (pp)" sortKey="deltaTOV" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
-                  <SortableHeader label="Diff RO On−Off (pp)" sortKey="deltaORB" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
-                  <SortableHeader label="Diff AST On−Off (pp)" sortKey="deltaAST" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
-                  <SortableHeader label="Diff eFG rival On−Off (pp)" sortKey="deltaOppEFG" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
-                  <SortableHeader label="Diff PER rival On−Off (pp)" sortKey="deltaOppTOV" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
-                  <SortableHeader label="Diff RD On−Off (pp)" sortKey="deltaDRB" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
+                  <SortableHeader label="eFG" title="Diff eFG% On−Off (pp)" sortKey="deltaEFG" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
+                  <SortableHeader label="PER" title="Diff PER% On−Off (pp)" sortKey="deltaTOV" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
+                  <SortableHeader label="RO" title="Diff RO% On−Off (pp)" sortKey="deltaORB" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
+                  <SortableHeader label="AST" title="Diff AST% On−Off (pp)" sortKey="deltaAST" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
+                  <SortableHeader label="eFG" title="Diff eFG% rival On−Off (pp)" sortKey="deltaOppEFG" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
+                  <SortableHeader label="PER" title="Diff PER% rival On−Off (pp)" sortKey="deltaOppTOV" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
+                  <SortableHeader label="RD" title="Diff RD% On−Off (pp)" sortKey="deltaDRB" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-acb-100">
@@ -1197,7 +1245,7 @@ const StatRow = ({ label, onValue, offValue, inverse = false, highlight = false 
 }
 
 // Sortable Header Component
-const SortableHeader = ({ label, sortKey, current, onSort, highlight = false, thClassName = '' }) => {
+const SortableHeader = ({ label, title, sortKey, current, onSort, highlight = false, thClassName = '' }) => {
   const isActive = current.key === sortKey
 
   return (
@@ -1206,8 +1254,14 @@ const SortableHeader = ({ label, sortKey, current, onSort, highlight = false, th
         highlight ? 'bg-accent-50' : ''
       } ${isActive ? 'text-accent-600' : ''} ${thClassName}`}
       aria-sort={isActive ? (current.direction === 'desc' ? 'descending' : 'ascending') : 'none'}
+      title={title}
     >
-      <button type="button" className="w-full flex items-center justify-end gap-1" onClick={() => onSort(sortKey)}>
+      <button
+        type="button"
+        className="w-full flex items-center justify-end gap-1"
+        onClick={() => onSort(sortKey)}
+        aria-label={title ? `${title}. Ordenar` : undefined}
+      >
         {label}
         {isActive && (
           current.direction === 'desc'

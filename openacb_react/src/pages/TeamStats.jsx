@@ -4,6 +4,7 @@ import { ArrowUpDown, ArrowUp, ArrowDown, Download } from 'lucide-react'
 import { downloadTableAsCsv } from '../utils/csvDownload'
 import { statTitle } from '../utils/statLabels'
 import PageHeader from '../components/PageHeader'
+import { getPercentileBadgeClass } from '../utils/percentileColors'
 
 
 // Add a color palette for teams (or generate colors dynamically)
@@ -444,12 +445,9 @@ export default function TeamStats({ teams, teamLogos = {} }) {
   }, [enrichedTeams, tableColumns])
 
   const getRankBadgeColor = (rank, total) => {
-    if (rank == null || isNaN(rank)) return 'bg-acb-100 text-acb-600'
+    if (rank == null || isNaN(rank) || total <= 1) return getPercentileBadgeClass(null)
     const pct = ((total - rank) / (total - 1)) * 100
-    if (pct >= 75) return 'bg-acb-800 text-white'
-    if (pct >= 50) return 'bg-acb-200 text-acb-800'
-    if (pct >= 25) return 'bg-acb-100 text-acb-700'
-    return 'bg-acb-50 text-acb-500'
+    return getPercentileBadgeClass(pct)
   }
 
   const getValueColor = () => 'text-acb-700'
@@ -478,15 +476,15 @@ export default function TeamStats({ teams, teamLogos = {} }) {
       />
       
       {/* Scatter Plot */}
-      <div className="filter-panel">
-        <div className="flex flex-wrap items-center gap-4 mb-6">
-          <div className="flex items-center gap-2">
-            <label htmlFor="team-stats-season" className="field-label">Temporada</label>
+      <div className="rounded-md border border-acb-200 bg-white p-4">
+        <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2">
+          <div className="flex min-w-0 items-center gap-1.5">
+            <label htmlFor="team-stats-season" className="field-label whitespace-nowrap text-xs">Temporada</label>
             <select
               id="team-stats-season"
               value={selectedSeason}
               onChange={(e) => setSelectedSeason(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
-              className="form-control"
+              className="form-control h-8 w-auto min-w-[7rem] px-2 text-xs"
             >
               {availableSeasons.map(season => (
                 <option key={season} value={season}>{season-1}-{String(season).slice(-2)}</option>
@@ -494,52 +492,52 @@ export default function TeamStats({ teams, teamLogos = {} }) {
               <option value="all">Todas las temporadas</option>
             </select>
           </div>
-          <div className="segmented-control" role="group" aria-label="Fase de la competición">
+          <div className="segmented-control h-8" role="group" aria-label="Fase de la competición">
             <button
               onClick={() => setSelectedStage('regular')}
               aria-pressed={selectedStage === 'regular'}
-              className="segmented-option"
+              className="segmented-option px-2 py-1 text-xs"
             >
               Temporada regular
             </button>
             <button
               onClick={() => setSelectedStage('playoffs')}
               aria-pressed={selectedStage === 'playoffs'}
-              className="segmented-option"
+              className="segmented-option px-2 py-1 text-xs"
             >
               Playoffs
             </button>
           </div>
-          <div className="flex items-center gap-2">
-            <label htmlFor="team-stats-x-axis" className="field-label">Eje X</label>
+          <div className="flex min-w-0 items-center gap-1.5">
+            <label htmlFor="team-stats-x-axis" className="field-label whitespace-nowrap text-xs">Eje X</label>
             <select
               id="team-stats-x-axis"
               value={xAxis}
               onChange={(e) => setXAxis(e.target.value)}
-              className="form-control"
+              className="form-control h-8 w-auto min-w-[9rem] max-w-[12rem] px-2 text-xs"
             >
               {statOptions.map(opt => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
             </select>
           </div>
-          <div className="flex items-center gap-2">
-            <label htmlFor="team-stats-y-axis" className="field-label">Eje Y</label>
+          <div className="flex min-w-0 items-center gap-1.5">
+            <label htmlFor="team-stats-y-axis" className="field-label whitespace-nowrap text-xs">Eje Y</label>
             <select
               id="team-stats-y-axis"
               value={yAxis}
               onChange={(e) => setYAxis(e.target.value)}
-              className="form-control"
+              className="form-control h-8 w-auto min-w-[9rem] max-w-[12rem] px-2 text-xs"
             >
               {statOptions.map(opt => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
             </select>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center">
             <button
               onClick={() => setShowLabels(!showLabels)}
-              className={`form-control hover:bg-acb-50 ${showLabels ? 'bg-acb-100' : ''}`}
+              className={`form-control h-8 w-auto px-2 text-xs hover:bg-acb-50 ${showLabels ? 'bg-acb-100' : ''}`}
             >
               {showLabels ? 'Ocultar nombres' : 'Mostrar nombres'}
             </button>
@@ -547,7 +545,7 @@ export default function TeamStats({ teams, teamLogos = {} }) {
           </div>
         </div>
         
-        <div className="h-96">
+        <div className="h-96 min-w-0 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <ScatterChart margin={{ top: 20, right: 20, bottom: 40, left: 40 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />

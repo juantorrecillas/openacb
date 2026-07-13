@@ -6,17 +6,10 @@ import PlayerCombobox from '../components/PlayerCombobox'
 import { getPlayerPhoto } from '../utils/playerPhotos'
 import { downloadTableAsCsv } from '../utils/csvDownload'
 import { getPlayerDisplayName, getPlayerSearchText } from '../utils/playerNames'
+import { getPercentileBadgeClass, getPercentileBarClass } from '../utils/percentileColors'
 
 
 // ─── Helpers ───────────────────────────────────────────────────
-function pctBadge(p) {
-  if (p == null || isNaN(p)) return 'bg-acb-100 text-acb-600'
-  if (p >= 75) return 'bg-acb-700 text-white'
-  if (p >= 50) return 'bg-acb-300 text-acb-900'
-  if (p >= 25) return 'bg-acb-200 text-acb-800'
-  return 'bg-acb-100 text-acb-700'
-}
-
 function fmt(v, key) {
   if (v == null) return '-'
   if (key === 'games') return v
@@ -144,7 +137,7 @@ function SeasonPicker({ records, selected, onChange }) {
       id="player-profile-record"
       value={selected ?? ''}
       onChange={e => onChange(records.find(record => playerRecordKey(record) === e.target.value))}
-      className="form-control-compact"
+      className="form-control-compact min-w-0 w-full sm:w-auto"
     >
       {records.map(record => (
         <option key={playerRecordKey(record)} value={playerRecordKey(record)}>
@@ -156,31 +149,35 @@ function SeasonPicker({ records, selected, onChange }) {
 }
 
 // ─── Player Header Card ────────────────────────────────────────
-function PlayerHeader({ records, photoUrl, bio, selectedSeason }) {
+function PlayerHeader({ records, photoUrl, bio, selectedSeason, selectedRecord }) {
   const latest = records[0]
+  const activeRecord = selectedRecord || records.find(record => record.season === selectedSeason) || latest
   const teams = [...new Set(records.map(r => r.team))]
   const seasons = [...new Set(records.map(r => r.season))].sort()
   const age = bio?.birthDate ? ageAtSeasonStart(bio.birthDate, selectedSeason || latest.season) : null
 
   return (
-    <div className="bg-white rounded-lg border border-acb-200 p-6 flex gap-5 items-start">
+    <div className="sticky top-12 z-30 isolate flex items-center gap-3 rounded-lg border border-acb-200 bg-white/95 p-3 shadow-md backdrop-blur-sm sm:top-16 sm:gap-4 sm:p-4 lg:items-start lg:gap-5 lg:p-6 xl:top-20">
       {photoUrl && (
         <img
           src={photoUrl}
           alt={getPlayerDisplayName(latest)}
-          className="w-20 h-20 rounded-full object-cover object-top border-2 border-acb-200 flex-shrink-0"
+          className="h-12 w-12 flex-shrink-0 rounded-full border-2 border-acb-200 object-cover object-top sm:h-14 sm:w-14 lg:h-20 lg:w-20"
         />
       )}
       <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <h2 className="text-2xl font-bold text-acb-900">{getPlayerDisplayName(latest)}</h2>
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5 sm:gap-2">
+          <h2 className="text-lg font-bold leading-tight text-acb-900 sm:text-xl lg:text-2xl">{getPlayerDisplayName(latest)}</h2>
           {bio?.position && (
-            <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-accent-100 text-accent-700 border border-accent-200">
+            <span className="rounded-full border border-acb-200 bg-acb-100 px-1.5 py-0.5 text-[10px] font-semibold text-acb-800 sm:px-2 sm:text-xs">
               {bio.position}
             </span>
           )}
         </div>
-        <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-acb-600">
+        <p className="mt-1 truncate text-xs text-acb-500 sm:text-sm lg:hidden">
+          {activeRecord.team} · {seasonLabel(activeRecord.season)}
+        </p>
+        <div className="mt-2 hidden flex-wrap gap-x-5 gap-y-1 text-sm text-acb-600 lg:flex">
           {bio?.heightM && (
             <div>
               <span className="font-medium text-acb-700">Altura:</span>{' '}
@@ -359,12 +356,6 @@ function PctBar({ label, value, pctKey, posPctKey, player, fmtKey, usePos }) {
   const activePctKey = usePos && posPctKey ? posPctKey : pctKey
   const pct = activePctKey ? player[activePctKey] : null
 
-  const barColor = pct == null ? 'bg-acb-200'
-    : pct >= 75 ? 'bg-acb-700'
-    : pct >= 50 ? 'bg-acb-500'
-    : pct >= 25 ? 'bg-acb-300'
-    : 'bg-acb-200'
-
   return (
     <div className="flex items-center gap-2 py-1.5">
       <span className="text-xs text-acb-600 w-16 shrink-0 text-right">{label}</span>
@@ -374,13 +365,13 @@ function PctBar({ label, value, pctKey, posPctKey, player, fmtKey, usePos }) {
           <div className="absolute left-1/2 top-0 bottom-0 w-px bg-acb-300 z-10" />
           {pct != null && (
             <div
-              className={`h-full rounded-full transition-all duration-500 ${barColor}`}
+              className={`h-full rounded-full transition-all duration-500 ${getPercentileBarClass(pct)}`}
               style={{ width: `${Math.max(pct, 2)}%` }}
             />
           )}
         </div>
         <span className="font-mono text-xs text-acb-900 w-14 text-right shrink-0">{fmt(v, fmtKey || value)}</span>
-        <span className={`text-xs w-9 text-right shrink-0 font-medium ${pctBadge(pct)} px-1 py-0.5 rounded`}>
+        <span className={`text-xs w-9 text-right shrink-0 font-medium ${getPercentileBadgeClass(pct)} px-1 py-0.5 rounded`}>
           {pct != null ? `${Math.round(pct)}` : '-'}
         </span>
       </div>
@@ -479,10 +470,10 @@ function PercentileProfile({ player }) {
       {/* Legend */}
       <div className="mt-4 pt-3 border-t border-acb-100 flex flex-wrap gap-3 text-xs text-acb-500">
         <span>Percentil:</span>
-        <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-acb-700" /> 75+</span>
-        <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-acb-500" /> 50-74</span>
-        <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-acb-300" /> 25-49</span>
-        <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-acb-200" /> 0-24</span>
+        <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-accent-300" /> 75+</span>
+        <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-accent-200" /> 50-74</span>
+        <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-info-200" /> 25-49</span>
+        <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-info-300" /> 0-24</span>
       </div>
     </div>
   )
@@ -954,7 +945,7 @@ function RadarArchetypeCard({ player, bio }) {
         {/* Archetype */}
         <div className="md:w-64 shrink-0 flex flex-col items-center md:items-start md:pt-10">
           <span className="text-xs font-semibold text-acb-500 uppercase tracking-wider mb-2">Arquetipo</span>
-          <div className="rounded-lg border border-acb-200 bg-acb-50 px-4 py-3 text-center text-acb-700 md:text-left">
+          <div className={`rounded-lg border px-4 py-3 text-center md:text-left ${archetype.color}`}>
             <div className="text-lg font-bold">{archetype.name}</div>
             <div className="text-xs mt-1 opacity-80">{archetype.desc}</div>
           </div>
@@ -1552,6 +1543,7 @@ export default function PlayerProfile({ players, allPlayers = players, playerPho
             photoUrl={getPlayerPhoto(playerPhotos, selectedLicenseId, selectedSeason || allPlayerRecords[0]?.season)}
             bio={bio}
             selectedSeason={selectedSeason || allPlayerRecords[0]?.season}
+            selectedRecord={seasonRecord}
           />
 
           <div className="flex items-center gap-2 flex-wrap">
@@ -1596,7 +1588,7 @@ export default function PlayerProfile({ players, allPlayers = players, playerPho
 
           {/* Season picker for detail cards */}
           {playerRecords.length > 0 && (
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col items-stretch gap-1.5 sm:flex-row sm:items-center sm:gap-3">
               <label htmlFor="player-profile-record" className="field-label">Temporada y equipo</label>
               <SeasonPicker
                 records={playerRecords}

@@ -5,6 +5,7 @@ import { downloadTableAsCsv } from '../utils/csvDownload'
 import { statTitle } from '../utils/statLabels'
 import { getPlayerDisplayName, getPlayerSearchText } from '../utils/playerNames'
 import PageHeader from '../components/PageHeader'
+import { getPercentileBadgeClass } from '../utils/percentileColors'
 
 const positionCol = { key: 'position', label: 'Pos', align: 'left', sortable: true }
 const POSITION_ORDER = ['Base', 'Escolta', 'Alero', 'Ala-pívot', 'Pívot']
@@ -413,15 +414,6 @@ export default function PlayerStats({ players, playerBio = {} }) {
     downloadTableAsCsv(filename, exportRows, exportColumns)
   }
 
-  // percentile badge color
-  const getPercentileBadgeColor = (percentile) => {
-    if (percentile == null || isNaN(percentile)) return 'bg-acb-100 text-acb-600'
-    if (percentile >= 75) return 'bg-acb-800 text-white'
-    if (percentile >= 50) return 'bg-acb-200 text-acb-800'
-    if (percentile >= 25) return 'bg-acb-100 text-acb-700'
-    return 'bg-acb-50 text-acb-500'
-  }
-
   const displayedPlayers = showAll ? filteredPlayers : filteredPlayers.slice(0, 100)
 
   return (
@@ -728,7 +720,7 @@ export default function PlayerStats({ players, playerBio = {} }) {
                             <span className={getPercentileColor(player[col.key], col.key)}>
                               {formatValue(player[col.key], col.key, player)}
                             </span>
-                            <span className={`data-table-badge ${getPercentileBadgeColor(percentileValue)}`}>
+                            <span className={`data-table-badge ${getPercentileBadgeClass(percentileValue)}`}>
                               {Math.round(percentileValue)}%
                             </span>
                           </div>

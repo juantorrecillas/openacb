@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { statTitle } from '../utils/statLabels'
 import { getPlayerDisplayName, getPlayerSearchText } from '../utils/playerNames'
 import PageHeader from '../components/PageHeader'
+import { getPercentileBadgeClass } from '../utils/percentileColors'
 
 function seasonLabel(s) {
   return `${s - 1}-${String(s).slice(-2)}`
@@ -19,14 +20,6 @@ function fmtVal(v, key) {
   if (['fgPct','fg2Pct','fg3Pct','ftPct','efgPct','tsPct','fg3Rate'].includes(key))
     return `${Number(v).toFixed(1)}%`
   return Number(v).toFixed(1)
-}
-
-function getPercentileColor(pct) {
-  if (pct == null || isNaN(pct)) return 'bg-acb-100 text-acb-600'
-  if (pct >= 75) return 'bg-acb-800 text-white'
-  if (pct >= 50) return 'bg-acb-200 text-acb-800'
-  if (pct >= 25) return 'bg-acb-100 text-acb-700'
-  return 'bg-acb-50 text-acb-600'
 }
 
 // rank → percentile (rank 1 → 100, rank n → 0). undefined for n <= 1.
@@ -438,7 +431,7 @@ export default function ClutchStats({ teams, players = [], playerBio = {}, loadC
                         {percentile != null ? (
                           <div className="data-table-value">
                             <span className="text-acb-700">{fmtVal(v, col.key)}</span>
-                            <span className={`data-table-badge ${getPercentileColor(percentile)}`}>
+                            <span className={`data-table-badge ${getPercentileBadgeClass(percentile)}`}>
                               {percentile}%
                             </span>
                           </div>

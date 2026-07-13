@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { Circle, Download } from 'lucide-react'
 import { downloadTableAsCsv } from '../utils/csvDownload'
 import PageHeader from '../components/PageHeader'
+import { getPercentileBadgeClass } from '../utils/percentileColors'
 
 
 export default function FourFactors({ teams }) {
@@ -151,12 +152,9 @@ export default function FourFactors({ teams }) {
   }
 
   const getRankColor = (rank, totalTeams) => {
-    if (!rank) return 'bg-acb-100 text-acb-600'
-    const percentile = rank / totalTeams
-    if (percentile <= 0.25) return 'bg-acb-800 text-white'
-    if (percentile <= 0.5) return 'bg-acb-200 text-acb-800'
-    if (percentile <= 0.75) return 'bg-acb-100 text-acb-700'
-    return 'bg-acb-50 text-acb-500'
+    if (!rank || totalTeams <= 1) return getPercentileBadgeClass(null)
+    const percentile = ((totalTeams - rank) / (totalTeams - 1)) * 100
+    return getPercentileBadgeClass(percentile)
   }
 
   const rankedCell = (value, rank, totalTeams, className = '') => (
