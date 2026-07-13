@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Trophy, TrendingDown, Filter } from 'lucide-react'
 import { statTitle } from '../utils/statLabels'
 import { getPlayerDisplayName } from '../utils/playerNames'
+import PageHeader from '../components/PageHeader'
 
 // Extract licenseId from player key format "Name_12345"
 const getIdFromKey = (key) => key?.split('_').pop() || ''
@@ -271,10 +272,7 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
   if (loading) {
     return (
       <div className="app-page space-y-6">
-        <div>
-          <h2 className="text-2xl font-semibold text-acb-900">Rankings de Alineaciones</h2>
-          <p className="text-acb-500 text-sm mt-1">Cargando datos...</p>
-        </div>
+        <PageHeader title="Rankings de alineaciones" subtitle="Mejores y peores jugadores, dúos, tríos y quintetos por impacto y eficiencia" />
         <div className="bg-acb-50 rounded-lg p-8 text-center">
           <div className="animate-pulse text-acb-600">Cargando rankings...</div>
         </div>
@@ -284,26 +282,20 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
 
   return (
     <div className="app-page space-y-6">
-      {/* Header */}
-      <div>
-        <h2 className="text-2xl font-semibold text-acb-900">Rankings de Alineaciones</h2>
-        <p className="text-acb-500 text-sm mt-1">
-          Mejores y peores jugadores, dúos, tríos y quintetos por impacto y eficiencia
-        </p>
-      </div>
+      <PageHeader title="Rankings de alineaciones" subtitle="Mejores y peores jugadores, dúos, tríos y quintetos por impacto y eficiencia" />
 
       {/* Controls */}
-      <div className="bg-white rounded-lg border border-acb-200 p-4 space-y-4 shadow-sm">
+      <div className="filter-panel space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="flex flex-wrap items-center gap-4">
             {/* Season */}
             <div className="flex items-center gap-2">
-              <span className="text-sm text-acb-600 font-medium">Temporada:</span>
+              <span className="field-label">Temporada</span>
               <select
                 aria-label="Temporada"
                 value={selectedSeason}
                 onChange={(e) => setSelectedSeason(parseInt(e.target.value))}
-                className="px-3 py-2 border border-acb-200 rounded-md text-sm bg-white font-medium"
+                className="form-control"
               >
                 {availableSeasons.map(season => (
                   <option key={season} value={season}>{season-1}-{String(season).slice(-2)}</option>
@@ -312,12 +304,12 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-sm text-acb-600 font-medium">Equipo:</span>
+              <span className="field-label">Equipo</span>
               <select
                 aria-label="Equipo"
                 value={selectedTeam}
                 onChange={(e) => setSelectedTeam(e.target.value)}
-                className="px-3 py-2 border border-acb-200 rounded-md text-sm bg-white font-medium min-w-[220px]"
+                className="form-control min-w-[220px]"
               >
                 <option value="">Toda la liga</option>
                 {seasonTeams.map(team => (

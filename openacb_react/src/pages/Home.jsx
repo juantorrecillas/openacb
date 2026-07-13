@@ -39,7 +39,7 @@ const categories = [
     tools: [
       { id: 'players', title: 'Estadísticas de Jugador', description: 'Producción, eficiencia y métricas avanzadas.', icon: Users },
       { id: 'profile', title: 'Perfil de Jugador',       description: 'Perfil completo, estilo y evolución.', icon: UserCircle },
-      { id: 'clutch',  title: 'Estadísticas Clutch',     description: 'Rendimiento en finales ajustados.', icon: Flame },
+      { id: 'clutch',  title: 'Estadísticas clutch',     description: 'Rendimiento en finales ajustados.', icon: Flame },
     ],
   },
   {
@@ -66,8 +66,8 @@ const categories = [
     title: 'Tiro',
     description: 'Visualizaciones de tiro y líderes por zona',
     tools: [
-      { id: 'shots',       title: 'Cartas de Tiro',   description: 'Mapas de tiro por jugador o equipo.',                                             icon: Target },
-      { id: 'zoneleaders', title: 'Líderes por Zona', description: 'Anotadores y eficiencia por zona.', icon: Crown },
+      { id: 'shots',       title: 'Cartas de tiro',   description: 'Mapas de tiro por jugador o equipo.',                                             icon: Target },
+      { id: 'zoneleaders', title: 'Líderes por zona', description: 'Anotadores y eficiencia por zona.', icon: Crown },
     ],
   },
 ]

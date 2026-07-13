@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react'
 import { ArrowUp, ArrowDown, Loader2 } from 'lucide-react'
 import TeamPace from './TeamPace'
 import { getPlayerDisplayName } from '../utils/playerNames'
+import PageHeader from '../components/PageHeader'
 
 // ─── Helpers ──────────────────────────────────────────────────
 
@@ -52,10 +53,10 @@ function typeLabel(type) {
 function getRankColor(rank, total) {
   if (!rank || !total) return 'bg-acb-100 text-acb-600'
   const pct = rank / total
-  if (pct <= 0.25) return 'bg-positive-100 text-positive-700'
-  if (pct <= 0.5)  return 'bg-info-100 text-info-700'
-  if (pct <= 0.75) return 'bg-info-100 text-info-600'
-  return 'bg-negative-100 text-negative-700'
+  if (pct <= 0.25) return 'bg-acb-800 text-white'
+  if (pct <= 0.5)  return 'bg-acb-200 text-acb-800'
+  if (pct <= 0.75) return 'bg-acb-100 text-acb-700'
+  return 'bg-acb-50 text-acb-600'
 }
 
 function ClutchTeamsView({ tabBar, selectedSeason, setSelectedSeason, availableSeasons, clutchCache, loadingClutch }) {
@@ -153,20 +154,15 @@ function ClutchTeamsView({ tabBar, selectedSeason, setSelectedSeason, availableS
     <div className="app-page space-y-6">
       {tabBar('clutch')}
 
-      <div>
-        <h2 className="text-2xl font-semibold text-acb-900">Clutch por Equipo</h2>
-        <p className="text-acb-500 text-sm mt-1">
-          Últimos 5 minutos con diferencia ≤ 5 pts (Q4 o prórroga) · {sl(selectedSeason)}
-        </p>
-      </div>
+      <PageHeader title="Clutch por equipo" subtitle={`Últimos 5 minutos con una diferencia de 5 puntos o menos (Q4 o prórroga) · ${sl(selectedSeason)}`} />
 
       <div className="flex flex-col gap-1 w-fit">
-        <label className="text-xs text-acb-500 font-medium">Temporada</label>
+        <label className="field-label">Temporada</label>
         <select
           aria-label="Temporada de estadísticas clutch"
           value={selectedSeason}
           onChange={e => setSelectedSeason(Number(e.target.value))}
-          className="px-3 py-2.5 border border-acb-200 rounded-lg text-sm bg-white"
+          className="form-control"
         >
           {availableSeasons.map(s => <option key={s} value={s}>{sl(s)}</option>)}
         </select>
@@ -651,7 +647,7 @@ export default function GameFlow({ teams, playerRecords = [], loadGameFlowForSea
 
   const tabBar = (active) => (
     <div className="flex gap-2 flex-wrap">
-      <button onClick={() => setView('gameflow')} className={`px-4 py-1.5 rounded-full text-sm font-medium ${active === 'gameflow' ? 'bg-acb-900 text-white' : 'border border-acb-200 text-acb-500 hover:bg-acb-50'}`}>Flujo de Partido</button>
+      <button onClick={() => setView('gameflow')} className={`px-4 py-1.5 rounded-full text-sm font-medium ${active === 'gameflow' ? 'bg-acb-900 text-white' : 'border border-acb-200 text-acb-500 hover:bg-acb-50'}`}>Flujo de partido</button>
       <button onClick={() => setView('teampace')} className={`px-4 py-1.5 rounded-full text-sm font-medium ${active === 'teampace' ? 'bg-acb-900 text-white' : 'border border-acb-200 text-acb-500 hover:bg-acb-50'}`}>Rendimiento por Cuarto</button>
       <button onClick={() => setView('clutch')}   className={`px-4 py-1.5 rounded-full text-sm font-medium ${active === 'clutch'   ? 'bg-acb-900 text-white' : 'border border-acb-200 text-acb-500 hover:bg-acb-50'}`}>Clutch</button>
     </div>
@@ -690,18 +686,16 @@ export default function GameFlow({ teams, playerRecords = [], loadGameFlowForSea
       {tabBar('gameflow')}
 
       {/* Header */}
-      <div>
-        <h2 className="text-2xl font-semibold text-acb-900">Flujo de Partido</h2>
-        <p className="text-acb-500 text-sm mt-1">
-          Visualiza la evolución del marcador jugada a jugada en cada partido
-        </p>
-        <p className="text-xs text-acb-400 mt-1">Temporada completa · Liga regular y playoffs</p>
-      </div>
+      <PageHeader
+        title="Flujo de partido"
+        subtitle="Visualiza la evolución del marcador jugada a jugada en cada partido"
+        scope="Temporada completa · Liga regular y playoffs"
+      />
 
       {/* Season selector */}
-      <div className="flex flex-wrap items-end gap-3">
+      <div className="filter-panel">
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-acb-500 font-medium">Temporada</label>
+          <label className="field-label">Temporada</label>
           <select
             aria-label="Temporada del flujo de partido"
             value={selectedSeason}
@@ -710,7 +704,7 @@ export default function GameFlow({ teams, playerRecords = [], loadGameFlowForSea
               setSelectedGame(null)
               setSelectedJornada(null)
             }}
-            className="px-3 py-2.5 border border-acb-200 rounded-lg text-sm bg-white"
+            className="form-control"
           >
             {availableSeasons.map(s => (
               <option key={s} value={s}>{seasonLabel(s)}</option>
@@ -748,7 +742,6 @@ export default function GameFlow({ teams, playerRecords = [], loadGameFlowForSea
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
           {jornadaGames.map(g => {
             const isSelected = selectedGame === g.id
-            const diff = g.scoreL - g.scoreV
             return (
               <button
                 key={g.id}
@@ -763,11 +756,11 @@ export default function GameFlow({ teams, playerRecords = [], loadGameFlowForSea
                 <div className="text-sm font-medium text-acb-900 truncate">{g.local}</div>
                 <div className="text-sm text-acb-500 truncate">{g.visitor}</div>
                 <div className="mt-1.5 flex items-center gap-1.5">
-                  <span className={`text-base font-bold ${diff > 0 ? 'text-positive' : diff < 0 ? 'text-negative' : 'text-acb-700'}`}>
+                  <span className="text-base font-bold text-accent-700">
                     {g.scoreL}
                   </span>
                   <span className="text-acb-300">-</span>
-                  <span className={`text-base font-bold ${diff < 0 ? 'text-positive' : diff > 0 ? 'text-negative' : 'text-acb-700'}`}>
+                  <span className="text-base font-bold text-info-700">
                     {g.scoreV}
                   </span>
                 </div>
@@ -797,11 +790,11 @@ export default function GameFlow({ teams, playerRecords = [], loadGameFlowForSea
             </div>
             <div className="flex items-center gap-4 text-xs">
               <div className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded-full bg-positive-100 border border-positive-500"></span>
+                <span className="w-3 h-3 rounded-full bg-accent-100 border border-accent-500"></span>
                 <span className="text-acb-500">{game.local} anota</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded-full bg-negative-100 border border-negative-500"></span>
+                <span className="w-3 h-3 rounded-full bg-info-100 border border-info-500"></span>
                 <span className="text-acb-500">{game.visitor} anota</span>
               </div>
             </div>
@@ -885,7 +878,7 @@ export default function GameFlow({ teams, playerRecords = [], loadGameFlowForSea
 
                 {/* Scoring dots (interactive) */}
                 {chartData.scoringDots.map((dot, i) => {
-                  const color = dot.team === 'L' ? '#2aa867' : '#dd415d'
+                  const color = dot.team === 'L' ? '#fe5917' : '#3b82f6'
                   const isHovered = hoveredEvent && hoveredEvent.t === dot.t && hoveredEvent.sl === dot.sl
                   return (
                     <circle
@@ -966,11 +959,11 @@ export default function GameFlow({ teams, playerRecords = [], loadGameFlowForSea
                     <div
                       key={i}
                       className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs border ${
-                        isLocal ? 'border-positive-200 bg-positive-50' : 'border-negative-200 bg-negative-50'
+                        isLocal ? 'border-accent-200 bg-accent-50' : 'border-info-200 bg-info-50'
                       }`}
                     >
-                      <span className={`font-semibold ${isLocal ? 'text-positive-700' : 'text-negative-700'}`}>{teamName}</span>
-                      <span className={`font-semibold ${isLocal ? 'text-positive-800' : 'text-negative-800'}`}>{wonPts}-{lostPts}</span>
+                      <span className={`font-semibold ${isLocal ? 'text-accent-700' : 'text-info-700'}`}>{teamName}</span>
+                      <span className={`font-semibold ${isLocal ? 'text-accent-800' : 'text-info-800'}`}>{wonPts}-{lostPts}</span>
                       <span className="text-acb-400">{formatClock(run.tStart)} → {formatClock(run.tEnd)}</span>
                     </div>
                   )

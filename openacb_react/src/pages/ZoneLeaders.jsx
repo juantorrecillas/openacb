@@ -2,7 +2,8 @@ import { useState, useMemo, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import Court from '../components/Court'
 import { getPlayerPhoto } from '../utils/playerPhotos'
-import { getPlayerDisplayName } from '../utils/playerNames'
+import { getPlayerCompactName, getPlayerDisplayName } from '../utils/playerNames'
+import PageHeader from '../components/PageHeader'
 import { Filter } from 'lucide-react'
 
 
@@ -176,24 +177,10 @@ function getPolygonCentroid(points) {
 
 // ─── Player name helpers ──────────────────────────────────────────────────────
 
-const getPlayerName = (players, playerId) => {
-  const player = players.find(p => String(p.licenseId) === String(playerId))
-  return player ? getPlayerDisplayName(player) : null
-}
-
-// Shorten for tight zones: "T. Luwawu-Cabarrot" -> "T. Luw.-Cab."
-const shortenForZone = (name, maxLen = 14) => {
-  if (!name || name.length <= maxLen) return name
-  // Try cutting surname
-  const dotIdx = name.indexOf('. ')
-  if (dotIdx >= 0) {
-    const surname = name.slice(dotIdx + 2)
-    if (surname.length > maxLen - dotIdx - 2) {
-      return name.slice(0, dotIdx + 2) + surname.slice(0, maxLen - dotIdx - 4) + '.'
-    }
-  }
-  return name.slice(0, maxLen - 1) + '.'
-}
+const normalizeName = (value) => String(value || '')
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .toLocaleLowerCase('es')
 
 // ─── Zone fill ────────────────────────────────────────────────────────────────
 
@@ -248,6 +235,16 @@ export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingSho
     return seasonShots.filter(s => s.team === selectedTeam)
   }, [seasonShots, selectedTeam])
 
+  const playerRecordsById = useMemo(() => {
+    const records = new Map()
+    players.forEach(player => {
+      if (Number(player.season) !== Number(selectedSeason)) return
+      const id = String(player.licenseId)
+      if (!records.has(id)) records.set(id, player)
+    })
+    return records
+  }, [players, selectedSeason])
+
   const zonePolygons = useMemo(() => getZonePolygons(), [])
 
   // Compute zone leaders
@@ -263,12 +260,13 @@ export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingSho
         zonePlayerMap[zone][pid] = {
           playerId: pid,
           playerName: shot.player,
-          team: shot.team,
+          teams: new Set(),
           attempts: 0,
           makes: 0,
           points: 0,
         }
       }
+      zonePlayerMap[zone][pid].teams.add(shot.team)
       zonePlayerMap[zone][pid].attempts++
       if (shot.made) zonePlayerMap[zone][pid].makes++
       zonePlayerMap[zone][pid].points += shot.points || 0
@@ -284,16 +282,37 @@ export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingSho
       eligible.forEach(p => {
         p.fgPct = p.attempts > 0 ? (p.makes / p.attempts) * 100 : 0
       })
-      if (metric === 'points') {
-        eligible.sort((a, b) => b.points - a.points)
-      } else {
-        eligible.sort((a, b) => b.fgPct - a.fgPct)
+      const byName = (a, b) => {
+        const nameA = getPlayerDisplayName(playerRecordsById.get(a.playerId), a.playerName)
+        const nameB = getPlayerDisplayName(playerRecordsById.get(b.playerId), b.playerName)
+        return nameA.localeCompare(nameB, 'es')
       }
-      leaders[zone] = { ...eligible[0], eligible: eligible.length }
+      if (metric === 'points') {
+        eligible.sort((a, b) =>
+          b.points - a.points
+          || b.fgPct - a.fgPct
+          || b.attempts - a.attempts
+          || byName(a, b)
+        )
+      } else {
+        eligible.sort((a, b) =>
+          b.fgPct - a.fgPct
+          || b.attempts - a.attempts
+          || b.makes - a.makes
+          || byName(a, b)
+        )
+      }
+      const leader = eligible[0]
+      const leaderTeams = [...leader.teams].sort((a, b) => a.localeCompare(b, 'es'))
+      leaders[zone] = {
+        ...leader,
+        team: leaderTeams.length > 1 ? 'Varios equipos' : leaderTeams[0] || '-',
+        eligible: eligible.length,
+      }
     })
 
     return leaders
-  }, [filteredShots, minAttempts, metric])
+  }, [filteredShots, minAttempts, metric, playerRecordsById])
 
   const scale = 750 / 15
   const offsetX = 7.5
@@ -303,9 +322,36 @@ export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingSho
     y: -y * scale,
   })
 
-  // Get display name for a leader
-  const getDisplayName = (leader) => {
-    return getPlayerName(players, leader.playerId) || leader.playerName || '-'
+  const visibleLeaderNames = useMemo(() => {
+    const namesById = new Map()
+    const idsByCompactName = new Map()
+
+    Object.values(zoneLeaders).filter(Boolean).forEach(leader => {
+      const id = String(leader.playerId)
+      if (namesById.has(id)) return
+      const record = playerRecordsById.get(id)
+      const full = getPlayerDisplayName(record, leader.playerName || '-')
+      const compact = getPlayerCompactName(record, full)
+      namesById.set(id, { full, compact })
+
+      const compactKey = normalizeName(compact)
+      if (!idsByCompactName.has(compactKey)) idsByCompactName.set(compactKey, new Set())
+      idsByCompactName.get(compactKey).add(id)
+    })
+
+    namesById.forEach((names, id) => {
+      const collision = idsByCompactName.get(normalizeName(names.compact))?.size > 1
+      if (collision) namesById.set(id, { ...names, compact: names.full })
+    })
+
+    return namesById
+  }, [playerRecordsById, zoneLeaders])
+
+  const getLeaderNames = (leader) => {
+    return visibleLeaderNames.get(String(leader.playerId)) || {
+      full: leader.playerName || '-',
+      compact: leader.playerName || '-',
+    }
   }
 
   // Zone short labels for the table
@@ -353,17 +399,16 @@ export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingSho
 
   return (
     <div className="app-page space-y-6">
-      {/* Header */}
-      <div>
-        <h2 className="text-2xl font-semibold text-acb-900">Líderes por Zona</h2>
-        <p className="text-acb-500 text-sm mt-1">
-          {metric === 'points' ? 'Jugador con más puntos' : 'Jugador con mejor porcentaje de tiro'} en cada zona del campo
-          {isLoading && <span className="text-info-600"> - Cargando datos...</span>}
-        </p>
-      </div>
+      <PageHeader
+        title="Líderes por zona"
+        subtitle={metric === 'points' ? 'Jugador con más puntos en cada zona del campo' : 'Jugador con mejor porcentaje de tiro en cada zona del campo'}
+        scope={isLoading
+          ? 'Cargando datos…'
+          : `${selectedSeason - 1}-${String(selectedSeason).slice(-2)} · ${selectedTeam || 'Toda la liga'}`}
+      />
 
       {/* Filters */}
-      <div className="bg-white rounded-lg border border-acb-200 p-4">
+      <div className="filter-panel block">
         <div className="flex items-center gap-2 mb-4">
           <Filter className="w-4 h-4 text-acb-500" />
           <span className="text-sm font-medium text-acb-700">Filtros</span>
@@ -372,7 +417,7 @@ export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingSho
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Season */}
           <div>
-            <label className="block text-xs font-medium text-acb-600 mb-1">Temporada</label>
+            <label className="field-label mb-1">Temporada</label>
             <select
               aria-label="Temporada"
               value={selectedSeason}
@@ -382,7 +427,7 @@ export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingSho
                 setSelectedTeam('')
                 updateUrl(s, metric)
               }}
-              className="w-full px-3 py-2 border border-acb-200 rounded-md text-sm bg-white"
+              className="form-control"
             >
               {availableSeasons.map(season => (
                 <option key={season} value={season}>{season - 1}-{String(season).slice(-2)}</option>
@@ -392,12 +437,12 @@ export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingSho
 
           {/* Team */}
           <div>
-            <label className="block text-xs font-medium text-acb-600 mb-1">Equipo</label>
+            <label className="field-label mb-1">Equipo</label>
             <select
               aria-label="Equipo"
               value={selectedTeam}
               onChange={(e) => setSelectedTeam(e.target.value)}
-              className="w-full px-3 py-2 border border-acb-200 rounded-md text-sm bg-white"
+              className="form-control"
             >
               <option value="">Toda la liga</option>
               {teamList.map(team => (
@@ -408,7 +453,7 @@ export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingSho
 
           {/* Min Attempts */}
           <div>
-            <label className="block text-xs font-medium text-acb-600 mb-1">
+            <label className="field-label mb-1">
               Intentos mínimos: {minAttempts}
             </label>
             <input
@@ -428,7 +473,7 @@ export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingSho
 
           {/* Metric */}
           <div>
-            <label className="block text-xs font-medium text-acb-600 mb-1">Ordenar por</label>
+            <label className="field-label mb-1">Ordenar por</label>
             <select
               aria-label="Métrica de líderes"
               value={metric}
@@ -437,9 +482,9 @@ export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingSho
                 setMetric(m)
                 updateUrl(selectedSeason, m)
               }}
-              className="w-full px-3 py-2 border border-acb-200 rounded-md text-sm bg-white"
+              className="form-control"
             >
-              <option value="points">Máximo Anotador (Puntos)</option>
+              <option value="points">Máximo anotador (puntos)</option>
               <option value="fgPct">Mejor TC% por zona</option>
             </select>
           </div>
@@ -452,21 +497,22 @@ export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingSho
         <div className="lg:col-span-2 bg-white rounded-lg border border-acb-200 p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-medium text-acb-900">
-              {selectedTeam || 'Toda la Liga'} — {metric === 'points' ? 'Máximo Anotador' : 'Mejor TC%'} por zona
+              {selectedTeam || 'Toda la liga'} — {metric === 'points' ? 'Máximo anotador' : 'Mejor TC%'} por zona
             </h3>
 
           </div>
 
-          <div className="relative" style={{ width: '100%', maxWidth: 750, aspectRatio: '750 / 705' }}>
-            <Court width={750} height={705} />
+          <div className="overflow-x-auto pb-1">
+            <div className="relative min-w-[660px]" style={{ width: '100%', maxWidth: 750, aspectRatio: '750 / 705' }}>
+              <Court width={750} height={705} />
 
-            <svg
-              viewBox="0 0 750 705"
-              className="absolute inset-0 w-full h-full"
-              role="img"
-              aria-label={`${selectedTeam || 'Toda la liga'}: ${metric === 'points' ? 'máximo anotador' : 'mejor porcentaje'} por zona`}
-              style={{ pointerEvents: 'none' }}
-            >
+              <svg
+                viewBox="0 0 750 705"
+                className="absolute inset-0 w-full h-full"
+                role="img"
+                aria-label={`${selectedTeam || 'Toda la liga'}: ${metric === 'points' ? 'máximo anotador' : 'mejor porcentaje'} por zona`}
+                style={{ pointerEvents: 'none' }}
+              >
               <defs>
                 {Object.entries(zonePolygons).map(([zoneName], zIdx) => {
                   const leader = zoneLeaders[zoneName]
@@ -513,8 +559,8 @@ export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingSho
                   )
                 }
 
-                const isSmall = zoneName.includes('Esquina') || zoneName === 'Zona (Restringida)'
-                const displayName = shortenForZone(getDisplayName(leader), isSmall ? 12 : 16)
+                const leaderNames = getLeaderNames(leader)
+                const displayName = leaderNames.compact
 
                 let statValue
                 let subLine
@@ -533,7 +579,12 @@ export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingSho
                 const photoCy = textBaseY - r - fonts.name - 2
 
                 return (
-                  <g key={zoneName}>
+                  <g
+                    key={zoneName}
+                    role="group"
+                    aria-label={`${leaderNames.full}, ${zoneName}, ${statValue}, ${leader.makes} de ${leader.attempts}`}
+                  >
+                    <title>{leaderNames.full} · {zoneName} · {statValue}</title>
                     <path d={pathD} fill={ZONE_FILL} stroke={ZONE_STROKE} strokeWidth="1" />
 
                     {/* Player photo as pattern-filled circle */}
@@ -578,8 +629,8 @@ export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingSho
                   </g>
                 )
               })}
-            </svg>
-
+              </svg>
+            </div>
           </div>
         </div>
 
@@ -590,6 +641,7 @@ export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingSho
             {ZONE_ORDER.map(zone => {
               const leader = zoneLeaders[zone]
               const shortZone = ZONE_SHORT[zone] || zone
+              const leaderNames = leader ? getLeaderNames(leader) : null
               return (
                 <div key={zone} className="flex items-center justify-between py-2 border-b border-acb-100 last:border-0">
                   <div className="flex items-center gap-2 min-w-0">
@@ -604,7 +656,13 @@ export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingSho
                       <div className="text-xs font-medium text-acb-500 truncate">{shortZone}</div>
                       {leader ? (
                         <>
-                          <div className="text-sm font-semibold text-acb-900 truncate">{getDisplayName(leader)}</div>
+                          <div
+                            className="text-sm font-semibold text-acb-900 truncate"
+                            title={leaderNames.full}
+                            aria-label={leaderNames.full}
+                          >
+                            {leaderNames.full}
+                          </div>
                           {!selectedTeam && (
                             <div className="text-xs text-acb-400 truncate">{leader.team}</div>
                           )}

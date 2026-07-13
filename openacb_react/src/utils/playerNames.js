@@ -15,6 +15,23 @@ export function getPlayerDisplayName(player, fallback = '-') {
     || fallback
 }
 
+export function getPlayerCompactName(player, fallback = '-') {
+  const fullName = getPlayerDisplayName(player, fallback)
+  const abbreviation = clean(player?.playerAbbrev)
+
+  if (abbreviation) {
+    const alreadyHasInitial = /^\p{L}\.(?:\s*\p{L}\.)*\s+/u.test(abbreviation)
+    if (alreadyHasInitial) return abbreviation
+
+    const initial = Array.from(fullName)[0]
+    return initial ? `${initial}. ${abbreviation}` : abbreviation
+  }
+
+  const parts = fullName.split(/\s+/).filter(Boolean)
+  if (parts.length < 2) return fullName
+  return `${Array.from(parts[0])[0]}. ${parts.slice(1).join(' ')}`
+}
+
 export function getPlayerSearchText(player) {
   if (!player) return ''
 

@@ -1,6 +1,8 @@
-import { useState, useMemo, useEffect, useRef } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Search, Filter, ArrowRight } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
+import PageHeader from '../components/PageHeader'
+import PlayerCombobox from '../components/PlayerCombobox'
 import { statTitle } from '../utils/statLabels'
 import { getPlayerDisplayName, getPlayerSearchText } from '../utils/playerNames'
 
@@ -11,17 +13,8 @@ function seasonLabel(s) {
 
 // selector de jugador
 function PlayerSelector({ players, onSelect, selectedLicenseId }) {
-  const [query, setQuery] = useState('')
-  const [open, setOpen] = useState(false)
   const [teamFilter, setTeamFilter] = useState('')
   const [seasonFilter, setSeasonFilter] = useState('')
-  const ref = useRef(null)
-
-  useEffect(() => {
-    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [])
 
   const availableSeasons = useMemo(() => {
     return [...new Set(players.map(p => p.season))].sort((a, b) => b - a)
@@ -33,7 +26,7 @@ function PlayerSelector({ players, onSelect, selectedLicenseId }) {
     return [...new Set(filtered.map(p => p.team))].sort()
   }, [players, seasonFilter])
 
-  const uniquePlayers = useMemo(() => {
+  const playerOptions = useMemo(() => {
     let filtered = players
     if (seasonFilter) filtered = filtered.filter(p => p.season === Number(seasonFilter))
     if (teamFilter) filtered = filtered.filter(p => p.team === teamFilter)
@@ -43,37 +36,27 @@ function PlayerSelector({ players, onSelect, selectedLicenseId }) {
       const key = p.licenseId
       if (!map.has(key)) {
         map.set(key, {
-          licenseId: key,
-          name: getPlayerDisplayName(p),
-          abbrev: p.playerAbbrev,
+          value: key,
+          label: getPlayerDisplayName(p),
           searchText: getPlayerSearchText(p),
-          team: p.team,
-          season: p.season,
+          meta: p.team,
         })
       }
     })
     return [...map.values()].sort((a, b) =>
-      (a.name || a.abbrev || '').localeCompare(b.name || b.abbrev || '', 'es')
+      a.label.localeCompare(b.label, 'es')
     )
   }, [players, teamFilter, seasonFilter])
 
-  const filtered = useMemo(() => {
-    if (!query.trim()) return uniquePlayers.slice(0, 50)
-    const q = query.toLocaleLowerCase('es').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    return uniquePlayers.filter(p =>
-      p.searchText.normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(q)
-    ).slice(0, 50)
-  }, [uniquePlayers, query])
-
   return (
-    <div className="flex flex-wrap items-end gap-3">
+    <div className="filter-panel">
       <div className="flex flex-col gap-1">
-        <label htmlFor="similarity-season-filter" className="text-xs text-acb-500 font-medium">Temporada</label>
+        <label htmlFor="similarity-season-filter" className="field-label">Temporada</label>
         <select
           id="similarity-season-filter"
           value={seasonFilter}
           onChange={(e) => { setSeasonFilter(e.target.value); setTeamFilter('') }}
-          className="px-3 py-2.5 border border-acb-200 rounded-lg text-sm bg-white"
+          className="form-control"
         >
           <option value="">Todas</option>
           {availableSeasons.map(s => (
@@ -83,65 +66,33 @@ function PlayerSelector({ players, onSelect, selectedLicenseId }) {
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="similarity-team-filter" className="text-xs text-acb-500 font-medium">Equipo</label>
-        <div className="flex items-center gap-1.5">
-          <Filter className="w-4 h-4 text-acb-400" />
-          <select
-            id="similarity-team-filter"
-            value={teamFilter}
-            onChange={(e) => setTeamFilter(e.target.value)}
-            className="px-3 py-2.5 border border-acb-200 rounded-lg text-sm bg-white"
-          >
-            <option value="">Todos</option>
-            {availableTeams.map(team => (
-              <option key={team} value={team}>{team}</option>
-            ))}
-          </select>
-        </div>
+        <label htmlFor="similarity-team-filter" className="field-label">Equipo</label>
+        <select
+          id="similarity-team-filter"
+          value={teamFilter}
+          onChange={(e) => setTeamFilter(e.target.value)}
+          className="form-control"
+        >
+          <option value="">Todos</option>
+          {availableTeams.map(team => (
+            <option key={team} value={team}>{team}</option>
+          ))}
+        </select>
       </div>
 
-      <div ref={ref} className="relative flex-1 min-w-[200px]">
-        <label htmlFor="similarity-player-search" className="text-xs text-acb-500 font-medium">Jugador</label>
-        <div className="relative mt-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-acb-400" />
-          <input
-            id="similarity-player-search"
-            type="text"
-            value={query}
-            onFocus={() => setOpen(true)}
-            onChange={e => { setQuery(e.target.value); setOpen(true) }}
-            placeholder="Buscar jugador..."
-            className="w-full pl-10 pr-4 py-2.5 border border-acb-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent-300 focus:border-accent-400"
-          />
-        </div>
-        {open && filtered.length > 0 && (
-          <ul className="absolute z-50 mt-1 w-full bg-white border border-acb-200 rounded-lg shadow-lg max-h-64 overflow-y-auto">
-            {filtered.map(p => (
-              <li key={p.licenseId}>
-                <button
-                  type="button"
-                  onClick={() => { onSelect(p.licenseId); setQuery(p.name || p.abbrev); setOpen(false) }}
-                  className={`w-full px-4 py-2 text-sm hover:bg-accent-50 flex items-center justify-between ${
-                    String(selectedLicenseId) === String(p.licenseId) ? 'bg-accent-50 font-medium' : ''
-                  }`}
-                >
-                  <span>{p.name || p.abbrev}</span>
-                  {(teamFilter || seasonFilter) && (
-                    <span className="text-xs text-acb-400 ml-2">{p.team}</span>
-                  )}
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+      <PlayerCombobox
+        id="similarity-player-search"
+        options={playerOptions}
+        value={selectedLicenseId}
+        onChange={option => onSelect(option.value)}
+      />
     </div>
   )
 }
 
 // ─── Score bar ────────────────────────────────────────────────
 function ScoreBar({ score }) {
-  const color = score >= 90 ? 'bg-positive-500' : score >= 80 ? 'bg-info-500' : score >= 70 ? 'bg-info-400' : 'bg-acb-300'
+  const color = score >= 90 ? 'bg-acb-700' : score >= 80 ? 'bg-acb-600' : score >= 70 ? 'bg-acb-500' : 'bg-acb-300'
   return (
     <div className="flex items-center gap-2">
       <div className="w-20 h-2 bg-acb-100 rounded-full overflow-hidden">
@@ -224,6 +175,15 @@ export default function PlayerSimilarity({ players, similarity }) {
   // compute distributions once across all qualified players
   const distributions = useMemo(() => computeStatDistributions(players), [players])
 
+  const pageScope = useMemo(() => {
+    const seasons = [...new Set(players.map(player => player.season))]
+      .filter(Boolean)
+      .sort((a, b) => a - b)
+    if (seasons.length === 0) return 'Liga Endesa'
+    if (seasons.length === 1) return `Liga Endesa · ${seasonLabel(seasons[0])}`
+    return `Liga Endesa · ${seasonLabel(seasons[0])} a ${seasonLabel(seasons.at(-1))}`
+  }, [players])
+
   // available seasons for the selected player
   const playerRecords = useMemo(() => {
     if (!selectedLicenseId) return []
@@ -238,11 +198,12 @@ export default function PlayerSimilarity({ players, similarity }) {
 
   // default to the latest season when the player changes
   useEffect(() => {
-    if (urlSeason) return // don't override if navigated with target season in URL
+    const selectedFromUrl = urlSeason && String(selectedLicenseId) === String(urlLicenseId)
+    if (selectedFromUrl) return
     if (availableSeasons.length > 0 && !availableSeasons.includes(selectedSeason)) {
       setSelectedSeason(availableSeasons[0])
     }
-  }, [selectedLicenseId, selectedSeason, availableSeasons, urlSeason])
+  }, [selectedLicenseId, selectedSeason, availableSeasons, urlLicenseId, urlSeason])
 
   // current player record
   const currentRecord = useMemo(() => {
@@ -288,13 +249,11 @@ export default function PlayerSimilarity({ players, similarity }) {
 
   return (
     <div className="app-page space-y-6">
-      {/* header */}
-      <div>
-        <h2 className="text-2xl font-semibold text-acb-900">Similitud de Jugadores</h2>
-        <p className="text-acb-500 text-sm mt-1">
-          Encuentra jugadores con perfiles estadísticos similares a lo largo de todas las temporadas
-        </p>
-      </div>
+      <PageHeader
+        title="Similitud de jugadores"
+        subtitle="Encuentra jugadores con perfiles estadísticos similares a lo largo de todas las temporadas"
+        scope={pageScope}
+      />
 
       {/* player selector */}
       <PlayerSelector
@@ -306,12 +265,12 @@ export default function PlayerSimilarity({ players, similarity }) {
       {/* season picker */}
       {selectedLicenseId && availableSeasons.length > 0 && (
         <div className="flex items-center gap-3">
-          <label htmlFor="similarity-result-season" className="text-sm font-medium text-acb-700">Temporada:</label>
+          <label htmlFor="similarity-result-season" className="field-label">Temporada</label>
           <select
             id="similarity-result-season"
             value={selectedSeason || ''}
             onChange={e => setSelectedSeason(Number(e.target.value))}
-            className="px-3 py-1.5 border border-acb-200 rounded-md text-sm bg-white"
+            className="form-control-compact"
           >
             {availableSeasons.map(s => (
               <option key={s} value={s}>{seasonLabel(s)}</option>

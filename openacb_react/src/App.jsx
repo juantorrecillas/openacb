@@ -335,32 +335,6 @@ function App() {
     }
   }, [clutchCache, loadingClutch])
 
-  if (missingResources.length > 0 && !loadError) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-acb-500" role="status" aria-live="polite">Cargando datos...</div>
-      </div>
-    )
-  }
-
-  if (loadError) {
-    return (
-      <main className="min-h-screen flex items-center justify-center bg-acb-50 px-4">
-        <div className="max-w-md rounded-lg border border-negative-200 bg-white p-6 text-center shadow-sm">
-          <h1 className="text-xl font-semibold text-acb-900">No se pueden mostrar los datos</h1>
-          <p className="mt-2 text-sm text-acb-600">{loadError}</p>
-          <button
-            type="button"
-            onClick={() => setRetryToken(token => token + 1)}
-            className="mt-5 rounded-lg bg-acb-900 px-4 py-2 text-sm font-medium text-white hover:bg-acb-800"
-          >
-            Reintentar
-          </button>
-        </div>
-      </main>
-    )
-  }
-
   const activeGroupId = getActiveGroup(activeTab)
 
   return (
@@ -540,7 +514,24 @@ function App() {
 
         {/* main content */}
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <Suspense fallback={<div className="py-16 text-center text-acb-500" role="status">Cargando herramienta...</div>}>
+          {missingResources.length > 0 && !loadError ? (
+            <div className="flex min-h-[40vh] items-center justify-center text-acb-500" role="status" aria-live="polite">
+              Cargando datos...
+            </div>
+          ) : loadError ? (
+            <div className="mx-auto my-16 max-w-md rounded-lg border border-negative-200 bg-white p-6 text-center shadow-sm" role="alert">
+              <h1 className="text-xl font-semibold text-acb-900">No se pueden mostrar los datos</h1>
+              <p className="mt-2 text-sm text-acb-600">{loadError}</p>
+              <button
+                type="button"
+                onClick={() => setRetryToken(token => token + 1)}
+                className="mt-5 rounded-lg bg-acb-900 px-4 py-2 text-sm font-medium text-white hover:bg-acb-800"
+              >
+                Reintentar
+              </button>
+            </div>
+          ) : (
+            <Suspense fallback={<div className="py-16 text-center text-acb-500" role="status">Cargando herramienta...</div>}>
             <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/equipos" element={<TeamStats teams={data.teamsByStage} teamLogos={data.teamLogos} />} />
@@ -731,7 +722,8 @@ function App() {
             {/* redirect unknown routes to home */}
             <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
-          </Suspense>
+            </Suspense>
+          )}
         </main>
 
         {/* footer */}

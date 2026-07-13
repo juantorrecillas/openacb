@@ -1,6 +1,8 @@
-import { useState, useMemo, useEffect, useRef } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Search, Loader2, Filter, GitCompareArrows, Flame, Download } from 'lucide-react'
+import { Loader2, GitCompareArrows, Flame, Download } from 'lucide-react'
+import PageHeader from '../components/PageHeader'
+import PlayerCombobox from '../components/PlayerCombobox'
 import { getPlayerPhoto } from '../utils/playerPhotos'
 import { downloadTableAsCsv } from '../utils/csvDownload'
 import { getPlayerDisplayName, getPlayerSearchText } from '../utils/playerNames'
@@ -9,10 +11,10 @@ import { getPlayerDisplayName, getPlayerSearchText } from '../utils/playerNames'
 // ─── Helpers ───────────────────────────────────────────────────
 function pctBadge(p) {
   if (p == null || isNaN(p)) return 'bg-acb-100 text-acb-600'
-  if (p >= 75) return 'bg-positive-100 text-positive-700'
-  if (p >= 50) return 'bg-info-100 text-info-700'
-  if (p >= 25) return 'bg-info-100 text-info-600'
-  return 'bg-negative-100 text-negative-700'
+  if (p >= 75) return 'bg-acb-700 text-white'
+  if (p >= 50) return 'bg-acb-300 text-acb-900'
+  if (p >= 25) return 'bg-acb-200 text-acb-800'
+  return 'bg-acb-100 text-acb-700'
 }
 
 function fmt(v, key) {
@@ -52,22 +54,11 @@ function ageAtSeasonStart(birthDate, season) {
   return age
 }
 
-// ─── Player Selector (search with autocomplete + team/season filters) ────────────────
+// ─── player selector ───────────────────────────────────────────
 function PlayerSelector({ players, onSelect, selectedLicenseId }) {
-  const [query, setQuery] = useState('')
-  const [open, setOpen] = useState(false)
   const [teamFilter, setTeamFilter] = useState('')
   const [seasonFilter, setSeasonFilter] = useState('')
-  const ref = useRef(null)
 
-  // Close on outside click
-  useEffect(() => {
-    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [])
-
-  // Available seasons and teams for filters
   const availableSeasons = useMemo(() => {
     return [...new Set(players.map(p => p.season))].sort((a, b) => b - a)
   }, [players])
@@ -78,8 +69,7 @@ function PlayerSelector({ players, onSelect, selectedLicenseId }) {
     return [...new Set(filtered.map(p => p.team))].sort()
   }, [players, seasonFilter])
 
-  const uniquePlayers = useMemo(() => {
-    // First apply team/season filters to narrow the player pool
+  const playerOptions = useMemo(() => {
     let filtered = players
     if (seasonFilter) filtered = filtered.filter(p => p.season === Number(seasonFilter))
     if (teamFilter) filtered = filtered.filter(p => p.team === teamFilter)
@@ -89,38 +79,27 @@ function PlayerSelector({ players, onSelect, selectedLicenseId }) {
       const key = p.licenseId
       if (!map.has(key)) {
         map.set(key, {
-          licenseId: key,
-          name: getPlayerDisplayName(p),
-          abbrev: p.playerAbbrev,
+          value: key,
+          label: getPlayerDisplayName(p),
           searchText: getPlayerSearchText(p),
-          team: p.team,
-          season: p.season,
+          meta: p.team,
         })
       }
     })
     return [...map.values()].sort((a, b) =>
-      (a.name || a.abbrev || '').localeCompare(b.name || b.abbrev || '', 'es')
+      a.label.localeCompare(b.label, 'es')
     )
   }, [players, teamFilter, seasonFilter])
 
-  const filtered = useMemo(() => {
-    if (!query.trim()) return uniquePlayers.slice(0, 50)
-    const q = query.toLowerCase()
-    return uniquePlayers.filter(p =>
-      p.searchText.includes(q)
-    ).slice(0, 50)
-  }, [uniquePlayers, query])
-
   return (
-    <div className="flex flex-wrap items-end gap-3">
-      {/* Season Filter */}
+    <div className="filter-panel">
       <div className="flex flex-col gap-1">
-        <label className="text-xs text-acb-500 font-medium">Temporada</label>
+        <label htmlFor="profile-season-filter" className="field-label">Temporada</label>
         <select
-          aria-label="Temporada"
+          id="profile-season-filter"
           value={seasonFilter}
           onChange={(e) => { setSeasonFilter(e.target.value); setTeamFilter('') }}
-          className="px-3 py-2.5 border border-acb-200 rounded-lg text-sm bg-white"
+          className="form-control"
         >
           <option value="">Todas</option>
           {availableSeasons.map(s => (
@@ -129,59 +108,27 @@ function PlayerSelector({ players, onSelect, selectedLicenseId }) {
         </select>
       </div>
 
-      {/* Team Filter */}
       <div className="flex flex-col gap-1">
-        <label className="text-xs text-acb-500 font-medium">Equipo</label>
-        <div className="flex items-center gap-1.5">
-          <Filter className="w-4 h-4 text-acb-400" />
-          <select
-            aria-label="Equipo"
-            value={teamFilter}
-            onChange={(e) => setTeamFilter(e.target.value)}
-            className="px-3 py-2.5 border border-acb-200 rounded-lg text-sm bg-white"
-          >
-            <option value="">Todos</option>
-            {availableTeams.map(team => (
-              <option key={team} value={team}>{team}</option>
-            ))}
-          </select>
-        </div>
+        <label htmlFor="profile-team-filter" className="field-label">Equipo</label>
+        <select
+          id="profile-team-filter"
+          value={teamFilter}
+          onChange={(e) => setTeamFilter(e.target.value)}
+          className="form-control"
+        >
+          <option value="">Todos</option>
+          {availableTeams.map(team => (
+            <option key={team} value={team}>{team}</option>
+          ))}
+        </select>
       </div>
 
-      {/* Player Search */}
-      <div ref={ref} className="relative flex-1 min-w-[200px]">
-        <label className="text-xs text-acb-500 font-medium">Jugador</label>
-        <div className="relative mt-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-acb-400" />
-          <input
-            aria-label="Buscar jugador"
-            type="text"
-            value={query}
-            onFocus={() => setOpen(true)}
-            onChange={e => { setQuery(e.target.value); setOpen(true) }}
-            placeholder="Buscar jugador..."
-            className="w-full pl-10 pr-4 py-2.5 border border-acb-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent-300 focus:border-accent-400"
-          />
-        </div>
-        {open && filtered.length > 0 && (
-          <ul className="absolute z-50 mt-1 w-full bg-white border border-acb-200 rounded-lg shadow-lg max-h-64 overflow-y-auto">
-            {filtered.map(p => (
-              <li
-                key={p.licenseId}
-                onClick={() => { onSelect(p.licenseId); setQuery(p.name || p.abbrev); setOpen(false) }}
-                className={`px-4 py-2 text-sm cursor-pointer hover:bg-accent-50 flex items-center justify-between ${
-                  String(selectedLicenseId) === String(p.licenseId) ? 'bg-accent-50 font-medium' : ''
-                }`}
-              >
-                <span>{p.name || p.abbrev}</span>
-                {(teamFilter || seasonFilter) && (
-                  <span className="text-xs text-acb-400 ml-2">{p.team}</span>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+      <PlayerCombobox
+        id="profile-player-search"
+        options={playerOptions}
+        value={selectedLicenseId}
+        onChange={option => onSelect(option.value)}
+      />
     </div>
   )
 }
@@ -197,7 +144,7 @@ function SeasonPicker({ records, selected, onChange }) {
       id="player-profile-record"
       value={selected ?? ''}
       onChange={e => onChange(records.find(record => playerRecordKey(record) === e.target.value))}
-      className="px-3 py-1.5 border border-acb-200 rounded-md text-sm bg-white"
+      className="form-control-compact"
     >
       {records.map(record => (
         <option key={playerRecordKey(record)} value={playerRecordKey(record)}>
@@ -413,10 +360,10 @@ function PctBar({ label, value, pctKey, posPctKey, player, fmtKey, usePos }) {
   const pct = activePctKey ? player[activePctKey] : null
 
   const barColor = pct == null ? 'bg-acb-200'
-    : pct >= 75 ? 'bg-positive-500'
-    : pct >= 50 ? 'bg-info-500'
-    : pct >= 25 ? 'bg-info-400'
-    : 'bg-negative-400'
+    : pct >= 75 ? 'bg-acb-700'
+    : pct >= 50 ? 'bg-acb-500'
+    : pct >= 25 ? 'bg-acb-300'
+    : 'bg-acb-200'
 
   return (
     <div className="flex items-center gap-2 py-1.5">
@@ -503,14 +450,18 @@ function PercentileProfile({ player }) {
           <p className="text-xs text-acb-500">{player.team} - {seasonLabel(player.season)} - {player.games} partidos</p>
         </div>
         {hasPosPct && (
-          <div className="flex rounded-md border border-acb-200 text-xs overflow-hidden shrink-0">
+          <div className="segmented-control shrink-0">
             <button
+              type="button"
               onClick={() => setUsePos(false)}
-              className={`px-3 py-1.5 font-medium transition-colors ${!usePos ? 'bg-acb-800 text-white' : 'bg-white text-acb-600 hover:bg-acb-50'}`}
+              aria-pressed={!usePos}
+              className="segmented-option"
             >Liga</button>
             <button
+              type="button"
               onClick={() => setUsePos(true)}
-              className={`px-3 py-1.5 font-medium transition-colors ${usePos ? 'bg-acb-800 text-white' : 'bg-white text-acb-600 hover:bg-acb-50'}`}
+              aria-pressed={usePos}
+              className="segmented-option"
             >Posición</button>
           </div>
         )}
@@ -528,10 +479,10 @@ function PercentileProfile({ player }) {
       {/* Legend */}
       <div className="mt-4 pt-3 border-t border-acb-100 flex flex-wrap gap-3 text-xs text-acb-500">
         <span>Percentil:</span>
-        <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-positive-500" /> 75+</span>
-        <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-info-500" /> 50-74</span>
-        <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-info-400" /> 25-49</span>
-        <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-negative-400" /> 0-24</span>
+        <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-acb-700" /> 75+</span>
+        <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-acb-500" /> 50-74</span>
+        <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-acb-300" /> 25-49</span>
+        <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-acb-200" /> 0-24</span>
       </div>
     </div>
   )
@@ -1003,7 +954,7 @@ function RadarArchetypeCard({ player, bio }) {
         {/* Archetype */}
         <div className="md:w-64 shrink-0 flex flex-col items-center md:items-start md:pt-10">
           <span className="text-xs font-semibold text-acb-500 uppercase tracking-wider mb-2">Arquetipo</span>
-          <div className={`rounded-lg border px-4 py-3 text-center md:text-left ${archetype.color}`}>
+          <div className="rounded-lg border border-acb-200 bg-acb-50 px-4 py-3 text-center text-acb-700 md:text-left">
             <div className="text-lg font-bold">{archetype.name}</div>
             <div className="text-xs mt-1 opacity-80">{archetype.desc}</div>
           </div>
@@ -1061,7 +1012,7 @@ function ShootingStatsCard({ player }) {
     } else {
       const cols = [
         { key: 'zone', label: 'Zona' },
-        { key: 'diff', label: 'Δ equipo' },
+        { key: 'diff', label: 'Diff equipo (pp)' },
         { key: 'fgpct', label: 'TC% riv.' },
         { key: 'fga', label: 'Tiros riv.' },
       ]
@@ -1144,7 +1095,7 @@ function ShootingStatsCard({ player }) {
             <thead>
               <tr className="border-b border-acb-200">
                 <th className="px-3 py-2 text-left text-xs font-semibold text-acb-600 uppercase whitespace-nowrap">Zona</th>
-                <th className="px-3 py-2 text-right text-xs font-semibold text-acb-600 uppercase whitespace-nowrap" title="Diferencia respecto al equipo">Δ equipo</th>
+                <th className="px-3 py-2 text-right text-xs font-semibold text-acb-600 uppercase whitespace-nowrap" title="Diferencia en puntos porcentuales respecto al equipo">Diff equipo (pp)</th>
                 <th className="px-3 py-2 text-right text-xs font-semibold text-acb-600 uppercase whitespace-nowrap" title="Porcentaje de tiro permitido al rival">TC% riv.</th>
                 <th className="px-3 py-2 text-right text-xs font-semibold text-acb-600 uppercase whitespace-nowrap">Tiros riv.</th>
               </tr>
@@ -1158,7 +1109,7 @@ function ShootingStatsCard({ player }) {
                   <tr key={z.key} className="hover:bg-acb-50">
                     <td className="px-3 py-2 text-acb-700 whitespace-nowrap">{z.label}</td>
                     <td className={`px-3 py-2 text-right font-mono font-medium whitespace-nowrap ${diff == null ? 'text-acb-400' : diff < 0 ? 'text-positive' : diff > 0 ? 'text-negative' : 'text-acb-700'}`}>
-                      {diff != null ? `${diff > 0 ? '+' : ''}${diff.toFixed(1)}` : '-'}
+                      {diff != null ? `${diff > 0 ? '+' : ''}${diff.toFixed(1)} pp` : '-'}
                     </td>
                     <td className="px-3 py-2 text-right font-mono text-acb-900 whitespace-nowrap">{fgpct != null ? `${fgpct.toFixed(1)}%` : '-'}</td>
                     <td className="px-3 py-2 text-right font-mono text-acb-500 whitespace-nowrap">{fga ?? '-'}</td>
@@ -1224,10 +1175,10 @@ function OnOffCard({ records, loadLineupsForSeason, lineupsCache, loadingLineups
       { key: 'team', label: 'Equipo' },
       { key: 'onORtg', label: 'On ORtg' },
       { key: 'offORtg', label: 'Off ORtg' },
-      { key: 'ortgD', label: 'Δ ORtg' },
+      { key: 'ortgD', label: 'Diff ORtg' },
       { key: 'onDRtg', label: 'On DRtg' },
       { key: 'offDRtg', label: 'Off DRtg' },
-      { key: 'drtgD', label: 'Δ DRtg' },
+      { key: 'drtgD', label: 'Diff DRtg' },
       { key: 'onNetRtg', label: 'On Neto' },
       { key: 'offNetRtg', label: 'Off Neto' },
       { key: 'netDiff', label: 'Impacto' },
@@ -1297,10 +1248,10 @@ function OnOffCard({ records, loadLineupsForSeason, lineupsCache, loadingLineups
               <tr className="text-xs font-semibold text-acb-500 uppercase">
                 <th className="px-2 py-1.5 text-right whitespace-nowrap border-l border-acb-100">On</th>
                 <th className="px-2 py-1.5 text-right whitespace-nowrap">Off</th>
-                <th className="px-2 py-1.5 text-right whitespace-nowrap">Δ</th>
+                <th className="px-2 py-1.5 text-right whitespace-nowrap">Diff</th>
                 <th className="px-2 py-1.5 text-right whitespace-nowrap border-l border-acb-100">On</th>
                 <th className="px-2 py-1.5 text-right whitespace-nowrap">Off</th>
-                <th className="px-2 py-1.5 text-right whitespace-nowrap">Δ</th>
+                <th className="px-2 py-1.5 text-right whitespace-nowrap">Diff</th>
                 <th className="px-2 py-1.5 text-right whitespace-nowrap border-l border-acb-100">On</th>
                 <th className="px-2 py-1.5 text-right whitespace-nowrap">Off</th>
               </tr>
@@ -1330,7 +1281,7 @@ function OnOffCard({ records, loadLineupsForSeason, lineupsCache, loadingLineups
                       {r.offNetRtg != null ? `${r.offNetRtg > 0 ? '+' : ''}${r.offNetRtg.toFixed(1)}` : '-'}
                     </td>
                     <td className={`px-2 py-2 text-right font-mono whitespace-nowrap border-l border-acb-100 ${diffColor(r.netDiff)}`}>
-                      {r.netDiff != null ? `${r.netDiff > 0 ? '+' : ''}${r.netDiff.toFixed(1)}` : '-'}
+                      {r.netDiff != null ? `${r.netDiff > 0 ? '+' : ''}${r.netDiff.toFixed(1)}` : '—'}
                     </td>
                     <td className="px-2 py-2 text-right font-mono text-acb-500 whitespace-nowrap">{r.onMin?.toFixed(0) ?? '-'}</td>
                   </tr>
@@ -1435,7 +1386,7 @@ function ClutchCard({ records, loadClutchForSeason, clutchCache, loadingClutch }
     <div className="bg-white rounded-lg border border-acb-200 overflow-hidden">
       <div className="px-5 py-3 border-b border-acb-100 flex items-center gap-2 flex-wrap">
         <Flame className="w-4 h-4 text-orange-500" />
-        <h3 className="font-semibold text-acb-900 text-sm">Estadísticas Clutch</h3>
+        <h3 className="font-semibold text-acb-900 text-sm">Estadísticas clutch</h3>
         <span className="text-xs text-acb-400 ml-1">Últimos 5 min con diferencia de ≤ 5 pts</span>
         {clutchRows.length > 0 && (
           <button
@@ -1519,6 +1470,15 @@ export default function PlayerProfile({ players, allPlayers = players, playerPho
     return players.filter(p => (p.competitionStage || 'regular') === selectedStage)
   }, [players, selectedStage])
 
+  const pageScope = useMemo(() => {
+    const seasons = [...new Set(players.map(player => player.season))]
+      .filter(Boolean)
+      .sort((a, b) => a - b)
+    if (seasons.length === 0) return 'Liga Endesa'
+    if (seasons.length === 1) return `Liga Endesa · ${seasonLabel(seasons[0])}`
+    return `Liga Endesa · ${seasonLabel(seasons[0])} a ${seasonLabel(seasons.at(-1))}`
+  }, [players])
+
   // All records for the selected player, newest first
   const playerRecords = useMemo(() => {
     if (selectedLicenseId == null) return []
@@ -1572,15 +1532,12 @@ export default function PlayerProfile({ players, allPlayers = players, playerPho
 
   return (
     <div className="app-page space-y-6">
-      {/* Header */}
-      <div>
-        <h2 className="text-2xl font-semibold text-acb-900">Perfil de Jugador</h2>
-        <p className="text-acb-500 text-sm mt-1">
-          Selecciona un jugador para ver sus estadísticas históricas, estilo de juego y arquetipo
-        </p>
-      </div>
+      <PageHeader
+        title="Perfil de jugador"
+        subtitle="Selecciona un jugador para ver sus estadísticas históricas, estilo de juego y arquetipo"
+        scope={pageScope}
+      />
 
-      {/* Player Selector */}
       <PlayerSelector
         players={players}
         onSelect={(id) => navigate(`/jugador/${id}`, { replace: true })}
@@ -1598,21 +1555,21 @@ export default function PlayerProfile({ players, allPlayers = players, playerPho
           />
 
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs text-acb-500 font-medium">Estadísticas:</span>
-            <div className="flex rounded-md border border-acb-200 text-xs overflow-hidden">
+            <span className="field-label">Estadísticas</span>
+            <div className="segmented-control">
               <button
+                type="button"
                 onClick={() => setSelectedStage('regular')}
-                className={`px-3 py-1.5 font-medium transition-colors ${
-                  selectedStage === 'regular' ? 'bg-acb-800 text-white' : 'bg-white text-acb-600 hover:bg-acb-50'
-                }`}
+                aria-pressed={selectedStage === 'regular'}
+                className="segmented-option"
               >
                 Temporada regular
               </button>
               <button
+                type="button"
                 onClick={() => setSelectedStage('playoffs')}
-                className={`px-3 py-1.5 font-medium transition-colors ${
-                  selectedStage === 'playoffs' ? 'bg-acb-800 text-white' : 'bg-white text-acb-600 hover:bg-acb-50'
-                }`}
+                aria-pressed={selectedStage === 'playoffs'}
+                className="segmented-option"
               >
                 Playoffs
               </button>
@@ -1624,6 +1581,7 @@ export default function PlayerProfile({ players, allPlayers = players, playerPho
           {/* Find Similar Players button */}
           {selectedSeason && selectedStage === 'regular' && (
             <button
+              type="button"
               onClick={() => navigate(`/similitud/${selectedLicenseId}/${selectedSeason}`)}
               className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-accent-700 bg-accent-50 border border-accent-200 rounded-lg hover:bg-accent-100 transition-colors"
             >
@@ -1639,7 +1597,7 @@ export default function PlayerProfile({ players, allPlayers = players, playerPho
           {/* Season picker for detail cards */}
           {playerRecords.length > 0 && (
             <div className="flex items-center gap-3">
-              <label htmlFor="player-profile-record" className="text-sm font-medium text-acb-700">Temporada y equipo:</label>
+              <label htmlFor="player-profile-record" className="field-label">Temporada y equipo</label>
               <SeasonPicker
                 records={playerRecords}
                 selected={seasonRecord ? playerRecordKey(seasonRecord) : ''}

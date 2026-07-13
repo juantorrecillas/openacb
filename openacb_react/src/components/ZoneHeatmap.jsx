@@ -241,7 +241,7 @@ function relativeTurboColor(normalizedValue, opacity = 0.7) {
   return `rgba(${r}, ${g}, ${b}, ${opacity})`;
 }
 
-export default function ZoneHeatmap({ shots, leagueShots = [], metric = 'efficiency', width = 750, height = 705, minEfficiencyAttempts = 10 }) {
+export default function ZoneHeatmap({ shots, leagueShots = [], metric = 'efficiency', width = 750, height = 705, minEfficiencyAttempts = 10, higherIsBetter = true }) {
   // Get zone polygon definitions
   const zonePolygons = useMemo(() => getZonePolygons(), []);
 
@@ -325,17 +325,18 @@ export default function ZoneHeatmap({ shots, leagueShots = [], metric = 'efficie
     return { x: svgX, y: svgY };
   };
 
-  // Get color based on FG% difference from league average for that zone
-  const getColor = (fgPct, leagueAvgForZone, opacity = 0.7) => {
-    const diff = fgPct - leagueAvgForZone;
+  const getEfficiencyColor = (performanceDiff) => {
+    if (performanceDiff > 0) return 'var(--color-positive)';
+    if (performanceDiff < 0) return 'var(--color-negative)';
+    return '#ffffff';
+  };
 
-    // Color scale: red (bad) -> white (average) -> green (good)
-    if (diff > 10) return `rgba(34, 197, 94, ${opacity})`; // Strong green
-    if (diff > 5) return `rgba(134, 239, 172, ${opacity})`; // Light green
-    if (diff > 0) return `rgba(220, 252, 231, ${opacity})`; // Very light green
-    if (diff > -5) return `rgba(254, 226, 226, ${opacity})`; // Very light red
-    if (diff > -10) return `rgba(252, 165, 165, ${opacity})`; // Light red
-    return `rgba(220, 38, 38, ${opacity})`; // Strong red
+  const getEfficiencyOpacity = (performanceDiff) => {
+    const difference = Math.abs(performanceDiff);
+    if (difference > 10) return 0.72;
+    if (difference > 5) return 0.5;
+    if (difference > 0) return 0.26;
+    return 1;
   };
 
   // Fixed font size for all labels
@@ -374,18 +375,20 @@ export default function ZoneHeatmap({ shots, leagueShots = [], metric = 'efficie
   }
 
   return (
-    <div className="relative" style={{ width: '100%', maxWidth: width, aspectRatio: `${width} / ${height}` }}>
-      <Court width={width} height={height} />
+    <div className="w-full" style={{ maxWidth: width }}>
+      <div className="overflow-x-auto pb-1">
+        <div className="relative min-w-[560px]" style={{ aspectRatio: `${width} / ${height}` }}>
+          <Court width={width} height={height} />
 
-      <svg
-        viewBox={`0 0 ${width} ${height}`}
-        className="absolute inset-0 w-full h-full"
-        role="img"
-        aria-label={isFrequencyMetric ? 'Frecuencia de tiro por zona' : 'Eficiencia de tiro por zona'}
-        style={{ pointerEvents: 'none' }}
-      >
-        {/* Draw zone polygons */}
-        {Object.entries(zonePolygons).map(([zoneName, points]) => {
+          <svg
+            viewBox={`0 0 ${width} ${height}`}
+            className="absolute inset-0 w-full h-full"
+            role="img"
+            aria-label={isFrequencyMetric ? 'Frecuencia de tiro por zona' : 'Eficiencia de tiro por zona'}
+            style={{ pointerEvents: 'none' }}
+          >
+            {/* Draw zone polygons */}
+            {Object.entries(zonePolygons).map(([zoneName, points]) => {
           const stats = zoneStats[zoneName] || { attempts: 0, makes: 0, fgPct: 0, freqPct: 0, pps: 0 };
           if (!isFrequencyMetric && stats.attempts === 0) return null;
 
@@ -394,13 +397,19 @@ export default function ZoneHeatmap({ shots, leagueShots = [], metric = 'efficie
           const fgPctDiff = stats.fgPct - leagueAvgForZone.fgPct;
           const freqPctDiff = stats.freqPct - leagueAvgForZone.freqPct;
           const metricValue = isFrequencyMetric ? stats.freqPct : stats.fgPct;
-          const metricDiff = isFrequencyMetric ? freqPctDiff : fgPctDiff;
+          const displayedDiff = isFrequencyMetric ? freqPctDiff : fgPctDiff;
+          const performanceDiff = higherIsBetter ? fgPctDiff : -fgPctDiff;
           const hasEfficiencySample = stats.attempts >= minEfficiencyAttempts;
           const color = isFrequencyMetric
             ? relativeTurboColor(freqPctDiff / maxFrequencyDiff, 0.66)
             : hasEfficiencySample
-              ? getColor(stats.fgPct, leagueAvgForZone.fgPct, 0.6)
-              : 'rgba(148, 163, 184, 0.25)';
+              ? getEfficiencyColor(performanceDiff)
+              : '#94a3b8';
+          const colorOpacity = isFrequencyMetric
+            ? 1
+            : hasEfficiencySample
+              ? getEfficiencyOpacity(performanceDiff)
+              : 0.25;
 
           // Use custom position if available, otherwise use polygon centroid
           const customPos = CUSTOM_LABEL_POSITIONS[zoneName];
@@ -413,6 +422,7 @@ export default function ZoneHeatmap({ shots, leagueShots = [], metric = 'efficie
               <path
                 d={pathD}
                 fill={color}
+                fillOpacity={colorOpacity}
                 stroke="#333"
                 strokeWidth="1"
                 strokeOpacity="0.5"
@@ -444,51 +454,56 @@ export default function ZoneHeatmap({ shots, leagueShots = [], metric = 'efficie
               </text>
 
               {/* Difference from league zone average */}
-              {(isFrequencyMetric || hasEfficiencySample) && Math.abs(metricDiff) > (isFrequencyMetric ? 1 : 2) && (
+              {(isFrequencyMetric || hasEfficiencySample) && Math.abs(displayedDiff) > (isFrequencyMetric ? 1 : 2) && (
                 <text
                   x={labelX}
                   y={labelY + 22}
                   textAnchor="middle"
                   fontSize={fontSize * 0.85}
-                  fill={metricDiff > 0 ? '#7c2d12' : '#1e3a8a'}
+                  fill="#334e68"
                   fontFamily="JetBrains Mono, Consolas, monospace"
                   fontWeight="bold"
                 >
-                  {metricDiff > 0 ? '+' : ''}{metricDiff.toFixed(1)}%
+                  {displayedDiff > 0 ? '+' : ''}{displayedDiff.toFixed(1)} pp
                 </text>
               )}
             </g>
           );
-        })}
-      </svg>
+            })}
+          </svg>
+        </div>
+      </div>
 
       {/* Legend */}
-      <div className="absolute bottom-2 left-2 right-2 bg-white/95 p-2 rounded border border-acb-300 text-xs">
+      <div className="mt-2 rounded border border-acb-200 bg-white p-2 text-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-medium text-acb-700">
               {isFrequencyMetric ? 'Distribución por zonas de tiro' : 'Eficiencia por zonas de tiro'}
             </span>
-            <span className="text-acb-500">
-              (vs. media de la liga)
-            </span>
-            {!isFrequencyMetric && <span className="text-acb-500">Color desde {minEfficiencyAttempts} intentos</span>}
+            <span className="text-acb-500">vs. media de la liga</span>
           </div>
           <div className="flex items-center gap-3 text-xs flex-wrap">
             <div className="flex items-center gap-1">
               <div
                 className="w-3 h-3 rounded"
-                style={{ backgroundColor: isFrequencyMetric ? relativeTurboColor(1, 0.9) : 'rgba(34, 197, 94, 0.7)' }}
-              ></div>
-              <span>Por encima de la media</span>
+                style={{ backgroundColor: isFrequencyMetric ? relativeTurboColor(1, 0.9) : 'var(--color-positive)' }}
+              />
+              <span>{isFrequencyMetric ? 'Más frecuente' : 'Mejor que la media'}</span>
             </div>
             <div className="flex items-center gap-1">
               <div
                 className="w-3 h-3 rounded"
-                style={{ backgroundColor: isFrequencyMetric ? relativeTurboColor(-1, 0.9) : 'rgba(220, 38, 38, 0.7)' }}
-              ></div>
-              <span>Por debajo de la media</span>
+                style={{ backgroundColor: isFrequencyMetric ? relativeTurboColor(-1, 0.9) : 'var(--color-negative)' }}
+              />
+              <span>{isFrequencyMetric ? 'Menos frecuente' : 'Peor que la media'}</span>
             </div>
+            {!isFrequencyMetric && (
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded bg-slate-400/25" />
+                <span>Menos de {minEfficiencyAttempts} intentos</span>
+              </div>
+            )}
           </div>
         </div>
       </div>

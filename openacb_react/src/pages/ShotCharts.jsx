@@ -4,17 +4,17 @@ import { getPlayerDisplayName } from '../utils/playerNames'
 import Court, { ShotMarker } from '../components/Court'
 import ZoneHeatmap from '../components/ZoneHeatmap'
 import DensityHeatmap from '../components/DensityHeatmap'
+import PageHeader from '../components/PageHeader'
+import PlayerCombobox from '../components/PlayerCombobox'
 import { Filter, Circle, X } from 'lucide-react'
 
 
 // Note: Zone calculation functions removed since we now use pre-calculated
 // zone and zoned fields from the CSV data
 
-// get the canonical medium-length player name
-// Uses pre-calculated playerAbbrev field from data (e.g., "J. Fernández")
-const getPlayerName = (players, playerId) => {
-  const player = players.find(p => String(p.licenseId) === String(playerId))
-  return player ? getPlayerDisplayName(player) : null
+const getPlayerRecord = (players, playerId, season) => {
+  return players.find(p => String(p.licenseId) === String(playerId) && Number(p.season) === Number(season))
+    || players.find(p => String(p.licenseId) === String(playerId))
 }
 
 const normalizeSearch = (value) => String(value || '')
@@ -35,7 +35,6 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
   const [filterType, setFilterType] = useState('team') // 'team', 'player' - default to 'team' to start empty
   const [selectedTeam, setSelectedTeam] = useState('')
   const [selectedPlayer, setSelectedPlayer] = useState('')
-  const [playerSearch, setPlayerSearch] = useState('') // Search input for players
   const [shotFilter, setShotFilter] = useState('all') // 'all', 'made', 'missed'
   const [displayMode, setDisplayMode] = useState('shots') // 'shots', 'zones', 'heatmap'
   const [heatmapMode, setHeatmapMode] = useState('frequency') // 'frequency', 'density'
@@ -57,9 +56,22 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
   const isLoadingSeasonShots = loadingShots[selectedSeason] || false
 
   const teamList = useMemo(() =>
-    [...new Set(seasonFilteredShots.map(s => s.team))].sort(),
+    [...new Set(seasonFilteredShots.map(s => s.team))].sort((a, b) => a.localeCompare(b, 'es')),
     [seasonFilteredShots]
   )
+
+  useEffect(() => {
+    if (filterType === 'team') {
+      const nextTeam = selectedTeam && teamList.includes(selectedTeam) ? selectedTeam : teamList[0] || ''
+      if (nextTeam !== selectedTeam) {
+        setSelectedTeam(nextTeam)
+        setSelectedPlayer('')
+      }
+      return
+    }
+
+    if (selectedTeam && !teamList.includes(selectedTeam)) setSelectedTeam('')
+  }, [filterType, selectedTeam, teamList])
   
   const playerList = useMemo(() => {
     // Build list of unique players using playerId as the unique key
@@ -101,8 +113,8 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
   // Return array of {id, name, displayName} objects sorted by surname
     return Array.from(playerMap.entries())
       .map(([id, name]) => {
-        // Get abbreviated name from players data if available
-        const displayName = getPlayerName(players, id) || name
+        const record = getPlayerRecord(players, id, selectedSeason)
+        const displayName = record ? getPlayerDisplayName(record, name) : name
         return { id, name, displayName }
       })
       .sort((a, b) => {
@@ -110,17 +122,18 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
         const bSortKey = getSortKey(b.displayName)
         return aSortKey.localeCompare(bSortKey)
       })
-  }, [seasonFilteredShots, filterType, selectedTeam, players])
+  }, [seasonFilteredShots, filterType, selectedTeam, players, selectedSeason])
 
-  // Filtered player list based on search input (search both full name and abbreviated)
-  const filteredPlayerList = useMemo(() => {
-    if (!playerSearch) return playerList
-    const search = normalizeSearch(playerSearch)
-    return playerList.filter(p =>
-      normalizeSearch(p.name).includes(search) ||
-      normalizeSearch(p.displayName).includes(search)
-    )
-  }, [playerList, playerSearch])
+  useEffect(() => {
+    if (selectedPlayer && !playerList.some(player => player.id === selectedPlayer)) setSelectedPlayer('')
+  }, [playerList, selectedPlayer])
+
+  const playerOptions = useMemo(() => playerList.map(player => ({
+    value: player.id,
+    label: player.displayName,
+    searchText: `${normalizeSearch(player.name)} ${normalizeSearch(player.displayName)}`,
+    meta: selectedTeam || 'Todos los equipos',
+  })), [playerList, selectedTeam])
 
   // conserva todos los intentos de la selección para los denominadores
   const analysisShots = useMemo(() => {
@@ -136,6 +149,7 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
       if (filterType === 'player' && selectedPlayer && String(shot.playerId) !== selectedPlayer) {
         return false
       }
+      if (filterType === 'player' && selectedTeam && shot.team !== selectedTeam) return false
 
       return true
     })
@@ -204,27 +218,23 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
 
   return (
     <div className="app-page space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-semibold text-acb-900">Cartas de Tiro</h2>
-          <p className="text-acb-500 text-sm mt-1">
-            Visualiza las cartas de tiro de equipos y jugadores {isLoadingSeasonShots && <span className="text-info-600">- Cargando datos...</span>}
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Cartas de tiro"
+        subtitle="Visualiza la distribución y eficiencia de tiro de equipos y jugadores"
+        scope={isLoadingSeasonShots ? 'Cargando datos…' : `Temporada ${selectedSeason - 1}-${String(selectedSeason).slice(-2)}`}
+      />
 
       {/* Filters */}
-      <div className="bg-white rounded-lg border border-acb-200 p-4">
+      <div className="filter-panel block">
         <div className="flex items-center gap-2 mb-4">
           <Filter className="w-4 h-4 text-acb-500" />
           <span className="text-sm font-medium text-acb-700">Filtros</span>
         </div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
           {/* Season Filter */}
           <div>
-            <label className="block text-xs font-medium text-acb-600 mb-1">Temporada</label>
+            <label className="field-label mb-1">Temporada</label>
             <select
               aria-label="Temporada"
               value={selectedSeason}
@@ -232,9 +242,8 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
                 setSelectedSeason(parseInt(e.target.value))
                 setSelectedTeam('')
                 setSelectedPlayer('')
-                setPlayerSearch('')
               }}
-              className="w-full px-3 py-2 border border-acb-200 rounded-md text-sm bg-white"
+              className="form-control"
             >
               {availableSeasons.map(season => (
                 <option key={season} value={season}>{season-1}-{String(season).slice(-2)}</option>
@@ -244,7 +253,7 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
 
           {/* Display Mode */}
           <div>
-            <label className="block text-xs font-medium text-acb-600 mb-1">Mostrar</label>
+            <label className="field-label mb-1">Mostrar</label>
             <select
               aria-label="Modo de visualización"
               value={displayMode}
@@ -253,22 +262,22 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
                 setDisplayMode(mode)
                 if (mode === 'zones' && zoneMode === 'efficiency') setShotFilter('all')
               }}
-              className="w-full px-3 py-2 border border-acb-200 rounded-md text-sm bg-white"
+              className="form-control"
             >
-              <option value="shots">Tiros Individuales</option>
-              <option value="heatmap">Mapa de Calor</option>
-              <option value="zones">Zona del Campo</option>
+              <option value="shots">Tiros individuales</option>
+              <option value="heatmap">Mapa de calor</option>
+              <option value="zones">Zonas del campo</option>
             </select>
           </div>
 
           {displayMode === 'heatmap' && (
             <div>
-              <label className="block text-xs font-medium text-acb-600 mb-1">Tipo Mapa</label>
+              <label className="field-label mb-1">Tipo de mapa</label>
               <select
                 aria-label="Tipo de mapa de calor"
                 value={heatmapMode}
                 onChange={(e) => setHeatmapMode(e.target.value)}
-                className="w-full px-3 py-2 border border-acb-200 rounded-md text-sm bg-white"
+                className="form-control"
               >
                 <option value="frequency">Frecuencia</option>
                 <option value="density">Densidad</option>
@@ -278,7 +287,7 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
 
           {displayMode === 'zones' && (
             <div>
-              <label className="block text-xs font-medium text-acb-600 mb-1">Tipo Zona</label>
+              <label className="field-label mb-1">Métrica de zona</label>
               <select
                 aria-label="Métrica del mapa por zonas"
                 value={zoneMode}
@@ -287,7 +296,7 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
                   setZoneMode(mode)
                   if (mode === 'efficiency') setShotFilter('all')
                 }}
-                className="w-full px-3 py-2 border border-acb-200 rounded-md text-sm bg-white"
+                className="form-control"
               >
                 <option value="efficiency">Eficiencia</option>
                 <option value="frequency">Frecuencia</option>
@@ -297,7 +306,7 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
 
           {/* Filter Type */}
           <div>
-            <label className="block text-xs font-medium text-acb-600 mb-1">Vista</label>
+            <label className="field-label mb-1">Vista</label>
             <select
               aria-label="Vista por equipo o jugador"
               value={filterType}
@@ -306,17 +315,19 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
                 setSelectedTeam('')
                 setSelectedPlayer('')
               }}
-              className="w-full px-3 py-2 border border-acb-200 rounded-md text-sm bg-white"
+              className="form-control"
             >
-              <option value="team">Por Equipo</option>
-              <option value="player">Por Jugador</option>
+              <option value="team">Por equipo</option>
+              <option value="player">Por jugador</option>
             </select>
           </div>
           
           {/* Team Select */}
           {(filterType === 'team' || filterType === 'player') && (
             <div>
-              <label className="block text-xs font-medium text-acb-600 mb-1">Equipo</label>
+              <label className="field-label mb-1">
+                Equipo{filterType === 'player' ? ' (opcional)' : ''}
+              </label>
               <select
                 aria-label="Equipo"
                 value={selectedTeam}
@@ -324,9 +335,11 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
                   setSelectedTeam(e.target.value)
                   setSelectedPlayer('')
                 }}
-                className="w-full px-3 py-2 border border-acb-200 rounded-md text-sm bg-white"
+                className="form-control"
               >
-                <option value="">Selecciona equipo...</option>
+                <option value="" disabled={filterType === 'team'}>
+                  {filterType === 'player' ? 'Todos los equipos' : 'Selecciona equipo…'}
+                </option>
                 {teamList.map(team => (
                   <option key={team} value={team}>{team}</option>
                 ))}
@@ -336,32 +349,15 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
           
           {/* Player Select with Search */}
           {filterType === 'player' && (
-            <div className="space-y-2">
-              <label className="block text-xs font-medium text-acb-600">
-                Jugador {filteredPlayerList.length > 0 && `(${filteredPlayerList.length})`}
-              </label>
-              {/* Search input */}
-              <input
-                aria-label="Buscar jugador"
-                type="text"
-                value={playerSearch}
-                onChange={(e) => setPlayerSearch(e.target.value)}
-                placeholder="Buscar jugador..."
-                className="w-full px-3 py-2 border border-acb-200 rounded-md text-sm bg-white"
-              />
-              {/* Dropdown */}
-              <select
-                aria-label="Jugador"
+            <div className="sm:col-span-2">
+              <PlayerCombobox
+                id="shot-chart-player"
+                label={`Jugador (${playerOptions.length})`}
+                options={playerOptions}
                 value={selectedPlayer}
-                onChange={(e) => setSelectedPlayer(e.target.value)}
-                className="w-full px-3 py-2 border border-acb-200 rounded-md text-sm bg-white"
-                size="4"
-              >
-                <option value="">Selecciona jugador...</option>
-                {filteredPlayerList.map(p => (
-                  <option key={p.id} value={p.id}>{p.displayName}</option>
-                ))}
-              </select>
+                onChange={(option) => setSelectedPlayer(String(option?.value || ''))}
+                placeholder="Buscar jugador…"
+              />
             </div>
           )}
           
@@ -379,6 +375,9 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
               <option value="made">Solo Anotados</option>
               <option value="missed">Solo Fallados</option>
             </select>
+            {efficiencyMap && (
+              <p className="text-xs text-acb-400 mt-1">La eficiencia requiere todos los intentos.</p>
+            )}
           </div>
         </div>
       </div>
@@ -391,8 +390,8 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Court */}
         <div className="lg:col-span-2 bg-white rounded-lg border border-acb-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-medium text-acb-900 flex items-center gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-4">
+            <h3 className="font-medium text-acb-900 flex items-center gap-2 min-w-0">
               {filterType === 'player' && selectedPlayer && getPlayerPhoto(playerPhotos, selectedPlayer, selectedSeason) && (
                 <img
                   src={getPlayerPhoto(playerPhotos, selectedPlayer, selectedSeason)}
@@ -406,7 +405,7 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
                   ? selectedTeam
                   : 'Selecciona una opción'}
             </h3>
-            <div className="flex items-center gap-4 text-xs text-acb-500">
+            <div className="flex items-center gap-x-4 gap-y-1 text-xs text-acb-500 flex-wrap">
               {displayMode === 'shots' && (
                 <>
                   <span className="flex items-center gap-1">
@@ -432,18 +431,22 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
           </div>
           
           {displayMode === 'shots' && (
-            <Court width={750} height={705}>
-              {filteredShots.map((shot, i) => (
-                <ShotMarker
-                  key={shot.id || i}
-                  x={shot.x}
-                  y={shot.y}
-                  made={shot.made}
-                  size={5}
-                  width={750}
-                />
-              ))}
-            </Court>
+            <div className="overflow-x-auto pb-1">
+              <div className="min-w-[560px]">
+                <Court width={750} height={705}>
+                  {filteredShots.map((shot, i) => (
+                    <ShotMarker
+                      key={shot.id || i}
+                      x={shot.x}
+                      y={shot.y}
+                      made={shot.made}
+                      size={5}
+                      width={750}
+                    />
+                  ))}
+                </Court>
+              </div>
+            </div>
           )}
 
           {displayMode === 'heatmap' && (
@@ -467,15 +470,21 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
           )}
 
           <p className="text-xs text-acb-400 text-center mt-2">
-            Mostrando {filteredShots.length} tiros
+            Visualizando {filteredShots.length} de {analysisShots.length} tiros
           </p>
+          {shotFilter !== 'all' && (
+            <p className="text-xs text-acb-400 text-center mt-1">
+              Los porcentajes y el desglose se calculan con todos los intentos de la selección.
+            </p>
+          )}
         </div>
         
         {/* Stats Sidebar */}
         <div className="space-y-4">
           {/* Summary Stats */}
           <div className="bg-white rounded-lg border border-acb-200 p-4">
-            <h3 className="text-sm font-medium text-acb-700 mb-3">Resumen</h3>
+            <h3 className="text-sm font-medium text-acb-700 mb-1">Resumen</h3>
+            <p className="text-xs text-acb-400 mb-3">Todos los intentos</p>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <div className="text-2xl font-semibold font-mono text-acb-900">

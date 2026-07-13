@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import PageHeader from '../components/PageHeader'
 
 
 // ─── Axis Definitions ─────────────────────────────────────────
@@ -391,8 +392,8 @@ function RadarChart({ axes, values, fillColor, strokeColor, title }) {
 // ─── Z-Score Badge ────────────────────────────────────────────
 
 function ZBadge({ z }) {
-  if (z > 0.75) return <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-positive-100 text-positive-700">+{z.toFixed(2)}</span>
-  if (z < -0.75) return <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-negative-100 text-negative-700">{z.toFixed(2)}</span>
+  if (z > 0.75) return <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-acb-800 text-white">+{z.toFixed(2)}</span>
+  if (z < -0.75) return <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-acb-200 text-acb-800">{z.toFixed(2)}</span>
   return <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-acb-100 text-acb-600">{z >= 0 ? '+' : ''}{z.toFixed(2)}</span>
 }
 
@@ -654,24 +655,24 @@ export default function TeamFingerprint({ teams, teamLogos = {} }) {
     if (urlSeason) setSelectedSeason(Number(urlSeason))
   }, [urlSeason])
 
-  // resolve the team slug once the season teams are available
-  const seasonTeamsForSlug = useMemo(() => {
-    const s = urlSeason ? Number(urlSeason) : selectedSeason
-    return teams.filter(t => t.season === s)
-  }, [teams, urlSeason, selectedSeason])
-
-  useEffect(() => {
-    if (urlTeamSlug && seasonTeamsForSlug.length > 0) {
-      const match = seasonTeamsForSlug.find(t => toSlug(t.team) === urlTeamSlug)
-      if (match) setSelectedTeam(match.team)
-    }
-  }, [urlTeamSlug, seasonTeamsForSlug])
-
   const seasonTeams = useMemo(() => {
     return teams.filter(t => t.season === selectedSeason).sort((a, b) => a.team.localeCompare(b.team))
   }, [teams, selectedSeason])
 
   const teamNames = useMemo(() => seasonTeams.map(t => t.team), [seasonTeams])
+
+  useEffect(() => {
+    if (teamNames.length === 0) return
+    const urlMatch = urlTeamSlug ? teamNames.find(name => toSlug(name) === urlTeamSlug) : null
+    const nextTeam = urlTeamSlug
+      ? (urlMatch || teamNames[0])
+      : (teamNames.includes(selectedTeam) ? selectedTeam : teamNames[0])
+    if (nextTeam !== selectedTeam) setSelectedTeam(nextTeam)
+    const canonicalPath = `/perfil-equipo/${selectedSeason}/${toSlug(nextTeam)}`
+    if (Number(urlSeason) !== selectedSeason || urlTeamSlug !== toSlug(nextTeam)) {
+      navigate(canonicalPath, { replace: true })
+    }
+  }, [navigate, selectedSeason, selectedTeam, teamNames, urlSeason, urlTeamSlug])
 
   // compute league stats for all 14 axes
   const leagueStats = useMemo(() => {
@@ -758,52 +759,52 @@ export default function TeamFingerprint({ teams, teamLogos = {} }) {
 
   return (
     <div className="app-page space-y-6">
-      {/* header */}
-      <div>
-        <h2 className="text-2xl font-semibold text-acb-900">Estilo de Equipo</h2>
-        <p className="text-acb-500 mt-1">Perfil de juego de cada equipo: fortalezas, debilidades y características destacables.</p>
-        <p className="text-acb-400 text-xs mt-1">Temporada completa · Liga regular y playoffs</p>
-      </div>
+      <PageHeader
+        title="Estilo de equipo"
+        subtitle="Perfil de juego de cada equipo: fortalezas, debilidades y características destacables"
+        scope="Temporada completa · Liga regular y playoffs"
+      />
 
       {/* selectors */}
-      <div className="flex flex-wrap gap-3">
-        <label htmlFor="fingerprint-season" className="sr-only">Temporada</label>
-        <select
-          id="fingerprint-season"
-          value={selectedSeason}
-          onChange={(e) => {
-            const newSeason = Number(e.target.value)
-            setSelectedSeason(newSeason)
-            setSelectedTeam('')
-            navigate('/perfil-equipo', { replace: true })
-          }}
-          className="px-3 py-2 border border-acb-300 rounded-lg text-sm bg-white"
-        >
-          {availableSeasons.map(s => (
-            <option key={s} value={s}>{seasonLabel(s)}</option>
-          ))}
-        </select>
+      <div className="filter-panel flex flex-wrap gap-4">
+        <div className="flex flex-col gap-1">
+          <label htmlFor="fingerprint-season" className="field-label">Temporada</label>
+          <select
+            id="fingerprint-season"
+            value={selectedSeason}
+            onChange={(e) => {
+              const newSeason = Number(e.target.value)
+              const newTeams = teams.filter(t => t.season === newSeason).map(t => t.team).sort((a, b) => a.localeCompare(b))
+              const nextTeam = newTeams.includes(selectedTeam) ? selectedTeam : newTeams[0]
+              setSelectedSeason(newSeason)
+              setSelectedTeam(nextTeam || '')
+              if (nextTeam) navigate(`/perfil-equipo/${newSeason}/${toSlug(nextTeam)}`, { replace: true })
+            }}
+            className="form-control"
+          >
+            {availableSeasons.map(s => (
+              <option key={s} value={s}>{seasonLabel(s)}</option>
+            ))}
+          </select>
+        </div>
 
-        <label htmlFor="fingerprint-team" className="sr-only">Equipo</label>
-        <select
-          id="fingerprint-team"
-          value={selectedTeam}
-          onChange={(e) => {
-            const team = e.target.value
-            setSelectedTeam(team)
-            if (team) {
+        <div className="flex min-w-[240px] flex-col gap-1">
+          <label htmlFor="fingerprint-team" className="field-label">Equipo</label>
+          <select
+            id="fingerprint-team"
+            value={selectedTeam}
+            onChange={(e) => {
+              const team = e.target.value
+              setSelectedTeam(team)
               navigate(`/perfil-equipo/${selectedSeason}/${toSlug(team)}`, { replace: true })
-            } else {
-              navigate('/perfil-equipo', { replace: true })
-            }
-          }}
-          className="px-3 py-2 border border-acb-300 rounded-lg text-sm bg-white"
-        >
-          <option value="">Seleccionar equipo...</option>
-          {teamNames.map(name => (
-            <option key={name} value={name}>{name}</option>
-          ))}
-        </select>
+            }}
+            className="form-control"
+          >
+            {teamNames.map(name => (
+              <option key={name} value={name}>{name}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* content */}

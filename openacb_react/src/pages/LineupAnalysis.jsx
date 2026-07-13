@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { getPlayerPhoto } from '../utils/playerPhotos'
 import { getPlayerDisplayName as getCanonicalPlayerName } from '../utils/playerNames'
 import { Users, Info, Plus, X, Search, ChevronDown, ChevronUp } from 'lucide-react'
+import PageHeader from '../components/PageHeader'
 
 /**
  * Lineup Analysis Page - Cleaning the Glass Style
@@ -14,6 +15,7 @@ import { Users, Info, Plus, X, Search, ChevronDown, ChevronUp } from 'lucide-rea
 // Extract licenseId from player key format "Name_12345"
 const getIdFromKey = (key) => key?.split('_').pop() || ''
 const MIN_ON_OFF_MINUTES = 50
+const hasNumber = (value) => value != null && !Number.isNaN(Number(value))
 
 const normalizeSearch = (value) => String(value || '')
   .normalize('NFD')
@@ -58,11 +60,18 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
   }, [teams, urlSeason, selectedSeason])
 
   useEffect(() => {
-    if (urlTeamSlug && seasonTeamsForSlug.length > 0) {
-      const match = seasonTeamsForSlug.find(t => toSlug(t.team) === urlTeamSlug)
-      if (match) setSelectedTeam(match.team)
+    if (seasonTeamsForSlug.length === 0) return
+    const teamNames = [...new Set(seasonTeamsForSlug.map(t => t.team))].sort((a, b) => a.localeCompare(b, 'es'))
+    const urlMatch = urlTeamSlug ? teamNames.find(team => toSlug(team) === urlTeamSlug) : null
+    const nextTeam = urlTeamSlug
+      ? (urlMatch || teamNames[0])
+      : (teamNames.includes(selectedTeam) ? selectedTeam : teamNames[0])
+    if (nextTeam !== selectedTeam) setSelectedTeam(nextTeam)
+    const canonicalPath = `/alineaciones/${selectedSeason}/${toSlug(nextTeam)}`
+    if (Number(urlSeason) !== selectedSeason || urlTeamSlug !== toSlug(nextTeam)) {
+      navigate(canonicalPath, { replace: true })
     }
-  }, [urlTeamSlug, seasonTeamsForSlug])
+  }, [navigate, selectedSeason, selectedTeam, seasonTeamsForSlug, urlSeason, urlTeamSlug])
 
   // Load lineups when season changes
   useEffect(() => {
@@ -79,23 +88,16 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
   // Check if lineups are currently loading
   const loading = loadingLineups[selectedSeason] || false
 
-  // Ensure selectedTeam is valid for the selected season (don't override URL on first mount)
-  useEffect(() => {
-    if (urlTeamSlug) return // URL will handle team selection
-    const seasonTeams = teams.filter(t => t.season === selectedSeason)
-    if (seasonTeams.length > 0 && !seasonTeams.find(t => t.team === selectedTeam)) {
-      setSelectedTeam(seasonTeams[0].team)
-    }
-  }, [selectedSeason, teams, selectedTeam, urlTeamSlug])
-
   // Player selection state
   const [selectedPlayers, setSelectedPlayers] = useState([])
   const [excludedPlayer, setExcludedPlayer] = useState('')
+  const [showExclusionPicker, setShowExclusionPicker] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
 
   // clear exclusions whenever the analysis context changes
   useEffect(() => {
     setExcludedPlayer('')
+    setShowExclusionPicker(false)
   }, [selectedSeason, selectedTeam, selectedPlayers])
 
   // Filter teams by season
@@ -104,7 +106,7 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
     return teams.filter(t => t.season === selectedSeason)
   }, [teams, selectedSeason])
 
-  const teamList = useMemo(() => seasonFilteredTeams.map(t => t.team).sort(), [seasonFilteredTeams])
+  const teamList = useMemo(() => seasonFilteredTeams.map(t => t.team).sort((a, b) => a.localeCompare(b, 'es')), [seasonFilteredTeams])
 
   // Get current team data (per-season format: data is keyed by team name directly)
   const currentTeamData = useMemo(() => {
@@ -301,16 +303,6 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
       impact: {
         netRtg: diff(without.netRtg, together.netRtg)
       },
-      diff: {
-        ORtg: diff(together.ORtg, without.ORtg),
-        DRtg: diff(together.DRtg, without.DRtg),
-        netRtg: diff(together.netRtg, without.netRtg),
-        eFG: diff(together.eFG, without.eFG),
-        TOV: diff(together.TOV, without.TOV),
-        AST: diff(together.AST, without.AST),
-        oppEFG: diff(together.oppEFG, without.oppEFG),
-        DRB: diff(together.DRB, without.DRB)
-      }
     }
   }, [currentExclusionData])
 
@@ -348,7 +340,7 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
     if (adjusted > threshold + 5) return { emoji: '🔥', label: 'Elite', color: 'text-positive' }
     if (adjusted > threshold + 2) return { emoji: '✅', label: 'Bueno', color: 'text-positive' }
     if (adjusted > threshold - 2) return { emoji: '➖', label: 'Normal', color: 'text-acb-500' }
-    if (adjusted > threshold - 5) return { emoji: '⚠️', label: 'Debajo Media', color: 'text-acb-500' }
+    if (adjusted > threshold - 5) return { emoji: '⚠️', label: 'Debajo de la media', color: 'text-acb-500' }
     return { emoji: '🔻', label: 'Bajo', color: 'text-negative' }
   }
 
@@ -367,10 +359,7 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
   if (loading) {
     return (
       <div className="app-page space-y-6">
-        <div>
-          <h2 className="text-2xl font-semibold text-acb-900">Análisis de Alineaciones</h2>
-          <p className="text-acb-500 text-sm mt-1">Cargando datos de combinaciones...</p>
-        </div>
+          <PageHeader title="Análisis de alineaciones" subtitle="Cargando datos de combinaciones..." />
         <div className="bg-acb-50 rounded-lg p-8 text-center">
           <div className="animate-pulse">
             <div className="text-acb-600">Cargando alineaciones...</div>
@@ -382,20 +371,18 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
 
   return (
     <div className="app-page space-y-6">
-      {/* Header */}
-      <div>
-        <h2 className="text-2xl font-semibold text-acb-900">Análisis de Alineaciones</h2>
-        <p className="text-acb-500 text-sm mt-1">
-          Analiza el impacto on/off de jugadores y rendimiento de combinaciones
-        </p>
-      </div>
+      <PageHeader
+        title="Análisis de alineaciones"
+        subtitle="Analiza el impacto on/off de jugadores y el rendimiento de combinaciones"
+        scope="Temporada completa · Liga regular y playoffs"
+      />
 
       {/* Controls */}
-      <div className="bg-white rounded-lg border border-acb-200 p-4 space-y-4">
+      <div className="filter-panel block space-y-4">
         <div className="flex flex-wrap items-center gap-4">
           {/* Season Filter */}
           <div className="flex items-center gap-2">
-            <span className="text-sm text-acb-600 font-medium">Temporada:</span>
+            <span className="field-label">Temporada</span>
             <select
               aria-label="Temporada"
               value={selectedSeason}
@@ -405,7 +392,7 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
                 clearPlayers()
                 navigate('/alineaciones', { replace: true })
               }}
-              className="px-3 py-2 border border-acb-200 rounded-md text-sm bg-white font-medium"
+              className="form-control"
             >
               {availableSeasons.map(season => (
                 <option key={season} value={season}>{season-1}-{String(season).slice(-2)}</option>
@@ -427,7 +414,7 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
                   navigate(`/alineaciones/${selectedSeason}/${toSlug(team)}`, { replace: true })
                 }
               }}
-              className="px-3 py-2 border border-acb-200 rounded-md text-sm bg-white font-medium min-w-[200px]"
+              className="form-control min-w-[200px]"
             >
               {teamList.map(team => (
                 <option key={team} value={team}>{team}</option>
@@ -472,26 +459,45 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
           )}
 
           {selectedPlayers.length === 1 && availableExclusions.length > 0 && (
-            <div className="flex flex-wrap items-center gap-3 rounded-md border border-acb-200 bg-acb-50 p-3">
-              <label htmlFor="excluded-player" className="text-sm font-medium text-acb-700">
-                Excluir compañero:
-              </label>
-              <select
-                id="excluded-player"
-                value={excludedPlayer}
-                onChange={(e) => setExcludedPlayer(e.target.value)}
-                className="min-w-[220px] rounded-md border border-acb-200 bg-white px-3 py-2 text-sm font-medium"
-              >
-                <option value="">Ninguno</option>
-                {availableExclusions.map(playerKey => (
-                  <option key={playerKey} value={playerKey}>
-                    {getPlayerDisplayName(playerKey)}
-                  </option>
-                ))}
-              </select>
-              <span className="text-xs text-acb-500">
-                Mínimo 2 min juntos y 25 min con el compañero fuera
-              </span>
+            <div className="flex flex-wrap items-center gap-2">
+              {excludedPlayer ? (
+                <button
+                  type="button"
+                  onClick={() => setExcludedPlayer('')}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-accent-200 bg-accent-50 px-3 py-1.5 text-sm font-medium text-accent-800"
+                  aria-label={`Quitar comparación sin ${getPlayerDisplayName(excludedPlayer)}`}
+                >
+                  Sin {getPlayerDisplayName(excludedPlayer)} <X className="h-3.5 w-3.5" />
+                </button>
+              ) : showExclusionPicker ? (
+                <div className="flex flex-wrap items-center gap-2 rounded-md border border-acb-200 bg-acb-50 p-2">
+                  <label htmlFor="excluded-player" className="text-sm font-medium text-acb-700">Comparar sin</label>
+                  <select
+                    id="excluded-player"
+                    defaultValue=""
+                    onChange={(e) => {
+                      if (e.target.value) setExcludedPlayer(e.target.value)
+                      setShowExclusionPicker(false)
+                    }}
+                    className="min-w-[220px] rounded-md border border-acb-200 bg-white px-3 py-2 text-sm font-medium"
+                  >
+                    <option value="" disabled>Selecciona un compañero</option>
+                    {availableExclusions.map(playerKey => (
+                      <option key={playerKey} value={playerKey}>{getPlayerDisplayName(playerKey)}</option>
+                    ))}
+                  </select>
+                  <button type="button" onClick={() => setShowExclusionPicker(false)} className="text-sm text-acb-500 hover:text-acb-800">Cancelar</button>
+                  <span className="text-xs text-acb-500">Mínimo 2 min juntos y 25 min sin el compañero</span>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowExclusionPicker(true)}
+                  className="rounded-md border border-acb-200 bg-white px-3 py-2 text-sm font-medium text-acb-700 hover:bg-acb-50"
+                >
+                  Comparar sin compañero
+                </button>
+              )}
             </div>
           )}
 
@@ -553,9 +559,9 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
               <thead>
                 <tr className="bg-acb-50 text-left text-xs text-acb-600 uppercase tracking-wider">
                   <th className="data-table-head text-left">Métrica</th>
-                  <th className="data-table-head text-center" title="Rendimiento con la selección en pista">En Cancha</th>
-                  <th className="data-table-head text-center" title="Rendimiento con la selección fuera de pista">Fuera de Cancha</th>
-                  <th className="data-table-head text-center" title="Diferencia entre On y Off">Diferencia</th>
+                  <th className="data-table-head text-center" title="Rendimiento con la selección en pista">En cancha</th>
+                  <th className="data-table-head text-center" title="Rendimiento con la selección fuera de pista">Fuera de cancha</th>
+                  <th className="data-table-head text-center" title="En cancha menos fuera de cancha">Diff On−Off</th>
                   <th className="data-table-head text-center">Impacto</th>
                 </tr>
               </thead>
@@ -575,6 +581,7 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
                   onValue={currentLineupData.onEFG}
                   offValue={currentLineupData.offEFG}
                   goodThreshold={50}
+                  diffUnit=" pp"
                 />
                 <StatRow
                   label="PER%"
@@ -582,18 +589,21 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
                   offValue={currentLineupData.offTOV}
                   goodThreshold={15}
                   inverse
+                  diffUnit=" pp"
                 />
                 <StatRow
                   label="RO%"
                   onValue={currentLineupData.onORB}
                   offValue={currentLineupData.offORB}
                   goodThreshold={30}
+                  diffUnit=" pp"
                 />
                 <StatRow
                   label="AST%"
                   onValue={currentLineupData.onAST}
                   offValue={currentLineupData.offAST}
                   goodThreshold={50}
+                  diffUnit=" pp"
                 />
                 {/* DEFENSA */}
                 <tr className="bg-acb-50">
@@ -612,18 +622,21 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
                   offValue={currentLineupData.offOppEFG}
                   goodThreshold={50}
                   inverse
+                  diffUnit=" pp"
                 />
                 <StatRow
                   label="PER%"
                   onValue={currentLineupData.onOppTOV}
                   offValue={currentLineupData.offOppTOV}
                   goodThreshold={14}
+                  diffUnit=" pp"
                 />
                 <StatRow
                   label="RD%"
                   onValue={currentLineupData.onDRB}
                   offValue={currentLineupData.offDRB}
                   goodThreshold={70}
+                  diffUnit=" pp"
                 />
                 {/* BALANCE */}
                 <tr className="bg-acb-50">
@@ -653,7 +666,7 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
                 }`}>
                   {currentLineupData.netDiff > 0 ? '+' : ''}{currentLineupData.netDiff?.toFixed(1)}
                 </div>
-                <div className="text-sm text-acb-600 mt-1">Impacto en Ef. Neta</div>
+                <div className="text-sm text-acb-600 mt-1">Diff Neto On−Off</div>
               </div>
             </div>
           </div>
@@ -669,6 +682,7 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
               data={exclusionAnalysisData}
               focalName={getPlayerDisplayName(selectedPlayers[0])}
               excludedName={getPlayerDisplayName(excludedPlayer)}
+              onClear={() => setExcludedPlayer('')}
             />
           )
         }
@@ -817,14 +831,14 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
         <div className="bg-white rounded-lg border border-acb-200 overflow-hidden">
           <div className="px-4 py-3 border-b border-acb-200 flex items-center justify-between gap-3">
             <div>
-              <h3 className="font-semibold text-acb-900">Resumen On/Off del Equipo</h3>
+              <h3 className="font-semibold text-acb-900">Resumen On/Off del equipo</h3>
               <p className="text-xs text-acb-400">Ranking con un mínimo de {MIN_ON_OFF_MINUTES} minutos en pista</p>
             </div>
             <button
               onClick={() => setShowAllPlayers(!showAllPlayers)}
               className="text-sm text-acb-600 hover:text-acb-800 flex items-center gap-1"
             >
-              {showAllPlayers ? 'Mostrar Menos' : 'Mostrar Todos'}
+              {showAllPlayers ? 'Mostrar menos' : 'Mostrar todos'}
               {showAllPlayers ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </button>
           </div>
@@ -855,17 +869,17 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
                   <th className="data-table-head data-table-number data-col-games bg-acb-50" rowSpan={2}>Min</th>
                 </tr>
                 <tr className="text-xs text-acb-600 uppercase tracking-wider">
-                  <SortableHeader label="Δ ORtg" sortKey="deltaORtg" current={sortConfig} onSort={handleSort} />
-                  <SortableHeader label="Δ DRtg" sortKey="deltaDRtg" current={sortConfig} onSort={handleSort} />
+                  <SortableHeader label="Diff ORtg On−Off" sortKey="deltaORtg" current={sortConfig} onSort={handleSort} />
+                  <SortableHeader label="Diff DRtg On−Off" sortKey="deltaDRtg" current={sortConfig} onSort={handleSort} />
                   <SortableHeader label="On" sortKey="onNetRtg" current={sortConfig} onSort={handleSort} />
                   <SortableHeader label="Off" sortKey="offNetRtg" current={sortConfig} onSort={handleSort} />
-                  <SortableHeader label="Δ eFG%" sortKey="deltaEFG" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
-                  <SortableHeader label="Δ PER%" sortKey="deltaTOV" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
-                  <SortableHeader label="Δ RO%" sortKey="deltaORB" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
-                  <SortableHeader label="Δ AST%" sortKey="deltaAST" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
-                  <SortableHeader label="Δ eFG%" sortKey="deltaOppEFG" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
-                  <SortableHeader label="Δ PER%" sortKey="deltaOppTOV" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
-                  <SortableHeader label="Δ RD%" sortKey="deltaDRB" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
+                  <SortableHeader label="Diff eFG On−Off (pp)" sortKey="deltaEFG" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
+                  <SortableHeader label="Diff PER On−Off (pp)" sortKey="deltaTOV" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
+                  <SortableHeader label="Diff RO On−Off (pp)" sortKey="deltaORB" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
+                  <SortableHeader label="Diff AST On−Off (pp)" sortKey="deltaAST" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
+                  <SortableHeader label="Diff eFG rival On−Off (pp)" sortKey="deltaOppEFG" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
+                  <SortableHeader label="Diff PER rival On−Off (pp)" sortKey="deltaOppTOV" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
+                  <SortableHeader label="Diff RD On−Off (pp)" sortKey="deltaDRB" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-acb-100">
@@ -967,7 +981,7 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
         <span className="flex items-center gap-1">🔥 Élite</span>
         <span className="flex items-center gap-1">✅ Bueno</span>
         <span className="flex items-center gap-1">➖ Medio</span>
-        <span className="flex items-center gap-1">⚠️ Debajo Media</span>
+        <span className="flex items-center gap-1">⚠️ Debajo de la media</span>
         <span className="flex items-center gap-1">🔻 Bajo</span>
         <span className="flex items-center gap-1">○ Muestra reducida</span>
       </div>
@@ -992,7 +1006,7 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
               <p className="text-xs">Estadísticas del equipo durante los minutos que el jugador o combinación no está en pista.</p>
             </div>
             <div className="bg-white p-3 rounded border border-acb-100">
-              <div className="font-medium text-acb-900 mb-1">Impacto (Dif.)</div>
+              <div className="font-medium text-acb-900 mb-1">Impacto (Diff)</div>
               <p className="text-xs">La diferencia observada entre On y Off. No aísla el efecto individual del jugador.</p>
             </div>
           </div>
@@ -1008,32 +1022,15 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
   )
 }
 
-const hasNumber = (value) => value != null && !Number.isNaN(Number(value))
-
 const formatDecimal = (value, unit = '') => {
-  if (!hasNumber(value)) return '-'
+  if (!hasNumber(value)) return '—'
   return `${Number(value).toFixed(1)}${unit}`
 }
 
 const formatSignedDecimal = (value, unit = '') => {
-  if (!hasNumber(value)) return '-'
+  if (!hasNumber(value)) return '—'
   const numericValue = Number(value)
   return `${numericValue > 0 ? '+' : ''}${numericValue.toFixed(1)}${unit}`
-}
-
-const netValueClass = (value) => {
-  if (!hasNumber(value)) return 'text-acb-400'
-  const numericValue = Number(value)
-  if (numericValue > 0) return 'text-positive'
-  if (numericValue < 0) return 'text-negative'
-  return 'text-acb-500'
-}
-
-const ratingValueClass = (value, isDefensive = false) => {
-  if (!hasNumber(value)) return 'text-acb-400'
-  const threshold = isDefensive ? 105 : 110
-  const good = isDefensive ? value < threshold : value > threshold
-  return good ? 'text-positive' : 'text-negative'
 }
 
 const comparisonDeltaClass = (value, inverse = false) => {
@@ -1044,17 +1041,7 @@ const comparisonDeltaClass = (value, inverse = false) => {
   return isGood ? 'text-positive' : 'text-negative'
 }
 
-const impactIndicatorEmoji = (value) => {
-  if (!hasNumber(value)) return '➖'
-  const numericValue = Number(value)
-  if (numericValue > 5) return '🔥'
-  if (numericValue > 2) return '✅'
-  if (numericValue > -2) return '➖'
-  if (numericValue > -5) return '⚠️'
-  return '🔻'
-}
-
-const ExclusionComparisonCard = ({ data, focalName, excludedName }) => {
+const ExclusionComparisonCard = ({ data, focalName, excludedName, onClear }) => {
   const attackStats = [
     { label: 'eFG%', value: data.without.eFG, unit: '%' },
     { label: 'PER%', value: data.without.TOV, unit: '%' },
@@ -1070,39 +1057,37 @@ const ExclusionComparisonCard = ({ data, focalName, excludedName }) => {
   return (
     <div className="bg-white rounded-lg border border-acb-200 overflow-hidden">
       <div className="bg-gradient-to-r from-acb-700 to-acb-800 px-4 py-3">
-        <h3 className="font-semibold text-white text-lg">Análisis de Exclusión</h3>
+        <h3 className="font-semibold text-white text-lg">Rendimiento de {focalName} sin {excludedName}</h3>
         <p className="text-acb-200 text-sm">
           {focalName} sin {excludedName} • {formatDecimal(data.without.min)} min sin
           {hasNumber(data.together.min) && ` • ${formatDecimal(data.together.min)} min juntos`}
         </p>
       </div>
 
-      <div className="grid grid-cols-4 divide-x divide-acb-200">
+      <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-acb-200">
         <div className="p-4 text-center">
           <div className="text-xs text-acb-500 uppercase tracking-wider mb-1">Ef. Ofensiva</div>
-          <div className={`text-2xl font-bold font-mono ${ratingValueClass(data.without.ORtg)}`}>
+          <div className="text-2xl font-bold font-mono text-acb-800">
             {formatDecimal(data.without.ORtg)}
           </div>
         </div>
         <div className="p-4 text-center">
           <div className="text-xs text-acb-500 uppercase tracking-wider mb-1">Ef. Defensiva</div>
-          <div className={`text-2xl font-bold font-mono ${ratingValueClass(data.without.DRtg, true)}`}>
+          <div className="text-2xl font-bold font-mono text-acb-800">
             {formatDecimal(data.without.DRtg)}
           </div>
         </div>
         <div className="p-4 text-center">
           <div className="text-xs text-acb-500 uppercase tracking-wider mb-1">Ef. Neta</div>
-          <div className={`text-2xl font-bold font-mono ${netValueClass(data.without.netRtg)}`}>
+          <div className="text-2xl font-bold font-mono text-acb-800">
             {formatSignedDecimal(data.without.netRtg)}
           </div>
-          <div className="text-lg mt-1">{impactIndicatorEmoji(data.without.netRtg)}</div>
         </div>
         <div className="p-4 text-center bg-acb-50">
           <div className="text-xs text-acb-500 uppercase tracking-wider mb-1">Impacto</div>
           <div className={`text-2xl font-bold font-mono ${comparisonDeltaClass(data.impact.netRtg)}`}>
             {formatSignedDecimal(data.impact.netRtg)}
           </div>
-          <div className="text-lg mt-1">{impactIndicatorEmoji(data.impact.netRtg)}</div>
         </div>
       </div>
 
@@ -1110,18 +1095,18 @@ const ExclusionComparisonCard = ({ data, focalName, excludedName }) => {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center">
           <div>
             <div className="text-xs text-acb-500 uppercase tracking-wider">Sin {excludedName}</div>
-            <div className={`font-mono font-semibold ${netValueClass(data.without.netRtg)}`}>
+            <div className="font-mono font-semibold text-acb-700">
               {formatSignedDecimal(data.without.netRtg)}
             </div>
           </div>
           <div>
             <div className="text-xs text-acb-500 uppercase tracking-wider">Juntos</div>
-            <div className={`font-mono font-semibold ${netValueClass(data.together.netRtg)}`}>
+            <div className="font-mono font-semibold text-acb-700">
               {formatSignedDecimal(data.together.netRtg)}
             </div>
           </div>
           <div>
-            <div className="text-xs text-acb-500 uppercase tracking-wider">Sin - juntos</div>
+            <div className="text-xs text-acb-500 uppercase tracking-wider">Diff Sin−Juntos</div>
             <div className={`font-mono font-semibold ${comparisonDeltaClass(data.impact.netRtg)}`}>
               {formatSignedDecimal(data.impact.netRtg)}
             </div>
@@ -1150,15 +1135,7 @@ const ExclusionComparisonCard = ({ data, focalName, excludedName }) => {
             {defenseStats.map(stat => (
               <div key={stat.label} className="p-3 text-center">
                 <div className="text-xs text-acb-500 uppercase tracking-wider mb-1">{stat.label}</div>
-                <div className={`text-lg font-semibold font-mono ${
-                  stat.label === 'DRtg'
-                    ? ratingValueClass(stat.value, true)
-                    : stat.label === 'eFG%'
-                      ? comparisonDeltaClass(stat.value - 50, true)
-                      : stat.label === 'RD%'
-                        ? comparisonDeltaClass(stat.value - 70)
-                        : 'text-acb-700'
-                }`}>
+                <div className="text-lg font-semibold font-mono text-acb-700">
                   {formatDecimal(stat.value, stat.unit)}
                 </div>
               </div>
@@ -1166,20 +1143,24 @@ const ExclusionComparisonCard = ({ data, focalName, excludedName }) => {
           </div>
         </div>
       )}
+
+      <div className="border-t border-acb-200 p-3 text-center">
+        <button type="button" onClick={onClear} className="text-sm font-medium text-accent-700 hover:text-accent-800">
+          Volver al On/Off general
+        </button>
+      </div>
     </div>
   )
 }
 
 // Stat Row Component for the individual player table
 const StatRow = ({ label, onValue, offValue, inverse = false, highlight = false }) => {
-  if (onValue == null || offValue == null) return null
-
-  // Always calculate difference as (on - off)
-  const diff = onValue - offValue
+  const hasValues = hasNumber(onValue) && hasNumber(offValue)
+  const diff = hasValues ? Number(onValue) - Number(offValue) : null
 
   // For inverse stats (TOV%, DRtg), negative diff is good (player reduces the bad stat)
   // For normal stats (eFG%, ORtg), positive diff is good (player increases the good stat)
-  const isGood = inverse ? diff < 0 : diff > 0
+  const isGood = hasValues && (inverse ? diff < 0 : diff > 0)
 
   const getIndicator = (val, threshold, inv) => {
     const adjusted = inv ? threshold - val : val - threshold
@@ -1190,7 +1171,7 @@ const StatRow = ({ label, onValue, offValue, inverse = false, highlight = false 
     return { emoji: '🔻', color: 'text-negative' }
   }
 
-  const indicator = getIndicator(diff, 0, inverse)
+  const indicator = hasValues ? getIndicator(diff, 0, inverse) : null
 
   return (
     <tr className={`data-table-row ${highlight ? 'bg-acb-50' : ''}`}>
@@ -1198,20 +1179,18 @@ const StatRow = ({ label, onValue, offValue, inverse = false, highlight = false 
         {label}
       </td>
       <td className="data-table-cell text-center font-mono tabular-nums">
-        <span className={`font-medium ${isGood ? 'text-positive' : 'text-negative'}`}>
-          {onValue?.toFixed(1)}
-        </span>
+        <span className="font-medium text-acb-700">{hasNumber(onValue) ? Number(onValue).toFixed(1) : '—'}</span>
       </td>
       <td className="data-table-cell text-center font-mono tabular-nums text-acb-500">
-        {offValue?.toFixed(1)}
+        {hasNumber(offValue) ? Number(offValue).toFixed(1) : '—'}
       </td>
       <td className="data-table-cell text-center font-mono tabular-nums">
-        <span className={`font-medium ${isGood ? 'text-positive' : 'text-negative'}`}>
-          {diff > 0 ? '+' : ''}{diff.toFixed(1)}
+        <span className={`font-medium ${!hasValues ? 'text-acb-400' : isGood ? 'text-positive' : diff < 0 || diff > 0 ? 'text-negative' : 'text-acb-500'}`}>
+          {hasValues ? `${diff > 0 ? '+' : ''}${diff.toFixed(1)}` : '—'}
         </span>
       </td>
       <td className="data-table-cell text-center text-base">
-        {indicator.emoji}
+        {indicator?.emoji || '—'}
       </td>
     </tr>
   )

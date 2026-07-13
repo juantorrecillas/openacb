@@ -3,30 +3,19 @@ import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, Responsive
 import { ArrowUpDown, ArrowUp, ArrowDown, Download } from 'lucide-react'
 import { downloadTableAsCsv } from '../utils/csvDownload'
 import { statTitle } from '../utils/statLabels'
+import PageHeader from '../components/PageHeader'
 
 
 // Add a color palette for teams (or generate colors dynamically)
 const TEAM_COLORS = [
-  '#3B82F6', // blue
-  '#EF4444', // red
-  '#10B981', // green
-  '#F59E0B', // yellow
-  '#8B5CF6', // purple
-  '#EC4899', // pink
-  '#14B8A6', // teal
-  '#F97316', // orange
-  '#6366F1', // indigo
-  '#84CC16', // lime
-  '#06B6D4', // cyan
-  '#D946EF', // fuchsia
-  '#0EA5E9', // sky blue
-  '#22C55E', // emerald
-  '#A855F7', // violet
-  '#EAB308', // amber
-  '#F43F5E', // rose
-  '#06D6A0', // sea green
-  '#FF6B6B', // coral
-  '#4ECDC4', // turquoise
+  '#fe5917',
+  '#3b82f6',
+  '#8b5cf6',
+  '#f59e0b',
+  '#0ea5e9',
+  '#d946ef',
+  '#6366f1',
+  '#ec4899',
 ]
 
 const statOptions = [
@@ -457,10 +446,10 @@ export default function TeamStats({ teams, teamLogos = {} }) {
   const getRankBadgeColor = (rank, total) => {
     if (rank == null || isNaN(rank)) return 'bg-acb-100 text-acb-600'
     const pct = ((total - rank) / (total - 1)) * 100
-    if (pct >= 75) return 'bg-positive-100 text-positive-700'
-    if (pct >= 50) return 'bg-info-100 text-info-700'
-    if (pct >= 25) return 'bg-info-100 text-info-600'
-    return 'bg-negative-100 text-negative-700'
+    if (pct >= 75) return 'bg-acb-800 text-white'
+    if (pct >= 50) return 'bg-acb-200 text-acb-800'
+    if (pct >= 25) return 'bg-acb-100 text-acb-700'
+    return 'bg-acb-50 text-acb-500'
   }
 
   const getValueColor = () => 'text-acb-700'
@@ -483,56 +472,51 @@ export default function TeamStats({ teams, teamLogos = {} }) {
 
   return (
     <div className="app-page space-y-6">
-      {/* Header */}
-      <div>
-        <h2 className="text-2xl font-semibold text-acb-900">Estadísticas de Equipo</h2>
-        <p className="text-acb-500 text-sm mt-1">
-          Compara el rendimiento de los equipos en métricas ofensivas y defensivas
-        </p>
-      </div>
+      <PageHeader
+        title="Estadísticas de equipos"
+        subtitle="Compara el rendimiento de los equipos en métricas ofensivas y defensivas"
+      />
       
       {/* Scatter Plot */}
-      <div className="bg-white rounded-lg border border-acb-200 p-6">
+      <div className="filter-panel">
         <div className="flex flex-wrap items-center gap-4 mb-6">
           <div className="flex items-center gap-2">
-            <label htmlFor="team-stats-season" className="text-sm text-acb-600">Temporada:</label>
+            <label htmlFor="team-stats-season" className="field-label">Temporada</label>
             <select
               id="team-stats-season"
               value={selectedSeason}
               onChange={(e) => setSelectedSeason(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
-              className="px-3 py-1.5 border border-acb-200 rounded text-sm bg-white"
+              className="form-control"
             >
               {availableSeasons.map(season => (
                 <option key={season} value={season}>{season-1}-{String(season).slice(-2)}</option>
               ))}
-              <option value="all">Todas las Temporadas</option>
+              <option value="all">Todas las temporadas</option>
             </select>
           </div>
-          <div className="flex items-center gap-1 bg-acb-100 rounded-md p-1" role="group" aria-label="Fase de la competición">
+          <div className="segmented-control" role="group" aria-label="Fase de la competición">
             <button
               onClick={() => setSelectedStage('regular')}
-              className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
-                selectedStage === 'regular' ? 'bg-white text-acb-900 shadow-sm' : 'text-acb-600 hover:text-acb-900'
-              }`}
+              aria-pressed={selectedStage === 'regular'}
+              className="segmented-option"
             >
               Temporada regular
             </button>
             <button
               onClick={() => setSelectedStage('playoffs')}
-              className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
-                selectedStage === 'playoffs' ? 'bg-white text-acb-900 shadow-sm' : 'text-acb-600 hover:text-acb-900'
-              }`}
+              aria-pressed={selectedStage === 'playoffs'}
+              className="segmented-option"
             >
               Playoffs
             </button>
           </div>
           <div className="flex items-center gap-2">
-            <label htmlFor="team-stats-x-axis" className="text-sm text-acb-600">Eje X:</label>
+            <label htmlFor="team-stats-x-axis" className="field-label">Eje X</label>
             <select
               id="team-stats-x-axis"
               value={xAxis}
               onChange={(e) => setXAxis(e.target.value)}
-              className="px-3 py-1.5 border border-acb-200 rounded text-sm bg-white"
+              className="form-control"
             >
               {statOptions.map(opt => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -540,12 +524,12 @@ export default function TeamStats({ teams, teamLogos = {} }) {
             </select>
           </div>
           <div className="flex items-center gap-2">
-            <label htmlFor="team-stats-y-axis" className="text-sm text-acb-600">Eje Y:</label>
+            <label htmlFor="team-stats-y-axis" className="field-label">Eje Y</label>
             <select
               id="team-stats-y-axis"
               value={yAxis}
               onChange={(e) => setYAxis(e.target.value)}
-              className="px-3 py-1.5 border border-acb-200 rounded text-sm bg-white"
+              className="form-control"
             >
               {statOptions.map(opt => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -555,9 +539,9 @@ export default function TeamStats({ teams, teamLogos = {} }) {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowLabels(!showLabels)}
-              className={`px-3 py-1.5 border border-acb-200 rounded text-sm bg-white hover:bg-acb-50 ${showLabels ? 'bg-acb-100' : ''}`}
+              className={`form-control hover:bg-acb-50 ${showLabels ? 'bg-acb-100' : ''}`}
             >
-              {showLabels ? 'Ocultar Nombres' : 'Mostrar Nombres'}
+              {showLabels ? 'Ocultar nombres' : 'Mostrar nombres'}
             </button>
 
           </div>

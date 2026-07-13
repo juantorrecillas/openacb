@@ -127,11 +127,11 @@ export function ShotMarker({ x, y, made, size = 6, width = 500 }) {
   const cy = (-y) * scale
   
   return made ? (
-    <circle cx={cx} cy={cy} r={size} fill="#059669" fillOpacity={0.7} />
+    <circle cx={cx} cy={cy} r={size} fill="var(--color-positive)" fillOpacity={0.7} />
   ) : (
     <g transform={`translate(${cx}, ${cy})`}>
-      <line x1={-size} y1={-size} x2={size} y2={size} stroke="#dc2626" strokeWidth={2} strokeOpacity={0.6} />
-      <line x1={size} y1={-size} x2={-size} y2={size} stroke="#dc2626" strokeWidth={2} strokeOpacity={0.6} />
+      <line x1={-size} y1={-size} x2={size} y2={size} stroke="var(--color-negative)" strokeWidth={2} strokeOpacity={0.6} />
+      <line x1={size} y1={-size} x2={-size} y2={size} stroke="var(--color-negative)" strokeWidth={2} strokeOpacity={0.6} />
     </g>
   )
 }

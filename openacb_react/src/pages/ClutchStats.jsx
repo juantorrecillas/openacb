@@ -3,6 +3,7 @@ import { ArrowUp, ArrowDown, Search, Filter } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { statTitle } from '../utils/statLabels'
 import { getPlayerDisplayName, getPlayerSearchText } from '../utils/playerNames'
+import PageHeader from '../components/PageHeader'
 
 function seasonLabel(s) {
   return `${s - 1}-${String(s).slice(-2)}`
@@ -22,10 +23,10 @@ function fmtVal(v, key) {
 
 function getPercentileColor(pct) {
   if (pct == null || isNaN(pct)) return 'bg-acb-100 text-acb-600'
-  if (pct >= 75) return 'bg-positive-100 text-positive-700'
-  if (pct >= 50) return 'bg-info-100 text-info-700'
-  if (pct >= 25) return 'bg-info-100 text-info-600'
-  return 'bg-negative-100 text-negative-700'
+  if (pct >= 75) return 'bg-acb-800 text-white'
+  if (pct >= 50) return 'bg-acb-200 text-acb-800'
+  if (pct >= 25) return 'bg-acb-100 text-acb-700'
+  return 'bg-acb-50 text-acb-600'
 }
 
 // rank → percentile (rank 1 → 100, rank n → 0). undefined for n <= 1.
@@ -267,43 +268,36 @@ export default function ClutchStats({ teams, players = [], playerBio = {}, loadC
 
   return (
     <div className="app-page space-y-6">
-      {/* Header */}
-      <div>
-        <h2 className="text-2xl font-semibold text-acb-900">Estadísticas Clutch</h2>
-        <p className="text-acb-500 text-sm mt-1">
-          Últimos 5 minutos del 4º cuarto o prórroga con diferencia de puntos ≤ 5
-        </p>
-      </div>
+      <PageHeader title="Estadísticas clutch" subtitle="Últimos 5 minutos del 4.º cuarto o prórroga con una diferencia de 5 puntos o menos" />
 
       {/* Controls */}
-      <div className="bg-white rounded-lg border border-acb-200 p-4">
+      <div className="filter-panel">
         <div className="flex flex-wrap items-center gap-4 mb-4">
           {/* Season */}
           <div className="flex items-center gap-2">
-            <label htmlFor="clutch-season" className="text-sm text-acb-600">Temporada:</label>
+            <label htmlFor="clutch-season" className="field-label">Temporada</label>
             <select
               id="clutch-season"
               value={selectedSeason}
               onChange={e => setSelectedSeason(Number(e.target.value))}
-              className="px-3 py-2 border border-acb-200 rounded-md text-sm bg-white"
+              className="form-control"
             >
               {availableSeasons.map(s => <option key={s} value={s}>{seasonLabel(s)}</option>)}
             </select>
           </div>
 
           {/* View mode */}
-          <div className="flex items-center gap-1 bg-acb-100 rounded-md p-1" role="group" aria-label="Vista estadística">
+          <div className="segmented-control" role="group" aria-label="Vista estadística">
             {[['basic','Básico'],['advanced','Avanzado'],['absolutos','Absolutos']].map(([mode, label]) => (
               <button
                 key={mode}
+                aria-pressed={viewMode === mode}
                 onClick={() => {
                   setViewMode(mode)
                   setSortKey(mode === 'basic' ? 'pts' : mode === 'advanced' ? 'efgPct' : 'ptsT')
                   setSortDir('desc')
                 }}
-                className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
-                  viewMode === mode ? 'bg-white text-acb-900 shadow-sm' : 'text-acb-600 hover:text-acb-900'
-                }`}
+                className="segmented-option"
               >{label}</button>
             ))}
           </div>
@@ -316,7 +310,7 @@ export default function ClutchStats({ teams, players = [], playerBio = {}, loadC
               id="clutch-team"
               value={teamFilter}
               onChange={e => setTeamFilter(e.target.value)}
-              className="px-3 py-2 border border-acb-200 rounded-md text-sm bg-white"
+              className="form-control"
             >
               <option value="">Todos los equipos</option>
               {allTeams.map(t => <option key={t} value={t}>{t}</option>)}
@@ -331,7 +325,7 @@ export default function ClutchStats({ teams, players = [], playerBio = {}, loadC
                 id="clutch-position"
                 value={positionFilter}
                 onChange={e => setPositionFilter(e.target.value)}
-                className="px-3 py-2 border border-acb-200 rounded-md text-sm bg-white"
+                className="form-control"
               >
                 <option value="">Todas las posiciones</option>
                 {allPositions.map(pos => <option key={pos} value={pos}>{pos}</option>)}
@@ -341,12 +335,12 @@ export default function ClutchStats({ teams, players = [], playerBio = {}, loadC
 
           {/* Min games */}
           <div className="flex items-center gap-2">
-            <label htmlFor="clutch-min-games" className="text-sm text-acb-600">Mín. PJ clutch:</label>
+            <label htmlFor="clutch-min-games" className="field-label">Mín. PJ clutch</label>
             <select
               id="clutch-min-games"
               value={minGames}
               onChange={e => setMinGames(Number(e.target.value))}
-              className="px-3 py-2 border border-acb-200 rounded-md text-sm bg-white"
+              className="form-control"
             >
               {[1,3,5,10].map(v => <option key={v} value={v}>{v}+</option>)}
             </select>

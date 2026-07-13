@@ -4,6 +4,7 @@ import { Search, ArrowUp, ArrowDown, Filter, Download } from 'lucide-react'
 import { downloadTableAsCsv } from '../utils/csvDownload'
 import { statTitle } from '../utils/statLabels'
 import { getPlayerDisplayName, getPlayerSearchText } from '../utils/playerNames'
+import PageHeader from '../components/PageHeader'
 
 const positionCol = { key: 'position', label: 'Pos', align: 'left', sortable: true }
 const POSITION_ORDER = ['Base', 'Escolta', 'Alero', 'Ala-pívot', 'Pívot']
@@ -120,19 +121,19 @@ const absolutesColumns = [
   { key: 'ftm', label: 'TLA', align: 'right', sortable: true },
 ]
 
-// Opponent zone shooting columns (defensive impact - showing FG% allowed and differential)
+// opponent zone shooting columns
 const defenseColumns = [
   { key: 'playerFull', label: 'Jugador', align: 'left', sortable: true },
   { key: 'team', label: 'Equipo', align: 'left', sortable: true },
   positionCol,
   { key: 'games', label: 'PJ', align: 'right', sortable: true },
   { key: 'mpg', label: 'MPP', align: 'right', sortable: true },
-  { key: 'oppDiffRim', label: 'Aro', title: 'Zona restringida', align: 'right', sortable: true, defense: true, fgpctKey: 'oppOnFgpctRim', fgaKey: 'oppFgaRim' },
-  { key: 'oppDiffShortMid', label: 'Pintura', title: 'Zona no restringida', align: 'right', sortable: true, defense: true, fgpctKey: 'oppOnFgpctShortMid', fgaKey: 'oppFgaShortMid' },
-  { key: 'oppDiffLongMid', label: 'Media', title: 'Media distancia', align: 'right', sortable: true, defense: true, fgpctKey: 'oppOnFgpctLongMid', fgaKey: 'oppFgaLongMid' },
-  { key: 'oppDiffCornerThree', label: '3P esq.', title: 'Triple desde la esquina', align: 'right', sortable: true, defense: true, fgpctKey: 'oppOnFgpctCornerThree', fgaKey: 'oppFgaCornerThree' },
-  { key: 'oppDiffNcThree', label: '3P frontal', title: 'Triple fuera de la esquina', align: 'right', sortable: true, defense: true, fgpctKey: 'oppOnFgpctNcThree', fgaKey: 'oppFgaNcThree' },
-  { key: 'oppDiffAllThree', label: '3P total', title: 'Total de triples', align: 'right', sortable: true, defense: true, fgpctKey: 'oppOnFgpctAllThree', fgaKey: 'oppFgaAllThree' },
+  { key: 'oppDiffRim', label: 'Diff aro', title: 'Diff TC% rival vs equipo (pp) · zona restringida', align: 'right', sortable: true, defense: true, fgpctKey: 'oppOnFgpctRim', fgaKey: 'oppFgaRim' },
+  { key: 'oppDiffShortMid', label: 'Diff pintura', title: 'Diff TC% rival vs equipo (pp) · zona no restringida', align: 'right', sortable: true, defense: true, fgpctKey: 'oppOnFgpctShortMid', fgaKey: 'oppFgaShortMid' },
+  { key: 'oppDiffLongMid', label: 'Diff media', title: 'Diff TC% rival vs equipo (pp) · media distancia', align: 'right', sortable: true, defense: true, fgpctKey: 'oppOnFgpctLongMid', fgaKey: 'oppFgaLongMid' },
+  { key: 'oppDiffCornerThree', label: 'Diff 3P esq.', title: 'Diff TC% rival vs equipo (pp) · triple desde la esquina', align: 'right', sortable: true, defense: true, fgpctKey: 'oppOnFgpctCornerThree', fgaKey: 'oppFgaCornerThree' },
+  { key: 'oppDiffNcThree', label: 'Diff 3P frontal', title: 'Diff TC% rival vs equipo (pp) · triple fuera de la esquina', align: 'right', sortable: true, defense: true, fgpctKey: 'oppOnFgpctNcThree', fgaKey: 'oppFgaNcThree' },
+  { key: 'oppDiffAllThree', label: 'Diff 3P total', title: 'Diff TC% rival vs equipo (pp) · total de triples', align: 'right', sortable: true, defense: true, fgpctKey: 'oppOnFgpctAllThree', fgaKey: 'oppFgaAllThree' },
 ]
 
 export default function PlayerStats({ players, playerBio = {} }) {
@@ -348,10 +349,13 @@ export default function PlayerStats({ players, playerBio = {} }) {
       return `${value.toFixed(1)}%`
     }
 
-    // Opponent zone shooting (defensive stats)
-    if (key.startsWith('oppOnFgpct') || key.startsWith('oppDiff')) {
+    // opponent zone shooting
+    if (key.startsWith('oppDiff')) {
       const sign = value > 0 ? '+' : ''
-      return `${sign}${value.toFixed(1)}%`
+      return `${sign}${value.toFixed(1)} pp`
+    }
+    if (key.startsWith('oppOnFgpct')) {
+      return `${value.toFixed(1)}%`
     }
 
     // Offensive Rating (points per 100 possessions)
@@ -409,60 +413,55 @@ export default function PlayerStats({ players, playerBio = {} }) {
     downloadTableAsCsv(filename, exportRows, exportColumns)
   }
 
-  // Get percentile badge color based on percentile value (0-100)
+  // percentile badge color
   const getPercentileBadgeColor = (percentile) => {
     if (percentile == null || isNaN(percentile)) return 'bg-acb-100 text-acb-600'
-    if (percentile >= 75) return 'bg-positive-100 text-positive-700'
-    if (percentile >= 50) return 'bg-info-100 text-info-700'
-    if (percentile >= 25) return 'bg-info-100 text-info-600'
-    return 'bg-negative-100 text-negative-700'
+    if (percentile >= 75) return 'bg-acb-800 text-white'
+    if (percentile >= 50) return 'bg-acb-200 text-acb-800'
+    if (percentile >= 25) return 'bg-acb-100 text-acb-700'
+    return 'bg-acb-50 text-acb-500'
   }
 
   const displayedPlayers = showAll ? filteredPlayers : filteredPlayers.slice(0, 100)
 
   return (
     <div className="app-page space-y-6">
-      {/* Header */}
-      <div>
-        <h2 className="text-2xl font-semibold text-acb-900">Estadísticas de Jugador</h2>
-        <p className="text-acb-500 text-sm mt-1">
-          Estadísticas básicas y avanzadas de jugadores
-        </p>
-      </div>
+      <PageHeader
+        title="Estadísticas de jugadores"
+        subtitle="Estadísticas básicas y avanzadas de todos los jugadores"
+      />
 
       {/* Filters */}
-      <div className="bg-white rounded-lg border border-acb-200 p-4">
+      <div className="filter-panel">
         <div className="flex flex-wrap items-center gap-4 mb-4">
           {/* Season Filter */}
           <div className="flex items-center gap-2">
-            <label htmlFor="player-stats-season" className="text-sm text-acb-600">Temporada:</label>
+            <label htmlFor="player-stats-season" className="field-label">Temporada</label>
             <select
               id="player-stats-season"
               value={selectedSeason}
               onChange={(e) => { setSelectedSeason(e.target.value === 'all' ? 'all' : parseInt(e.target.value)); setShowAll(false) }}
-              className="px-3 py-2 border border-acb-200 rounded-md text-sm bg-white"
+              className="form-control"
             >
               {availableSeasons.map(season => (
                 <option key={season} value={season}>{season-1}-{String(season).slice(-2)}</option>
               ))}
-              <option value="all">Todas las Temporadas</option>
+              <option value="all">Todas las temporadas</option>
             </select>
           </div>
 
-          <div className="flex items-center gap-1 bg-acb-100 rounded-md p-1" role="group" aria-label="Fase de la competición">
+          <div className="segmented-control" role="group" aria-label="Fase de la competición">
             <button
               onClick={() => { setSelectedStage('regular'); setTeamFilter('') }}
-              className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
-                selectedStage === 'regular' ? 'bg-white text-acb-900 shadow-sm' : 'text-acb-600 hover:text-acb-900'
-              }`}
+              aria-pressed={selectedStage === 'regular'}
+              className="segmented-option"
             >
               Temporada regular
             </button>
             <button
               onClick={() => { setSelectedStage('playoffs'); setTeamFilter('') }}
-              className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
-                selectedStage === 'playoffs' ? 'bg-white text-acb-900 shadow-sm' : 'text-acb-600 hover:text-acb-900'
-              }`}
+              aria-pressed={selectedStage === 'playoffs'}
+              className="segmented-option"
             >
               Playoffs
             </button>
@@ -470,67 +469,53 @@ export default function PlayerStats({ players, playerBio = {} }) {
 
           {/* View Mode Toggle */}
           <div className="w-full overflow-x-auto pb-1">
-            <div className="flex items-center gap-1 bg-acb-100 rounded-md p-1 w-max" role="group" aria-label="Vista estadística">
+            <div className="segmented-control w-max" role="group" aria-label="Vista estadística">
               <button
                 onClick={() => setViewMode('basic')}
-                className={`px-3 py-1.5 text-sm font-medium rounded transition-colors
-                  ${viewMode === 'basic'
-                    ? 'bg-white text-acb-900 shadow-sm'
-                    : 'text-acb-600 hover:text-acb-900'}`}
+                aria-pressed={viewMode === 'basic'}
+                className="segmented-option"
               >
                 Básico
               </button>
             <button
               onClick={() => setViewMode('advanced')}
-              className={`px-3 py-1.5 text-sm font-medium rounded transition-colors
-                ${viewMode === 'advanced'
-                  ? 'bg-white text-acb-900 shadow-sm'
-                  : 'text-acb-600 hover:text-acb-900'}`}
+              aria-pressed={viewMode === 'advanced'}
+              className="segmented-option"
             >
               Avanzado
             </button>
             <button
               onClick={() => { setViewMode('absolutos'); setSortKey('points'); setSortDir('desc') }}
-              className={`px-3 py-1.5 text-sm font-medium rounded transition-colors
-                ${viewMode === 'absolutos'
-                  ? 'bg-white text-acb-900 shadow-sm'
-                  : 'text-acb-600 hover:text-acb-900'}`}
+              aria-pressed={viewMode === 'absolutos'}
+              className="segmented-option"
             >
               Absolutos
             </button>
             <button
               onClick={() => setViewMode('misc')}
-              className={`px-3 py-1.5 text-sm font-medium rounded transition-colors
-                ${viewMode === 'misc'
-                  ? 'bg-white text-acb-900 shadow-sm'
-                  : 'text-acb-600 hover:text-acb-900'}`}
+              aria-pressed={viewMode === 'misc'}
+              className="segmented-option"
             >
               Otros
             </button>
             <button
               onClick={() => setViewMode('frequency')}
-              className={`px-3 py-1.5 text-sm font-medium rounded transition-colors
-                ${viewMode === 'frequency'
-                  ? 'bg-white text-acb-900 shadow-sm'
-                  : 'text-acb-600 hover:text-acb-900'}`}
+              aria-pressed={viewMode === 'frequency'}
+              className="segmented-option"
             >
               Tiro: Frecuencia
             </button>
             <button
               onClick={() => setViewMode('accuracy')}
-              className={`px-3 py-1.5 text-sm font-medium rounded transition-colors
-                ${viewMode === 'accuracy'
-                  ? 'bg-white text-acb-900 shadow-sm'
-                  : 'text-acb-600 hover:text-acb-900'}`}
+              aria-pressed={viewMode === 'accuracy'}
+              className="segmented-option"
             >
               Tiro: Precisión
             </button>
             <button
               onClick={() => setViewMode('defense')}
-              className={`px-3 py-1.5 text-sm font-medium rounded transition-colors
-                ${viewMode === 'defense'
-                  ? 'bg-white text-acb-900 shadow-sm'
-                  : 'text-acb-600 hover:text-acb-900'}`}
+              aria-pressed={viewMode === 'defense'}
+              className="segmented-option"
             >
               Tiro Rival
             </button>
@@ -564,7 +549,7 @@ export default function PlayerStats({ players, playerBio = {} }) {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar jugadores..."
-              className="w-full pl-10 pr-4 py-2 border border-acb-200 rounded-md text-sm"
+              className="form-control pl-10"
             />
           </div>
 
@@ -576,9 +561,9 @@ export default function PlayerStats({ players, playerBio = {} }) {
               id="player-stats-team"
               value={teamFilter}
               onChange={(e) => setTeamFilter(e.target.value)}
-              className="px-3 py-2 border border-acb-200 rounded-md text-sm bg-white"
+              className="form-control"
             >
-              <option value="">Todos los Equipos</option>
+              <option value="">Todos los equipos</option>
               {teams.map(team => (
                 <option key={team} value={team}>{team}</option>
               ))}
@@ -593,9 +578,9 @@ export default function PlayerStats({ players, playerBio = {} }) {
                 id="player-stats-position"
                 value={positionFilter}
                 onChange={(e) => setPositionFilter(e.target.value)}
-                className="px-3 py-2 border border-acb-200 rounded-md text-sm bg-white"
+                className="form-control"
               >
-                <option value="">Todas las Posiciones</option>
+                <option value="">Todas las posiciones</option>
                 {positions.map(pos => (
                   <option key={pos} value={pos}>{pos}</option>
                 ))}

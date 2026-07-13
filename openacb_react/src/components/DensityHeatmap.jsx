@@ -173,59 +173,63 @@ export default function DensityHeatmap({
   const isComparison = isFrequency;
 
   return (
-    <div className="relative" style={{ width: '100%', maxWidth: width, aspectRatio: `${width} / ${height}` }}>
-      <Court width={width} height={height} />
+    <div className="w-full" style={{ maxWidth: width }}>
+      <div className="overflow-x-auto pb-1">
+        <div className="relative min-w-[560px]" style={{ aspectRatio: `${width} / ${height}` }}>
+          <Court width={width} height={height} />
 
-      <svg
-        viewBox={`0 0 ${width} ${height}`}
-        className="absolute inset-0 w-full h-full"
-        role="img"
-        aria-label={isComparison ? 'Frecuencia de tiro respecto a la liga' : 'Densidad de tiro'}
-        style={{ pointerEvents: 'none' }}
-      >
-        {/* Add slight blur for smooth appearance */}
-        <defs>
-          <filter id="smooth-blur">
-            <feGaussianBlur in="SourceGraphic" stdDeviation="0.8" />
-          </filter>
-        </defs>
+          <svg
+            viewBox={`0 0 ${width} ${height}`}
+            className="absolute inset-0 w-full h-full"
+            role="img"
+            aria-label={isComparison ? 'Frecuencia de tiro respecto a la liga' : 'Densidad de tiro'}
+            style={{ pointerEvents: 'none' }}
+          >
+            {/* Add slight blur for smooth appearance */}
+            <defs>
+              <filter id="smooth-blur">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="0.8" />
+              </filter>
+            </defs>
 
-        {/* Draw density heatmap */}
-        <g filter="url(#smooth-blur)">
-        {grid.map((row, i) =>
-          row.map((value, j) => {
-            if (value === 0 || max === 0) return null;
+            {/* Draw density heatmap */}
+            <g filter="url(#smooth-blur)">
+              {grid.map((row, i) =>
+                row.map((value, j) => {
+                  if (value === 0 || max === 0) return null;
 
-            const normalizedValue = isComparison
-              ? Math.max(-1, Math.min(1, value / max))
-              : Math.min(1, value / max);
-            const intensity = isComparison ? Math.abs(normalizedValue) : normalizedValue;
-            if (isComparison && intensity < MIN_RELATIVE_INTENSITY) return null;
-            if (!isComparison && normalizedValue < 0.01) return null;
+                  const normalizedValue = isComparison
+                    ? Math.max(-1, Math.min(1, value / max))
+                    : Math.min(1, value / max);
+                  const intensity = isComparison ? Math.abs(normalizedValue) : normalizedValue;
+                  if (isComparison && intensity < MIN_RELATIVE_INTENSITY) return null;
+                  if (!isComparison && normalizedValue < 0.01) return null;
 
-            const x = i * cellWidth;
-            const y = j * cellHeight;
-            const color = isComparison ? getRelativeColor(normalizedValue) : getColor(normalizedValue);
+                  const x = i * cellWidth;
+                  const y = j * cellHeight;
+                  const color = isComparison ? getRelativeColor(normalizedValue) : getColor(normalizedValue);
 
-            return (
-              <rect
-                key={`${i}-${j}`}
-                x={x}
-                y={y}
-                width={cellWidth + 0.5}
-                height={cellHeight + 0.5}
-                fill={color}
-                opacity={isComparison ? 0.2 + (intensity * 0.75) : 0.85}
-                style={{ strokeWidth: 0 }}
-              />
-            );
-          })
-        )}
-        </g>
-      </svg>
+                  return (
+                    <rect
+                      key={`${i}-${j}`}
+                      x={x}
+                      y={y}
+                      width={cellWidth + 0.5}
+                      height={cellHeight + 0.5}
+                      fill={color}
+                      opacity={isComparison ? 0.2 + (intensity * 0.75) : 0.85}
+                      style={{ strokeWidth: 0 }}
+                    />
+                  );
+                })
+              )}
+            </g>
+          </svg>
+        </div>
+      </div>
 
       {/* Legend */}
-      <div className="absolute bottom-2 left-2 right-2 bg-white/95 p-2 rounded border border-acb-300">
+      <div className="mt-2 rounded border border-acb-200 bg-white p-2">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-medium text-acb-700">

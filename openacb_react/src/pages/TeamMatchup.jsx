@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import ZoneHeatmap from '../components/ZoneHeatmap'
+import PageHeader from '../components/PageHeader'
 
 function seasonLabel(s) {
   return `${s - 1}-${String(s).slice(-2)}`
@@ -18,7 +19,7 @@ function num(v) {
 
 function fmt(v, type = 'decimal') {
   const n = num(v)
-  if (n == null) return '-'
+  if (n == null) return '—'
   if (type === 'pct') return `${(n * 100).toFixed(1)}%`
   if (type === 'pct100') return `${n.toFixed(1)}%`
   if (type === 'int') return String(Math.round(n))
@@ -26,20 +27,23 @@ function fmt(v, type = 'decimal') {
   return n.toFixed(1)
 }
 
+function fmtAdvantage(v, type = 'decimal') {
+  const n = num(v)
+  if (n == null) return '—'
+  if (n === 0) return 'Igual'
+  if (type === 'pct') return `${(Math.abs(n) * 100).toFixed(1)} pp`
+  if (type === 'pct100') return `${Math.abs(n).toFixed(1)} pp`
+  return Math.abs(n).toFixed(1)
+}
+
 function percentileRank(rows, key, value, inverse = false) {
   const vals = rows.map(r => num(r[key])).filter(v => v != null).sort((a, b) => a - b)
   const v = num(value)
-  if (!vals.length || v == null) return 50
-  const below = vals.filter(x => x <= v).length
-  const pct = vals.length === 1 ? 50 : ((below - 1) / (vals.length - 1)) * 100
+  if (!vals.length || v == null) return null
+  const below = vals.filter(x => x < v).length
+  const equal = vals.filter(x => x === v).length
+  const pct = vals.length === 1 ? 50 : ((below + (equal - 1) / 2) / (vals.length - 1)) * 100
   return Math.max(0, Math.min(100, inverse ? 100 - pct : pct))
-}
-
-function scoreClass(score) {
-  if (score >= 70) return 'bg-positive-100 text-positive-700'
-  if (score >= 52) return 'bg-info-100 text-info-700'
-  if (score >= 38) return 'bg-acb-100 text-acb-700'
-  return 'bg-negative-100 text-negative-700'
 }
 
 function edgeClass(v) {
@@ -101,6 +105,8 @@ function RadarOverlay({ teamA, teamB, league }) {
   const n = radarAxes.length
   const valsA = radarAxes.map(a => percentileRank(league, a.key, teamA?.[a.key], a.inverse))
   const valsB = radarAxes.map(a => percentileRank(league, a.key, teamB?.[a.key], a.inverse))
+  const hasRadarA = valsA.every(v => v != null)
+  const hasRadarB = valsB.every(v => v != null)
   const angle = i => (Math.PI * 2 * i) / n - Math.PI / 2
   const point = (i, pct) => {
     const r = (Math.max(4, Math.min(100, pct)) / 100) * radius
@@ -121,7 +127,7 @@ function RadarOverlay({ teamA, teamB, league }) {
   }
 
   return (
-    <div className="bg-white rounded-lg border border-acb-200 p-5">
+    <div className="min-w-0 overflow-hidden bg-white rounded-lg border border-acb-200 p-5">
       <div className="flex items-start justify-between gap-3 mb-2">
         <div>
           <h3 className="font-semibold text-acb-900">Radar de cara a cara</h3>
@@ -140,13 +146,15 @@ function RadarOverlay({ teamA, teamB, league }) {
           const [x, y] = point(i, 100)
           return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="#e2e8f0" strokeWidth={0.7} />
         })}
-        <path d={path(valsA)} fill="rgba(254, 89, 23, 0.18)" stroke="#fe5917" strokeWidth={2.5} />
-        <path d={path(valsB)} fill="rgba(59, 130, 246, 0.16)" stroke="#3b82f6" strokeWidth={2.5} />
+        {hasRadarA && <path d={path(valsA)} fill="rgba(254, 89, 23, 0.18)" stroke="#fe5917" strokeWidth={2.5} />}
+        {hasRadarB && <path d={path(valsB)} fill="rgba(59, 130, 246, 0.16)" stroke="#3b82f6" strokeWidth={2.5} />}
         {valsA.map((v, i) => {
+          if (v == null) return null
           const [x, y] = point(i, v)
           return <circle key={`a-${i}`} cx={x} cy={y} r={3.5} fill="#fe5917" stroke="white" strokeWidth={1.5} />
         })}
         {valsB.map((v, i) => {
+          if (v == null) return null
           const [x, y] = point(i, v)
           return <circle key={`b-${i}`} cx={x} cy={y} r={3.5} fill="#3b82f6" stroke="white" strokeWidth={1.5} />
         })}
@@ -168,7 +176,11 @@ function SummaryCard({ team, league, pace, clutch, teamLogos, accent }) {
   const attack = percentileRank(league, 'ortg', team.ortg)
   const defense = percentileRank(league, 'drtg', team.drtg, true)
   const pressure = percentileRank(league, 'opp_tovRate', team.opp_tovRate)
-  const rebound = (percentileRank(league, 'orbPct', team.orbPct) + percentileRank(league, 'drbPct', team.drbPct)) / 2
+  const offensiveRebound = percentileRank(league, 'orbPct', team.orbPct)
+  const defensiveRebound = percentileRank(league, 'drbPct', team.drbPct)
+  const rebound = offensiveRebound == null || defensiveRebound == null
+    ? null
+    : (offensiveRebound + defensiveRebound) / 2
   const clutchNet = clutch?.netRtg
   const qs = pace?.quarters?.diff || []
   const bestQ = qs.length ? qs.indexOf(Math.max(...qs)) + 1 : null
@@ -208,7 +220,9 @@ function SummaryCard({ team, league, pace, clutch, teamLogos, accent }) {
         ].map(([label, score]) => (
           <div key={label} className="flex items-center justify-between gap-2">
             <span className="text-acb-500">{label}</span>
-            <span className={`px-2 py-0.5 rounded font-mono font-semibold ${scoreClass(score)}`}>{score.toFixed(0)}</span>
+            <span className="px-2 py-0.5 rounded bg-acb-100 text-acb-700 font-mono font-semibold">
+              {score == null ? '—' : score.toFixed(0)}
+            </span>
           </div>
         ))}
         <div className="flex items-center justify-between gap-2">
@@ -217,7 +231,9 @@ function SummaryCard({ team, league, pace, clutch, teamLogos, accent }) {
         </div>
         <div className="flex items-center justify-between gap-2">
           <span className="text-acb-500">Cuartos</span>
-          <span className="font-mono text-acb-700">{bestQ ? `+Q${bestQ} / -Q${worstQ}` : '-'}</span>
+          <span className="font-mono text-acb-700">
+            {bestQ ? `Mejor: Q${bestQ} (${fmt(qs[bestQ - 1], 'signed')}) · Peor: Q${worstQ} (${fmt(qs[worstQ - 1], 'signed')})` : '—'}
+          </span>
         </div>
       </div>
     </div>
@@ -241,7 +257,7 @@ const sections = [
       { key: 'pace', label: 'Pace', type: 'decimal', scale: 8 },
       { key: 'threeRate', label: 'Vol. 3P', type: 'pct', scale: 0.15 },
       { key: 'threePct', label: '3P%', type: 'pct', scale: 0.12 },
-      { key: 'ftRate', label: 'FTr', type: 'decimal', scale: 0.3 },
+      { key: 'ftRate', label: 'FTr', type: 'pct', scale: 0.3 },
       { key: 'assistedFgm', label: '% asistidos', type: 'pct100', scale: 20 },
     ],
   },
@@ -262,7 +278,7 @@ function StatComparison({ a, b }) {
     <div className="bg-white rounded-lg border border-acb-200 overflow-hidden">
       <div className="px-5 py-3 border-b border-acb-200">
         <h3 className="font-semibold text-acb-900">Fortalezas y debilidades</h3>
-        <p className="text-xs text-acb-500 mt-0.5">La barra central indica dirección y magnitud de la ventaja</p>
+        <p className="text-xs text-acb-500 mt-0.5">La barra central indica qué equipo es mejor y por cuánto</p>
       </div>
       <div className="grid grid-cols-[minmax(80px,1fr)_64px_56px_64px] sm:grid-cols-[minmax(110px,1fr)_minmax(80px,108px)_80px_minmax(80px,108px)] items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2.5 bg-acb-50 border-b border-acb-200 text-[11px] font-semibold uppercase text-acb-500">
         <div>Métrica</div>
@@ -270,7 +286,7 @@ function StatComparison({ a, b }) {
           <span className="w-2 h-2 rounded-full bg-accent-500 shrink-0" />
           <span className="truncate" title={a?.team}>{a?.team || 'Equipo A'}</span>
         </div>
-        <div className="text-center">Ventaja</div>
+        <div className="text-center">Mejor por</div>
         <div className="text-right flex items-center justify-end gap-1">
           <span className="w-2 h-2 rounded-full bg-info-500 shrink-0" />
           <span className="truncate" title={b?.team}>{b?.team || 'Equipo B'}</span>
@@ -292,9 +308,9 @@ function StatComparison({ a, b }) {
                   return (
                     <div key={m.key} className="grid grid-cols-[minmax(80px,1fr)_64px_56px_64px] sm:grid-cols-[minmax(110px,1fr)_minmax(80px,108px)_80px_minmax(80px,108px)] items-center gap-1 sm:gap-2 text-sm">
                       <div className="text-acb-600 truncate">{m.label}</div>
-                      <div className={`font-mono text-right ${diff != null && diff > 0 ? 'text-positive font-semibold' : 'text-acb-700'}`}>{fmt(av, m.type)}</div>
+                      <div className={`font-mono text-right text-acb-700 ${diff != null && diff > 0 ? 'font-semibold' : ''}`}>{fmt(av, m.type)}</div>
                       <div className="flex flex-col items-center gap-0.5">
-                        <span className="font-mono text-[10px] text-acb-500">{diff == null ? '-' : fmt(diff, 'signed')}</span>
+                        <span className="font-mono text-[10px] text-acb-500">{fmtAdvantage(diff, m.type)}</span>
                         {diff != null && (
                           <div className="flex w-full h-[3px]">
                             <div className="flex-1 flex justify-end overflow-hidden">
@@ -307,7 +323,7 @@ function StatComparison({ a, b }) {
                           </div>
                         )}
                       </div>
-                      <div className={`font-mono text-right ${diff != null && diff < 0 ? 'text-positive font-semibold' : 'text-acb-700'}`}>{fmt(bv, m.type)}</div>
+                      <div className={`font-mono text-right text-acb-700 ${diff != null && diff < 0 ? 'font-semibold' : ''}`}>{fmt(bv, m.type)}</div>
                     </div>
                   )
                 })}
@@ -334,7 +350,9 @@ function ShotProfile({ teamA, teamB, shots, isLoading }) {
 
   const toggleBtn = (active, onClick, label) => (
     <button
+      type="button"
       onClick={onClick}
+      aria-pressed={active}
       className={`px-2.5 py-1 text-xs rounded transition-colors ${active ? 'bg-acb-800 text-white font-medium' : 'bg-acb-100 text-acb-600 hover:bg-acb-200'}`}
     >
       {label}
@@ -362,23 +380,23 @@ function ShotProfile({ teamA, teamB, shots, isLoading }) {
       {isLoading ? (
         <div className="text-center py-10 text-acb-400">Cargando tiros...</div>
       ) : (
-        <div className="grid lg:grid-cols-2 gap-6">
-          <div>
+        <div className="grid min-w-0 lg:grid-cols-2 gap-6">
+          <div className="min-w-0">
             <div className="flex items-center gap-2 mb-2 text-sm font-semibold text-acb-800">
               <span className="w-2.5 h-2.5 rounded-full bg-accent-500 inline-block" />
               {teamA?.team}
             </div>
             <div className="overflow-x-auto">
-              <ZoneHeatmap shots={shotsA} leagueShots={shots} metric={metric} width={430} height={405} />
+              <ZoneHeatmap shots={shotsA} leagueShots={shots} metric={metric} higherIsBetter={mode !== 'defense'} width={430} height={405} />
             </div>
           </div>
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center gap-2 mb-2 text-sm font-semibold text-acb-800">
               <span className="w-2.5 h-2.5 rounded-full bg-info-500 inline-block" />
               {teamB?.team}
             </div>
             <div className="overflow-x-auto">
-              <ZoneHeatmap shots={shotsB} leagueShots={shots} metric={metric} width={430} height={405} />
+              <ZoneHeatmap shots={shotsB} leagueShots={shots} metric={metric} higherIsBetter={mode !== 'defense'} width={430} height={405} />
             </div>
           </div>
         </div>
@@ -396,8 +414,8 @@ function PaceFlow({ a, b }) {
     <div className="bg-white rounded-lg border border-acb-200 p-5">
       <div className="flex items-start justify-between gap-3 mb-4">
         <div>
-          <h3 className="font-semibold text-acb-900">Ritmo por cuartos</h3>
-          <p className="text-xs text-acb-500">Diferencial medio por cuarto y eficiencia tras tiempo muerto</p>
+          <h3 className="font-semibold text-acb-900">Diferencial por cuartos</h3>
+          <p className="text-xs text-acb-500">Diferencial medio de anotación en cada cuarto</p>
         </div>
       </div>
       <div className="space-y-4">
@@ -425,11 +443,14 @@ function PaceFlow({ a, b }) {
             </div>
             {row?.afterTimeout?.ppp != null && (
               <div className="mt-2 pt-2 border-t border-acb-100 flex items-center justify-between text-xs">
-                <span className="text-acb-500">Post tiempo muerto</span>
-                <span className={`font-mono ${edgeClass(row.afterTimeout.ppp - (row.afterTimeout.leaguePpp ?? row.afterTimeout.ppp))}`}>
-                  {fmt(row.afterTimeout.ppp)} PPP
+                <span className="text-acb-500">
+                  <span className="block font-medium text-acb-700">Anotación tras tiempo muerto</span>
+                  <span>pts por tiempo muerto (30 s)</span>
+                </span>
+                <span className="font-mono text-acb-700">
+                  {fmt(row.afterTimeout.ppp)} pts
                   {row.afterTimeout.leaguePpp != null && (
-                    <span className="text-acb-400 font-normal"> (liga: {fmt(row.afterTimeout.leaguePpp)})</span>
+                    <span className="text-acb-400 font-normal"> (media liga: {fmt(row.afterTimeout.leaguePpp)})</span>
                   )}
                 </span>
               </div>
@@ -488,9 +509,9 @@ function ClutchPanel({ a, b, loading, teamA, teamB }) {
 
 function buildNotes(a, b, league, paceA, paceB, clutchA, clutchB) {
   if (!a || !b) return []
-  const safe = v => (v != null && Number.isFinite(Number(v))) ? Number(v) : 0
-  const n1 = v => v != null ? Number(v).toFixed(1) : '-'
-  const pRank = (key, val, inv) => percentileRank(league, key, val, inv)
+  const safe = v => num(v) ?? Number.NaN
+  const n1 = v => num(v) == null ? '—' : Number(v).toFixed(1)
+  const pRank = (key, val, inv) => percentileRank(league, key, val, inv) ?? Number.NaN
   const mk = (label, winner, isA, stat, desc, value) => ({ label, winner, isA, stat, desc, value })
 
   const notes = []
@@ -530,10 +551,10 @@ function buildNotes(a, b, league, paceA, paceB, clutchA, clutchB) {
   const diff3 = score3A - score3B
   if (Math.abs(diff3) > 0.5) {
     const isA = diff3 > 0
-    const [bTeam] = isA ? [a, b] : [b, a]
-    const [bp, wp] = isA ? [a.threePct, b.threePct] : [b.threePct, a.threePct]
-    notes.push(mk('Triple', bTeam.team, isA, `${(safe(bp) * 100).toFixed(1)}% vs ${(safe(wp) * 100).toFixed(1)}% 3P%`,
-      'Más volumen y mejor acierto desde el perímetro.', Math.abs(diff3) * 5))
+    const [better, worse] = isA ? [a, b] : [b, a]
+    notes.push(mk('Triple', better.team, isA,
+      `vol. ${(safe(better.threeRate) * 100).toFixed(1)}% · 3P ${(safe(better.threePct) * 100).toFixed(1)}% vs vol. ${(safe(worse.threeRate) * 100).toFixed(1)}% · 3P ${(safe(worse.threePct) * 100).toFixed(1)}%`,
+      'Mayor producción estimada de triple al combinar volumen y acierto.', Math.abs(diff3) * 5))
   }
 
   // forced turnovers
@@ -591,9 +612,9 @@ function buildNotes(a, b, league, paceA, paceB, clutchA, clutchB) {
   }
 
   // quarter clashes
-  const diffA = paceA?.quarters?.diff || []
-  const diffB = paceB?.quarters?.diff || []
-  if (diffA.length === 4 && diffB.length === 4) {
+  const diffA = paceA?.quarters?.diff?.map(num) || []
+  const diffB = paceB?.quarters?.diff?.map(num) || []
+  if (diffA.length === 4 && diffB.length === 4 && diffA.every(v => v != null) && diffB.every(v => v != null)) {
     const qNames = ['1er cuarto', '2º cuarto', '3er cuarto', '4º cuarto']
     const bestQA = diffA.indexOf(Math.max(...diffA))
     const bestQB = diffB.indexOf(Math.max(...diffB))
@@ -616,7 +637,7 @@ function buildNotes(a, b, league, paceA, paceB, clutchA, clutchB) {
       const [bQ] = isA ? [a, b] : [b, a]
       const bSum = isA ? sumA : sumB; const wSum = isA ? sumB : sumA
       notes.push(mk('Parciales', bQ.team, isA, `${n1(bSum)} vs ${n1(wSum)} suma dif.`,
-        'Gana más parciales por cuartos en general.', Math.abs(qSumDiff) * 2))
+        'Mejor diferencial agregado por cuartos.', Math.abs(qSumDiff) * 2))
     }
   }
 
@@ -627,7 +648,7 @@ function buildNotes(a, b, league, paceA, paceB, clutchA, clutchB) {
     const isA = ftrDiff > 0
     const [aggr] = isA ? [a, b] : [b, a]
     const av = isA ? ftrA : ftrB; const bv = isA ? ftrB : ftrA
-    notes.push(mk('Tiros libres', aggr.team, isA, `FTr ${n1(av)} vs ${n1(bv)}`,
+    notes.push(mk('Tiros libres', aggr.team, isA, `FTr ${(av * 100).toFixed(1)}% vs ${(bv * 100).toFixed(1)}%`,
       'Llega más a la línea de personal.', Math.abs(ftrDiff) * 80))
   }
 
@@ -706,12 +727,22 @@ export default function TeamMatchup({
   const { season: urlSeason, teamA: urlTeamA, teamB: urlTeamB } = useParams()
 
   const availableSeasons = useMemo(() => [...new Set(teams.map(t => t.season))].sort((a, b) => b - a), [teams])
-  const initialSeason = urlSeason ? Number(urlSeason) : (availableSeasons[0] || 2026)
+  const parsedUrlSeason = urlSeason ? Number(urlSeason) : null
+  const initialSeason = parsedUrlSeason && availableSeasons.includes(parsedUrlSeason)
+    ? parsedUrlSeason
+    : (availableSeasons[0] || 2026)
   const [selectedSeason, setSelectedSeason] = useState(initialSeason)
   const seasonTeams = useMemo(() => teams.filter(t => t.season === selectedSeason).sort((a, b) => a.team.localeCompare(b.team)), [teams, selectedSeason])
 
   const defaultPair = useMemo(() => {
-    const ranked = [...seasonTeams].sort((a, b) => (b.netRtg || 0) - (a.netRtg || 0))
+    const ranked = [...seasonTeams].sort((a, b) => {
+      const aNet = num(a.netRtg)
+      const bNet = num(b.netRtg)
+      if (aNet == null && bNet != null) return 1
+      if (aNet != null && bNet == null) return -1
+      if (aNet != null && bNet != null && aNet !== bNet) return bNet - aNet
+      return a.team.localeCompare(b.team, 'es')
+    })
     return [ranked[0]?.team || '', ranked[1]?.team || ranked[0]?.team || '']
   }, [seasonTeams])
 
@@ -719,8 +750,10 @@ export default function TeamMatchup({
   const [teamB, setTeamB] = useState(urlTeamB ? decodeURIComponent(urlTeamB) : defaultPair[1])
 
   useEffect(() => {
-    if (!urlSeason && availableSeasons.length) setSelectedSeason(availableSeasons[0])
-  }, [urlSeason, availableSeasons])
+    if (availableSeasons.length && !availableSeasons.includes(selectedSeason)) {
+      setSelectedSeason(availableSeasons[0])
+    }
+  }, [availableSeasons, selectedSeason])
 
   useEffect(() => {
     if (!seasonTeams.length) return
@@ -759,16 +792,16 @@ export default function TeamMatchup({
 
   return (
     <div className="app-page space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-semibold text-acb-900">Cara a Cara</h2>
-          <p className="text-acb-500 text-sm mt-1">Compara dos equipos por estilo, eficiencia, zonas, rebote, presión y clutch</p>
-          <p className="text-acb-400 text-xs mt-1">Temporada completa · Liga regular y playoffs</p>
-        </div>
-        <Link to="/equipos" className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-acb-200 bg-white text-sm text-acb-600 hover:bg-acb-50">
-          Estadísticas de equipo
-        </Link>
-      </div>
+      <PageHeader
+        title="Cara a cara"
+        subtitle="Compara dos equipos por estilo, eficiencia, zonas, rebote, presión y clutch"
+        scope="Temporada completa · Liga regular y playoffs"
+        actions={(
+          <Link to="/equipos" className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-acb-200 bg-white text-sm text-acb-600 hover:bg-acb-50">
+            Estadísticas de equipo
+          </Link>
+        )}
+      />
 
       <div className="grid lg:grid-cols-[160px_1fr_auto_1fr] gap-4 items-center">
         <div className="bg-white rounded-lg border border-acb-200 p-4">
@@ -794,7 +827,7 @@ export default function TeamMatchup({
           type="button"
           onClick={() => { const tmp = teamA; setTeamA(teamB); setTeamB(tmp) }}
           aria-label="Intercambiar equipos"
-          className="p-2.5 rounded-lg border border-acb-200 bg-white hover:bg-acb-50 text-acb-500 hover:text-acb-900 transition-colors text-xl leading-none self-stretch flex items-center"
+          className="flex h-10 w-10 items-center justify-center justify-self-center self-center rounded-md border border-acb-200 bg-white text-xl leading-none text-acb-500 transition-colors hover:bg-acb-50 hover:text-acb-900"
           title="Intercambiar equipos"
         >
           ⇄

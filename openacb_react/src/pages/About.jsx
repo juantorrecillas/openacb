@@ -12,7 +12,7 @@ function About() {
 
       {/* sobre mí */}
       <div className="bg-white rounded-lg shadow-sm border border-acb-200 p-5 sm:p-8 mb-6">
-        <h1 className="text-2xl font-semibold text-acb-900 mb-4">Sobre mí</h1>
+        <h1 className="text-3xl font-bold text-acb-900 mb-4">Sobre mí</h1>
         <div className="text-base text-acb-700 space-y-2">
           <p>
             <strong>Juan Torrecillas.</strong> Soy Analista de Política Económica en el Joint Research Centre de la Comisión Europea. Como académico y aficionado al baloncesto, me alegra ver que el uso de la analítica y la estadística avanzada se hace más común. Con esta herramienta, tanto para aficionados como para amantes del dato, quiero hacer la perspectiva analítica accesible para todo el mundo. Que cada vez que alguien entre al sitio consiga llevarse algo nuevo aprendido en su mochila.
@@ -46,7 +46,7 @@ function About() {
             <Info className="w-8 h-8 text-acb-700" />
           </div>
           <div>
-            <h2 className="text-3xl font-bold text-acb-900">¿Qué es openACB?</h2>
+            <h2 className="text-xl font-semibold text-acb-900">¿Qué es openACB?</h2>
           </div>
         </div>
 
@@ -62,7 +62,7 @@ function About() {
 
       {/* contacto */}
       <div className="bg-white rounded-lg shadow-sm border border-acb-200 p-5 sm:p-8 mb-6">
-        <h2 className="text-2xl font-semibold text-acb-900 mb-4">Contacto</h2>
+        <h2 className="text-xl font-semibold text-acb-900 mb-4">Contacto</h2>
 
         <div className="space-y-4">
           <div className="flex items-center gap-3 text-acb-700">

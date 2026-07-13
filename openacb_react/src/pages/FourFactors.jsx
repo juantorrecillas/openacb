@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { Circle, Download } from 'lucide-react'
 import { downloadTableAsCsv } from '../utils/csvDownload'
+import PageHeader from '../components/PageHeader'
 
 
 export default function FourFactors({ teams }) {
@@ -152,10 +153,10 @@ export default function FourFactors({ teams }) {
   const getRankColor = (rank, totalTeams) => {
     if (!rank) return 'bg-acb-100 text-acb-600'
     const percentile = rank / totalTeams
-    if (percentile <= 0.25) return 'bg-positive-100 text-positive-700' // Top 25%
-    if (percentile <= 0.5) return 'bg-info-100 text-info-700'          // Top 50%
-    if (percentile <= 0.75) return 'bg-info-100 text-info-600'         // Top 75%
-    return 'bg-negative-100 text-negative-700'                          // Bottom 25%
+    if (percentile <= 0.25) return 'bg-acb-800 text-white'
+    if (percentile <= 0.5) return 'bg-acb-200 text-acb-800'
+    if (percentile <= 0.75) return 'bg-acb-100 text-acb-700'
+    return 'bg-acb-50 text-acb-500'
   }
 
   const rankedCell = (value, rank, totalTeams, className = '') => (
@@ -169,25 +170,23 @@ export default function FourFactors({ teams }) {
 
   return (
     <div className="app-page space-y-6">
-      {/* header */}
-      <div>
-        <h2 className="text-2xl font-semibold text-acb-900">Análisis de Four Factors</h2>
-        <p className="text-acb-500 text-sm mt-1">
-          Temporada completa · Liga regular y playoffs
-        </p>
-      </div>
+      <PageHeader
+        title="Análisis de Four Factors"
+        subtitle="Compara los cuatro factores ofensivos y defensivos de cada equipo"
+        scope="Temporada completa · Liga regular y playoffs"
+      />
 
       {/* controls */}
-      <div className="bg-white rounded-lg border border-acb-200 p-4 space-y-4">
+      <div className="filter-panel space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-4">
           {/* season filter */}
           <div className="flex items-center gap-2">
-            <label htmlFor="four-factors-season" className="text-sm text-acb-600 font-medium">Temporada:</label>
+            <label htmlFor="four-factors-season" className="field-label">Temporada</label>
             <select
               id="four-factors-season"
               value={selectedSeason}
               onChange={(e) => setSelectedSeason(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
-              className="px-3 py-2 border border-acb-200 rounded-md text-sm bg-white font-medium"
+              className="form-control font-medium"
             >
               {availableSeasons.map(season => (
                 <option key={season} value={season}>{season-1}-{String(season).slice(-2)}</option>
@@ -197,7 +196,7 @@ export default function FourFactors({ teams }) {
           </div>
           <button
             onClick={handleDownloadCsv}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-acb-200 rounded text-sm bg-white text-acb-700 hover:bg-acb-50"
+            className="form-control-compact inline-flex items-center gap-1.5 text-acb-700 hover:bg-acb-50"
             title="Descargar la tabla actual como CSV"
           >
             <Download className="w-4 h-4" />

@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
+import PageHeader from '../components/PageHeader'
 
 function seasonLabel(s) {
   return `${s - 1}-${String(s).slice(-2)}`
@@ -10,19 +11,19 @@ function diffColor(v, max) {
   if (max === 0) return 'bg-acb-50'
   const intensity = Math.min(Math.abs(v) / max, 1)
   if (v > 0) {
-    if (intensity > 0.6) return 'bg-green-200 text-green-900'
-    if (intensity > 0.3) return 'bg-green-100 text-green-800'
-    return 'bg-green-50 text-green-700'
+    if (intensity > 0.6) return 'bg-positive-200 text-positive-900'
+    if (intensity > 0.3) return 'bg-positive-100 text-positive-800'
+    return 'bg-positive-50 text-positive-700'
   }
   if (v < 0) {
-    if (intensity > 0.6) return 'bg-red-200 text-red-900'
-    if (intensity > 0.3) return 'bg-red-100 text-red-800'
-    return 'bg-red-50 text-red-700'
+    if (intensity > 0.6) return 'bg-negative-200 text-negative-900'
+    if (intensity > 0.3) return 'bg-negative-100 text-negative-800'
+    return 'bg-negative-50 text-negative-700'
   }
   return 'bg-acb-50 text-acb-600'
 }
 
-// colorValue is always a signed deviation (positive = good = green)
+// colorValue is always a signed deviation
 function cellColor(colorValue, max) {
   return diffColor(colorValue, max)
 }
@@ -155,18 +156,12 @@ export default function TeamPace({ teams, loadTeamPaceForSeason, teamPaceCache, 
 
   return (
     <div className="app-page space-y-6">
-      {/* header */}
-      <div>
-        <h2 className="text-2xl font-semibold text-acb-900">Ritmo y Parciales</h2>
-        <p className="text-acb-500 text-sm mt-1">
-          Rendimiento por cuarto, parciales por segmento y anotación tras tiempo muerto
-        </p>
-      </div>
+      <PageHeader title="Ritmo y parciales" subtitle="Rendimiento por cuarto, parciales por segmento y anotación tras tiempo muerto" />
 
       {/* controls */}
-      <div className="flex flex-wrap items-end gap-3">
+      <div className="filter-panel flex flex-wrap items-end gap-4">
         <div className="flex flex-col gap-1">
-          <label htmlFor="team-pace-season" className="text-xs text-acb-500 font-medium">Temporada</label>
+          <label htmlFor="team-pace-season" className="field-label">Temporada</label>
           <select
             id="team-pace-season"
             value={selectedSeason}
@@ -174,7 +169,7 @@ export default function TeamPace({ teams, loadTeamPaceForSeason, teamPaceCache, 
               setSelectedSeason(Number(e.target.value))
               setSelectedTeam(null)
             }}
-            className="px-3 py-2.5 border border-acb-200 rounded-lg text-sm bg-white"
+            className="form-control"
           >
             {availableSeasons.map(s => (
               <option key={s} value={s}>{seasonLabel(s)}</option>
@@ -183,8 +178,8 @@ export default function TeamPace({ teams, loadTeamPaceForSeason, teamPaceCache, 
         </div>
 
         <div className="flex flex-col gap-1">
-          <span className="text-xs text-acb-500 font-medium">Vista</span>
-          <div className="flex rounded-lg border border-acb-200 overflow-hidden">
+          <span className="field-label">Vista</span>
+          <div className="segmented-control">
             {[
               { key: 'diff', label: 'Diferencial' },
               { key: 'scored', label: 'Anotado' },
@@ -194,11 +189,7 @@ export default function TeamPace({ teams, loadTeamPaceForSeason, teamPaceCache, 
                 key={opt.key}
                 onClick={() => setViewMode(opt.key)}
                 aria-pressed={viewMode === opt.key}
-                className={`px-3 py-2 text-xs font-medium transition-colors ${
-                  viewMode === opt.key
-                    ? 'bg-acb-900 text-white'
-                    : 'bg-white text-acb-600 hover:bg-acb-50'
-                }`}
+                className="segmented-option"
               >
                 {opt.label}
               </button>
@@ -218,7 +209,7 @@ export default function TeamPace({ teams, loadTeamPaceForSeason, teamPaceCache, 
             <h3 className="font-semibold text-acb-900">
               Rendimiento por cuarto
               <span className="font-normal text-acb-400 text-sm ml-2">
-                - {viewMode === 'diff' ? 'Diferencial (pts/partido)' : viewMode === 'scored' ? 'Puntos anotados (avg)' : 'Puntos recibidos (avg)'}
+                · {viewMode === 'diff' ? 'Diferencial (pts/partido)' : viewMode === 'scored' ? 'Puntos anotados (media)' : 'Puntos recibidos (media)'}
               </span>
             </h3>
           </div>

@@ -5,6 +5,34 @@
 @tailwind utilities;
 
 @layer components {
+  .filter-panel {
+    @apply flex flex-wrap items-end gap-4 rounded-md border border-acb-200 bg-white p-4;
+  }
+
+  .field-label {
+    @apply block text-sm font-medium text-acb-600;
+  }
+
+  .form-control {
+    @apply h-10 w-full rounded-md border border-acb-200 bg-white px-3 text-sm text-acb-900 shadow-sm outline-none transition-colors placeholder:text-acb-400 focus:border-accent-400 focus:ring-2 focus:ring-accent-200;
+  }
+
+  .form-control-compact {
+    @apply rounded-md border border-acb-200 bg-white px-3 py-1.5 text-sm text-acb-900 outline-none transition-colors focus:border-accent-400 focus:ring-2 focus:ring-accent-200;
+  }
+
+  .segmented-control {
+    @apply inline-flex overflow-hidden rounded-md border border-acb-200 bg-white;
+  }
+
+  .segmented-option {
+    @apply px-3 py-1.5 text-sm font-medium text-acb-600 transition-colors hover:bg-acb-50;
+  }
+
+  .segmented-option[aria-pressed='true'] {
+    @apply bg-acb-800 text-white hover:bg-acb-800;
+  }
+
   .data-table {
     @apply w-full text-xs sm:text-sm;
   }
@@ -143,39 +171,9 @@ body {
   line-height: 1.125rem;
 }
 
-.app-page :where(button, input, select, textarea).text-xs,
-.app-page .text-xs > button,
-.app-page label.text-xs,
-.app-page :where(label, span).text-xs:has(+ :where(input, select, textarea)) {
-  font-size: 0.6875rem;
-  line-height: 1rem;
-}
-
-.app-page :where(button, input, select, textarea).text-sm,
-.app-page .text-sm > button,
-.app-page label.text-sm,
-.app-page :where(label, span).text-sm:has(+ :where(input, select, textarea)) {
-  font-size: 0.78125rem;
-  line-height: 1.125rem;
-}
-
 @media (max-width: 639px) {
   .app-page .data-table th { font-size: 0.6875rem; line-height: 0.9375rem; }
   .app-page .data-table td { font-size: 0.75rem; line-height: 1.125rem; }
-  .app-page button.text-xs,
-  .app-page .text-xs > button,
-  .app-page label.text-xs,
-  .app-page :where(label, span).text-xs:has(+ :where(input, select, textarea)) {
-    font-size: 0.75rem;
-    line-height: 1rem;
-  }
-  .app-page button.text-sm,
-  .app-page .text-sm > button,
-  .app-page label.text-sm,
-  .app-page :where(label, span).text-sm:has(+ :where(input, select, textarea)) {
-    font-size: 0.8125rem;
-    line-height: 1.125rem;
-  }
   .app-page :where(input, select, textarea),
   .app-page :where(input, select, textarea).text-xs,
   .app-page :where(input, select, textarea).text-sm {
