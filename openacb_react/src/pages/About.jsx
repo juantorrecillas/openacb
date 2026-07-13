@@ -1,31 +1,30 @@
-import { Mail, Globe, Code, Info, Heart, Twitter, Github } from 'lucide-react'
+import { Mail, Globe, Code, Info, Github } from 'lucide-react'
 
 function About() {
   const contactInfo = {
-    name: "Juan Torrecillas",
-    email: "juan.torrecillas.jodar@gmail.com",
-    website: "https://juantorrecillas.es",
-    GitHub: "https://github.com/juantorrecillas/openacb"  
+    email: 'juan.torrecillas.jodar@gmail.com',
+    website: 'https://juantorrecillas.es',
+    GitHub: 'https://github.com/juantorrecillas/openacb',
   }
 
   return (
     <div className="app-page max-w-4xl mx-auto">
 
-{/* Sobre mí */}
-      <div className="bg-white rounded-lg shadow-sm border border-acb-200 p-8 mb-6">
-        <h2 className="text-2xl font-semibold text-acb-900 mb-4">Sobre mí</h2>
+      {/* sobre mí */}
+      <div className="bg-white rounded-lg shadow-sm border border-acb-200 p-5 sm:p-8 mb-6">
+        <h1 className="text-2xl font-semibold text-acb-900 mb-4">Sobre mí</h1>
         <div className="text-base text-acb-700 space-y-2">
           <p>
-            <strong> juan torrecillas.</strong> Soy Analista de Política Económica en el Joint Research Centre de la Comisión Europea. Como académico y aficionado al baloncesto, me alegra ver que el uso de la analítica y la estadística avanzada se hace más común. Con esta herramienta, tanto para aficionados como para amantes del dato, quiero hacer la perspectiva analítica accesible para todo el mundo. Que cada vez que alguien entre al sitio consiga llevarse algo nuevo aprendido en su mochila.
+            <strong>Juan Torrecillas.</strong> Soy Analista de Política Económica en el Joint Research Centre de la Comisión Europea. Como académico y aficionado al baloncesto, me alegra ver que el uso de la analítica y la estadística avanzada se hace más común. Con esta herramienta, tanto para aficionados como para amantes del dato, quiero hacer la perspectiva analítica accesible para todo el mundo. Que cada vez que alguien entre al sitio consiga llevarse algo nuevo aprendido en su mochila.
           </p>
         </div>
-        <div className="flex items-center gap-4 mt-4 pt-4 border-t border-acb-200">
-          <a href="https://x.com/juan_torrec" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-acb-600 hover:text-accent-500 transition-colors">
-            {/* Replaced <Twitter /> with the official X SVG logo */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-3 mt-4 pt-4 border-t border-acb-200">
+          <a href="https://x.com/juan_torrec" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-acb-600 hover:text-accent-500 transition-colors" aria-label="Perfil de Juan Torrecillas en X">
+            {/* logotipo oficial de x */}
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 22.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
             </svg>
-            <span className="text-sm"></span>
+            <span className="text-sm">X</span>
           </a>
           <a href={contactInfo.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-acb-600 hover:text-lemon transition-colors">
             <Globe className="w-5 h-5" />
@@ -41,30 +40,28 @@ function About() {
           </a>
         </div>
       </div>
-      <div className="bg-white rounded-lg shadow-sm border border-acb-200 p-8 mb-6">
+      <div className="bg-white rounded-lg shadow-sm border border-acb-200 p-5 sm:p-8 mb-6">
         <div className="flex items-center gap-4 mb-4">
           <div className="p-3 bg-acb-100 rounded-lg">
             <Info className="w-8 h-8 text-acb-700" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-acb-900">¿Qué es openACB?</h1>
+            <h2 className="text-3xl font-bold text-acb-900">¿Qué es openACB?</h2>
           </div>
         </div>
 
           <div className="prose prose-slate max-w-none">
             <p className="text-acb-700 leading-relaxed">
           openACB es una plataforma que recoge herramientas de análisis de estadísticas avanzadas para la Liga Endesa.
-          Este proyecto compila datos de Play-by-Play de acb.com para presentar una serie de estadísticas y herramientas analíticas que pueden resultar útiles para aficionados o cuerpo técnico. En mi opinión, la herramienta tiene una serie de ventajas que la hacen interesante para el mencionado público. En primer lugar, es una herramienta rápida y ligera, con una gran cantidad de estadísticas disponible. Segundo, proporciona herramientas de analítica avanzada, como el análisis On/Off o las cartas de tiro, que pueden ser de gran interés tanto para analistas como para aficionados. En tercer lugar, es una app de código abierto. La mayoría de herramientas de analítica avanzada están escondidas bajo servicios de suscripción o muros de pago.  Aquí tienes varios de esos servicios disponibles gratuitamente, sin anuncios y en código abierto. Sin ser una plataforma profesional, presenta una serie de herramientas de analítica avanzada que pueden ayudar a conocer mejor el perfil de equipos y jugadores a un nivel más técnico y avanzado. Y todo, repito, de forma gratuita. En el repositorio de GitHub puedes encontrar tanto los datos como el código utilizado para descargar, tratar y presentar los mismos. <strong>Es, en definitiva, una herramienta cuyo único objetivo es ser utilizada.</strong> Si te ha parecido útil, por favor, házmelo saber escribiéndome a mi correo: <a href={`mailto:${contactInfo.email}`} className="text-acb-600 hover:text-accent-500 underline">{contactInfo.email}</a>.
-            </p>
-            <p className="text-acb-700 leading-relaxed"> 
+          Este proyecto compila datos de Play-by-Play de acb.com para presentar una serie de estadísticas y herramientas analíticas que pueden resultar útiles para aficionados o cuerpos técnicos. En mi opinión, la herramienta tiene una serie de ventajas que la hacen interesante para este público. En primer lugar, reúne en un mismo sitio una gran cantidad de estadísticas. Segundo, proporciona herramientas de analítica avanzada, como el análisis On/Off o las cartas de tiro, que pueden ser de gran interés tanto para analistas como para aficionados. En tercer lugar, es una app de código abierto. La mayoría de herramientas de analítica avanzada están escondidas bajo servicios de suscripción o muros de pago. Aquí tienes varios de esos servicios disponibles gratuitamente, sin anuncios y en código abierto. Sin ser una plataforma profesional, presenta una serie de herramientas de analítica avanzada que pueden ayudar a conocer mejor el perfil de equipos y jugadores a un nivel más técnico y avanzado. Y todo, repito, de forma gratuita. En el repositorio de GitHub puedes encontrar tanto los datos como el código utilizado para descargar, tratar y presentar los mismos. <strong>Es, en definitiva, una herramienta cuyo único objetivo es ser utilizada.</strong> Si te ha parecido útil, por favor, házmelo saber escribiéndome a mi correo: <a href={`mailto:${contactInfo.email}`} className="text-acb-600 hover:text-accent-500 underline break-all">{contactInfo.email}</a>.
             </p>
           </div>
         </div>
 
       
 
-      {/* Contacto */}
-      <div className="bg-white rounded-lg shadow-sm border border-acb-200 p-8 mb-6">
+      {/* contacto */}
+      <div className="bg-white rounded-lg shadow-sm border border-acb-200 p-5 sm:p-8 mb-6">
         <h2 className="text-2xl font-semibold text-acb-900 mb-4">Contacto</h2>
 
         <div className="space-y-4">
@@ -72,7 +69,7 @@ function About() {
             <Mail className="w-5 h-5 text-acb-400" />
             <a
               href={`mailto:${contactInfo.email}`}
-              className="hover:text-accent-500 hover:underline text-base"
+              className="hover:text-accent-500 hover:underline text-base break-all"
             >
               {contactInfo.email}
             </a>
@@ -84,7 +81,7 @@ function About() {
               href={contactInfo.website}
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-lemon hover:underline text-base"
+              className="hover:text-lemon hover:underline text-base break-all"
             >
               {contactInfo.website}
             </a>
@@ -105,15 +102,15 @@ function About() {
 
         <div className="mt-6 pt-6 border-t border-acb-200">
           <p className="text-base text-acb-600">
-            Si tienes algún comentario, sugerencia, o encontraste un bug en la página, escríbeme un correo o abre un issue en GitHub!
+            Si tienes algún comentario, sugerencia o encuentras un error en la página, escríbeme un correo o abre un issue en GitHub.
           </p>
         </div>
       </div>
 
-      {/* Glosario y Herramientas */}
+      {/* glosario y herramientas */}
       <div className="grid md:grid-cols-2 gap-6 mb-6">
 
-        {/* Glosario */}
+        {/* glosario */}
         <div className="bg-white rounded-lg shadow-sm border border-acb-200 p-6">
           <h2 className="text-xl font-semibold text-acb-900 mb-4 flex items-center gap-2">
             Algunas definiciones
@@ -152,7 +149,7 @@ function About() {
               <span className="font-medium">RD%:</span> % Rebote Defensivo = DRB / (DRB + Opp_ORB). Porcentaje de rebotes defensivos capturados.
             </div>
             <div>
-              <span className="font-medium">% Tiros Libres:</span> FTA / FGA. Tiros libres intentados por cada tiro de campo.
+              <span className="font-medium">% Tiros libres:</span> FTM / FGA. Tiros libres anotados por cada tiro de campo intentado.
             </div>
             <div>
               <span className="font-medium">AST%:</span> Tasa de Asistencias = Asistencias / FGM. Porcentaje de canastas asistidas.
@@ -164,12 +161,12 @@ function About() {
               <span className="font-medium">Usage:</span> % de Uso: Estimación del número de posesiones utilizadas por un jugador con respecto al total de posesiones disponibles cuando estaba en pista. Además de los tiros, tiros libres y pérdidas, también se consideran las asistencias como parte porcentual de una posesión finalizada.
             </div>
             <div>
-              <span className="font-medium">On/Off:</span> Compara las estadísticas del equipo cuando ciertos jugadores están en cancha vs. cuando no están. Se agregan todas las posesiones en cada escenario y se calculan ORtg/DRtg para medir el impacto del jugador/lineup.
+              <span className="font-medium">On/Off:</span> Compara las estadísticas del equipo cuando ciertos jugadores están en cancha y cuando no están. Se agregan las posesiones en cada escenario y se calculan ORtg/DRtg para describir la diferencia observada; no es una estimación causal del impacto individual.
             </div>
           </div>
         </div>
 
-        {/* Sobre las Herramientas */}
+        {/* sobre las herramientas */}
         <div className="bg-white rounded-lg shadow-sm border border-acb-200 p-6">
           <h2 className="text-xl font-semibold text-acb-900 mb-4">Resumen de las herramientas</h2>
           <div className="space-y-3 text-sm text-acb-700">

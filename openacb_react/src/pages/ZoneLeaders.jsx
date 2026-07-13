@@ -201,12 +201,6 @@ const ZONE_FILL = 'rgba(251, 191, 128, 0.75)'     // light orange
 const ZONE_FILL_EMPTY = 'rgba(251, 191, 128, 0.15)'
 const ZONE_STROKE = 'rgba(234, 150, 80, 0.5)'     // softer orange
 
-// Min attempts per zone: restricted needs more, rest needs less
-function getMinAttempts(zoneName, base) {
-  if (zoneName === 'Zona (Restringida)') return Math.round(base * 2)
-  return base
-}
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingShots, teams, players, playerPhotos = {} }) {
@@ -245,6 +239,10 @@ export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingSho
     [seasonShots]
   )
 
+  useEffect(() => {
+    if (selectedTeam && !teamList.includes(selectedTeam)) setSelectedTeam('')
+  }, [selectedTeam, teamList])
+
   const filteredShots = useMemo(() => {
     if (!selectedTeam) return seasonShots
     return seasonShots.filter(s => s.team === selectedTeam)
@@ -278,8 +276,7 @@ export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingSho
 
     const leaders = {}
     Object.entries(zonePlayerMap).forEach(([zone, playerMap]) => {
-      const zoneMin = getMinAttempts(zone, minAttempts)
-      const eligible = Object.values(playerMap).filter(p => p.attempts >= zoneMin)
+      const eligible = Object.values(playerMap).filter(p => p.attempts >= minAttempts)
       if (eligible.length === 0) {
         leaders[zone] = null
         return
@@ -360,7 +357,7 @@ export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingSho
       <div>
         <h2 className="text-2xl font-semibold text-acb-900">Líderes por Zona</h2>
         <p className="text-acb-500 text-sm mt-1">
-          Mejor tirador en cada zona del campo
+          {metric === 'points' ? 'Jugador con más puntos' : 'Jugador con mejor porcentaje de tiro'} en cada zona del campo
           {isLoading && <span className="text-info-600"> - Cargando datos...</span>}
         </p>
       </div>
@@ -377,10 +374,12 @@ export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingSho
           <div>
             <label className="block text-xs font-medium text-acb-600 mb-1">Temporada</label>
             <select
+              aria-label="Temporada"
               value={selectedSeason}
               onChange={(e) => {
                 const s = parseInt(e.target.value)
                 setSelectedSeason(s)
+                setSelectedTeam('')
                 updateUrl(s, metric)
               }}
               className="w-full px-3 py-2 border border-acb-200 rounded-md text-sm bg-white"
@@ -395,6 +394,7 @@ export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingSho
           <div>
             <label className="block text-xs font-medium text-acb-600 mb-1">Equipo</label>
             <select
+              aria-label="Equipo"
               value={selectedTeam}
               onChange={(e) => setSelectedTeam(e.target.value)}
               className="w-full px-3 py-2 border border-acb-200 rounded-md text-sm bg-white"
@@ -417,6 +417,7 @@ export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingSho
               max={50}
               value={minAttempts}
               onChange={(e) => setMinAttempts(parseInt(e.target.value))}
+              aria-label={`Intentos mínimos por zona: ${minAttempts}`}
               className="w-full accent-slate-700"
             />
             <div className="flex justify-between text-xs text-acb-400 mt-0.5">
@@ -429,6 +430,7 @@ export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingSho
           <div>
             <label className="block text-xs font-medium text-acb-600 mb-1">Ordenar por</label>
             <select
+              aria-label="Métrica de líderes"
               value={metric}
               onChange={(e) => {
                 const m = e.target.value
@@ -455,14 +457,14 @@ export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingSho
 
           </div>
 
-          <div className="relative" style={{ width: 750, height: 705 }}>
+          <div className="relative" style={{ width: '100%', maxWidth: 750, aspectRatio: '750 / 705' }}>
             <Court width={750} height={705} />
 
             <svg
-              width={750}
-              height={705}
               viewBox="0 0 750 705"
-              className="absolute top-0 left-0"
+              className="absolute inset-0 w-full h-full"
+              role="img"
+              aria-label={`${selectedTeam || 'Toda la liga'}: ${metric === 'points' ? 'máximo anotador' : 'mejor porcentaje'} por zona`}
               style={{ pointerEvents: 'none' }}
             >
               <defs>

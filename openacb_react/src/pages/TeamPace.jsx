@@ -68,7 +68,7 @@ export default function TeamPace({ teams, loadTeamPaceForSeason, teamPaceCache, 
 
   const isLoading = loadingTeamPace[selectedSeason] || false
 
-  // Per-quarter league means for scored and allowed
+  // per-quarter league means for scored and allowed
   const quarterMeans = useMemo(() => {
     if (paceData.length === 0) return { scored: [0,0,0,0], allowed: [0,0,0,0] }
     const scored = [0,0,0,0], allowed = [0,0,0,0]
@@ -82,8 +82,7 @@ export default function TeamPace({ teams, loadTeamPaceForSeason, teamPaceCache, 
     return { scored, allowed }
   }, [paceData])
 
-  // Max deviation from mean (for color scaling in scored/allowed modes)
-  // Max diff value (for diff mode scaling)
+  // max deviation from the mean or zero, depending on the view
   const maxDiff = useMemo(() => {
     if (paceData.length === 0) return 3
     let max = 0
@@ -94,7 +93,6 @@ export default function TeamPace({ teams, loadTeamPaceForSeason, teamPaceCache, 
       } else {
         const arr = viewMode === 'scored' ? t.quarters.scored : t.quarters.allowed
         const means = viewMode === 'scored' ? quarterMeans.scored : quarterMeans.allowed
-        const sign = viewMode === 'scored' ? 1 : -1
         arr.forEach((v, q) => {
           const dev = Math.abs(v - means[q])
           if (dev > max) max = dev
@@ -104,7 +102,7 @@ export default function TeamPace({ teams, loadTeamPaceForSeason, teamPaceCache, 
     return Math.max(max, 0.5)
   }, [paceData, viewMode, quarterMeans])
 
-  // Sort teams
+  // sort teams
   const sortedTeams = useMemo(() => {
     if (paceData.length === 0) return []
     const arr = viewMode === 'diff' ? 'diff' : viewMode === 'scored' ? 'scored' : 'allowed'
@@ -141,13 +139,13 @@ export default function TeamPace({ teams, loadTeamPaceForSeason, teamPaceCache, 
     return sortDir === 'desc' ? ' \u2193' : ' \u2191'
   }
 
-  // Selected team detail data
+  // selected team detail data
   const teamDetail = useMemo(() => {
     if (!selectedTeam) return null
     return paceData.find(t => t.team === selectedTeam) || null
   }, [paceData, selectedTeam])
 
-  // Segment heatmap always colors by diff (good/bad is always relative to opponent)
+  // segment heatmap always colors by diff (good/bad is relative to the opponent)
   const maxSegDiff = useMemo(() => {
     if (!teamDetail || !teamDetail.segments) return 2
     let max = 0
@@ -157,19 +155,20 @@ export default function TeamPace({ teams, loadTeamPaceForSeason, teamPaceCache, 
 
   return (
     <div className="app-page space-y-6">
-      {/* Header */}
+      {/* header */}
       <div>
         <h2 className="text-2xl font-semibold text-acb-900">Ritmo y Parciales</h2>
         <p className="text-acb-500 text-sm mt-1">
-          Rendimiento por cuarto, parciales por segmento y eficiencia tras tiempo muerto
+          Rendimiento por cuarto, parciales por segmento y anotación tras tiempo muerto
         </p>
       </div>
 
-      {/* Controls */}
+      {/* controls */}
       <div className="flex flex-wrap items-end gap-3">
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-acb-500 font-medium">Temporada</label>
+          <label htmlFor="team-pace-season" className="text-xs text-acb-500 font-medium">Temporada</label>
           <select
+            id="team-pace-season"
             value={selectedSeason}
             onChange={e => {
               setSelectedSeason(Number(e.target.value))
@@ -184,7 +183,7 @@ export default function TeamPace({ teams, loadTeamPaceForSeason, teamPaceCache, 
         </div>
 
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-acb-500 font-medium">Vista</label>
+          <span className="text-xs text-acb-500 font-medium">Vista</span>
           <div className="flex rounded-lg border border-acb-200 overflow-hidden">
             {[
               { key: 'diff', label: 'Diferencial' },
@@ -194,6 +193,7 @@ export default function TeamPace({ teams, loadTeamPaceForSeason, teamPaceCache, 
               <button
                 key={opt.key}
                 onClick={() => setViewMode(opt.key)}
+                aria-pressed={viewMode === opt.key}
                 className={`px-3 py-2 text-xs font-medium transition-colors ${
                   viewMode === opt.key
                     ? 'bg-acb-900 text-white'
@@ -211,7 +211,7 @@ export default function TeamPace({ teams, loadTeamPaceForSeason, teamPaceCache, 
         <div className="text-center py-12 text-acb-400">Cargando datos...</div>
       )}
 
-      {/* Quarter performance table */}
+      {/* quarter performance table */}
       {!isLoading && sortedTeams.length > 0 && (
         <div className="bg-white rounded-lg border border-acb-200 overflow-hidden">
           <div className="px-5 py-3 border-b border-acb-200">
@@ -262,6 +262,11 @@ export default function TeamPace({ teams, loadTeamPaceForSeason, teamPaceCache, 
                     : t.quarters.allowed
                   const total = arr.reduce((s, v) => s + v, 0)
                   const isSelected = selectedTeam === t.team
+                  const quarterOrder = arr
+                    .map((value, index) => ({ value, quarter: index + 1 }))
+                    .sort((a, b) => viewMode === 'allowed' ? a.value - b.value : b.value - a.value)
+                  const bestQuarter = quarterOrder[0]?.quarter
+                  const worstQuarter = quarterOrder[quarterOrder.length - 1]?.quarter
                   return (
                     <tr
                       key={t.team}
@@ -290,12 +295,12 @@ export default function TeamPace({ teams, loadTeamPaceForSeason, teamPaceCache, 
                       </td>
                       <td className="text-center text-xs">
                         <span className="inline-block px-1.5 py-0.5 rounded bg-positive-100 text-positive-700 font-medium">
-                          Q{t.bestQ}
+                          Q{bestQuarter}
                         </span>
                       </td>
                       <td className="text-center text-xs">
                         <span className="inline-block px-1.5 py-0.5 rounded bg-negative-100 text-negative-700 font-medium">
-                          Q{t.worstQ}
+                          Q{worstQuarter}
                         </span>
                       </td>
                     </tr>
@@ -307,10 +312,10 @@ export default function TeamPace({ teams, loadTeamPaceForSeason, teamPaceCache, 
         </div>
       )}
 
-      {/* Team detail panel */}
+      {/* team detail panel */}
       {teamDetail && (
         <div className="grid md:grid-cols-2 gap-6">
-          {/* Quarter bar chart */}
+          {/* quarter bar chart */}
           <div className="bg-white rounded-lg border border-acb-200 p-4">
             <h3 className="font-semibold text-acb-900 mb-1">{teamDetail.team}</h3>
             <p className="text-xs text-acb-400 mb-4">{teamDetail.games} partidos - Anotado vs Recibido por cuarto</p>
@@ -358,9 +363,9 @@ export default function TeamPace({ teams, loadTeamPaceForSeason, teamPaceCache, 
             </div>
           </div>
 
-          {/* Segment heatmap + After timeout */}
+          {/* segment heatmap and post-timeout scoring */}
           <div className="space-y-6">
-            {/* Segment heatmap */}
+            {/* segment heatmap */}
             <div className="bg-white rounded-lg border border-acb-200 p-4">
               <h3 className="font-semibold text-acb-900 mb-1">Desglose por segmento</h3>
               <p className="text-xs text-acb-400 mb-3">
@@ -398,19 +403,19 @@ export default function TeamPace({ teams, loadTeamPaceForSeason, teamPaceCache, 
               </div>
             </div>
 
-            {/* After timeout */}
+            {/* post-timeout scoring */}
             {teamDetail.afterTimeout && (
               <div className="bg-white rounded-lg border border-acb-200 p-4">
-                <h3 className="font-semibold text-acb-900 mb-1">Tras tiempo muerto</h3>
-                <p className="text-xs text-acb-400 mb-3">Eficiencia en la primera jugada tras tiempo muerto</p>
+                <h3 className="font-semibold text-acb-900 mb-1">Anotación tras tiempo muerto</h3>
+                <p className="text-xs text-acb-400 mb-3">Siguiente anotación del equipo durante los 30 segundos posteriores; no representa una posesión</p>
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div>
                     <div className="text-2xl font-bold text-acb-900">{teamDetail.afterTimeout.ppp}</div>
-                    <div className="text-xs text-acb-500">Pts/posesion</div>
+                    <div className="text-xs text-acb-500">Pts por tiempo muerto</div>
                   </div>
                   <div>
                     <div className="text-2xl font-bold text-acb-900">{teamDetail.afterTimeout.scoringPct}%</div>
-                    <div className="text-xs text-acb-500">% que anotan</div>
+                    <div className="text-xs text-acb-500">% con anotación en 30 s</div>
                   </div>
                   <div>
                     <div className="text-2xl font-bold text-acb-400">{teamDetail.afterTimeout.leaguePpp}</div>
@@ -426,7 +431,7 @@ export default function TeamPace({ teams, loadTeamPaceForSeason, teamPaceCache, 
         </div>
       )}
 
-      {/* Empty state */}
+      {/* empty state */}
       {!isLoading && paceData.length === 0 && (
         <div className="text-center py-12 text-acb-400">
           No hay datos de ritmo para esta temporada

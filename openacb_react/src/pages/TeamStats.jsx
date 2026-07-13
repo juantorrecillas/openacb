@@ -57,11 +57,11 @@ const statOptions = [
   { value: 'stlRate', label: 'Ratio Robos', format: 'pct' },
   { value: 'blkRate', label: 'Ratio Tapones', format: 'pct' },
   { value: 'astToRatio', label: 'Ratio AST/PER', format: 'decimal' },
-  { value: 'offTo', label: 'Pts de Robo %', format: 'pct' },
-  { value: 'secondChance', label: '2da Oport. %', format: 'pct' },
-  { value: 'assistedFgm', label: 'Pts Asistidos %', format: 'pct' },
-  { value: 'assistedFgm2', label: '2P Asistidos %', format: 'pct' },
-  { value: 'assistedFgm3', label: '3P Asistidos %', format: 'pct' },
+  { value: 'offTo', label: 'Pts de Robo %', format: 'pct100' },
+  { value: 'secondChance', label: '2da Oport. %', format: 'pct100' },
+  { value: 'assistedFgm', label: 'Pts Asistidos %', format: 'pct100' },
+  { value: 'assistedFgm2', label: '2P Asistidos %', format: 'pct100' },
+  { value: 'assistedFgm3', label: '3P Asistidos %', format: 'pct100' },
   // Opponent boxscore stats
   { value: 'opp_ppg', label: 'Riv PPP', format: 'decimal' },
   { value: 'opp_rpg', label: 'Riv RPP', format: 'decimal' },
@@ -82,11 +82,11 @@ const statOptions = [
   { value: 'opp_stlRate', label: 'Riv Ratio Robos', format: 'pct' },
   { value: 'opp_blkRate', label: 'Riv Ratio Tapones', format: 'pct' },
   { value: 'opp_astToRatio', label: 'Riv AST/PER', format: 'decimal' },
-  { value: 'opp_offTo', label: 'Riv Pts de Robo %', format: 'pct' },
-  { value: 'opp_secondChance', label: 'Riv 2da Oport. %', format: 'pct' },
-  { value: 'opp_assistedFgm', label: 'Riv Pts Asist. %', format: 'pct' },
-  { value: 'opp_assistedFgm2', label: 'Riv 2PT Asist. %', format: 'pct' },
-  { value: 'opp_assistedFgm3', label: 'Riv 3PT Asist. %', format: 'pct' },
+  { value: 'opp_offTo', label: 'Riv Pts de Robo %', format: 'pct100' },
+  { value: 'opp_secondChance', label: 'Riv 2da Oport. %', format: 'pct100' },
+  { value: 'opp_assistedFgm', label: 'Riv Pts Asist. %', format: 'pct100' },
+  { value: 'opp_assistedFgm2', label: 'Riv 2PT Asist. %', format: 'pct100' },
+  { value: 'opp_assistedFgm3', label: 'Riv 3PT Asist. %', format: 'pct100' },
 ]
 
 // Basic team stats columns - Boxscore stats like player stats
@@ -205,6 +205,10 @@ function getAxisStat(statKey) {
   return statOptions.find(s => s.value === statKey)
 }
 
+function teamRecordKey(team) {
+  return `${team.team}-${team.season}-${team.competitionStage || 'regular'}`
+}
+
 function getAxisDisplayValue(value, statKey) {
   const stat = getAxisStat(statKey)
   return stat?.format === 'pct' ? value * 100 : value
@@ -310,41 +314,48 @@ export default function TeamStats({ teams, teamLogos = {} }) {
     // Get unique team names across all seasons or just current season
     const uniqueTeams = [...new Set(teams.map(t => t.team))].sort()
     
-    return seasonFilteredTeams.map(team => ({
+    return enrichedTeams.map(team => ({
       ...team,
       // Assign color based on team name (consistent across seasons)
       color: TEAM_COLORS[uniqueTeams.indexOf(team.team) % TEAM_COLORS.length],
+      displayLabel: selectedSeason === 'all'
+        ? `${team.team} (${team.season - 1}-${String(team.season).slice(-2)})`
+        : team.team,
       // Or use a fixed size for all teams
       // size: 16
     }))
-  }, [seasonFilteredTeams, teams])
+  }, [enrichedTeams, teams, selectedSeason])
 
   const sortedTeams = useMemo(() => {
     return [...enrichedTeams].sort((a, b) => {
-      const aVal = a[sortKey] || 0
-      const bVal = b[sortKey] || 0
+      const aVal = a[sortKey] ?? ''
+      const bVal = b[sortKey] ?? ''
+      if (typeof aVal === 'string' || typeof bVal === 'string') {
+        const result = String(aVal).localeCompare(String(bVal), 'es')
+        return sortDir === 'desc' ? -result : result
+      }
       return sortDir === 'desc' ? bVal - aVal : aVal - bVal
     })
-  }, [seasonFilteredTeams, sortKey, sortDir])
+  }, [enrichedTeams, sortKey, sortDir])
   
   const avgX = useMemo(() =>
-    seasonFilteredTeams.reduce((sum, t) => sum + (t[xAxis] || 0), 0) / seasonFilteredTeams.length,
-    [seasonFilteredTeams, xAxis]
+    enrichedTeams.reduce((sum, t) => sum + (t[xAxis] || 0), 0) / enrichedTeams.length,
+    [enrichedTeams, xAxis]
   )
 
   const avgY = useMemo(() =>
-    seasonFilteredTeams.reduce((sum, t) => sum + (t[yAxis] || 0), 0) / seasonFilteredTeams.length,
-    [seasonFilteredTeams, yAxis]
+    enrichedTeams.reduce((sum, t) => sum + (t[yAxis] || 0), 0) / enrichedTeams.length,
+    [enrichedTeams, yAxis]
   )
 
   // calculate compact domains with readable ticks
   const xAxisScale = useMemo(() => {
-    return buildNiceScatterAxis(seasonFilteredTeams, xAxis)
-  }, [seasonFilteredTeams, xAxis])
+    return buildNiceScatterAxis(enrichedTeams, xAxis)
+  }, [enrichedTeams, xAxis])
 
   const yAxisScale = useMemo(() => {
-    return buildNiceScatterAxis(seasonFilteredTeams, yAxis)
-  }, [seasonFilteredTeams, yAxis])
+    return buildNiceScatterAxis(enrichedTeams, yAxis)
+  }, [enrichedTeams, yAxis])
   
   const handleSort = (key) => {
     if (sortKey === key) {
@@ -373,7 +384,7 @@ export default function TeamStats({ teams, teamLogos = {} }) {
     }
 
     // Percentages already as 0-100
-    if (key === 'fgPct' || key === 'ftPct' || key === 'opp_fgPct' || key === 'opp_ftPct') {
+    if (key === 'fgPct' || key === 'ftPct' || key === 'opp_fgPct' || key === 'opp_ftPct' || col?.format === 'pct100') {
       return `${value.toFixed(1)}%`
     }
 
@@ -428,20 +439,20 @@ export default function TeamStats({ teams, teamLogos = {} }) {
 
     numericCols.forEach(col => {
       const values = enrichedTeams
-        .map(t => ({ team: t.team, value: t[col.key] }))
+        .map(t => ({ key: teamRecordKey(t), value: t[col.key] }))
         .filter(v => v.value != null && !isNaN(v.value))
 
       // Sort: for inverse stats, lower is better; otherwise higher is better
       values.sort((a, b) => col.inverse ? a.value - b.value : b.value - a.value)
 
       values.forEach((v, idx) => {
-        if (!rankMap[v.team]) rankMap[v.team] = {}
-        rankMap[v.team][col.key] = idx + 1
+        if (!rankMap[v.key]) rankMap[v.key] = {}
+        rankMap[v.key][col.key] = idx + 1
       })
     })
 
     return rankMap
-  }, [seasonFilteredTeams, tableColumns])
+  }, [enrichedTeams, tableColumns])
 
   const getRankBadgeColor = (rank, total) => {
     if (rank == null || isNaN(rank)) return 'bg-acb-100 text-acb-600'
@@ -458,7 +469,7 @@ export default function TeamStats({ teams, teamLogos = {} }) {
   const formatAxisValue = (value, statKey) => {
     const stat = statOptions.find(s => s.value === statKey)
     const displayValue = getAxisDisplayValue(value, statKey)
-    if (stat?.format === 'pct') {
+    if (stat?.format === 'pct' || stat?.format === 'pct100') {
       return Math.round(displayValue).toString()
     }
     if (stat?.format === 'integer') {
@@ -484,8 +495,9 @@ export default function TeamStats({ teams, teamLogos = {} }) {
       <div className="bg-white rounded-lg border border-acb-200 p-6">
         <div className="flex flex-wrap items-center gap-4 mb-6">
           <div className="flex items-center gap-2">
-            <label className="text-sm text-acb-600">Temporada:</label>
+            <label htmlFor="team-stats-season" className="text-sm text-acb-600">Temporada:</label>
             <select
+              id="team-stats-season"
               value={selectedSeason}
               onChange={(e) => setSelectedSeason(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
               className="px-3 py-1.5 border border-acb-200 rounded text-sm bg-white"
@@ -496,7 +508,7 @@ export default function TeamStats({ teams, teamLogos = {} }) {
               <option value="all">Todas las Temporadas</option>
             </select>
           </div>
-          <div className="flex items-center gap-1 bg-acb-100 rounded-md p-1">
+          <div className="flex items-center gap-1 bg-acb-100 rounded-md p-1" role="group" aria-label="Fase de la competición">
             <button
               onClick={() => setSelectedStage('regular')}
               className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
@@ -515,8 +527,9 @@ export default function TeamStats({ teams, teamLogos = {} }) {
             </button>
           </div>
           <div className="flex items-center gap-2">
-            <label className="text-sm text-acb-600">Eje X:</label>
+            <label htmlFor="team-stats-x-axis" className="text-sm text-acb-600">Eje X:</label>
             <select
+              id="team-stats-x-axis"
               value={xAxis}
               onChange={(e) => setXAxis(e.target.value)}
               className="px-3 py-1.5 border border-acb-200 rounded text-sm bg-white"
@@ -527,8 +540,9 @@ export default function TeamStats({ teams, teamLogos = {} }) {
             </select>
           </div>
           <div className="flex items-center gap-2">
-            <label className="text-sm text-acb-600">Eje Y:</label>
+            <label htmlFor="team-stats-y-axis" className="text-sm text-acb-600">Eje Y:</label>
             <select
+              id="team-stats-y-axis"
               value={yAxis}
               onChange={(e) => setYAxis(e.target.value)}
               className="px-3 py-1.5 border border-acb-200 rounded text-sm bg-white"
@@ -593,6 +607,9 @@ export default function TeamStats({ teams, teamLogos = {} }) {
                   return (
                     <div className="bg-white border border-acb-200 rounded-lg p-3 shadow-lg">
                       <div className="font-medium text-acb-900 mb-1">{team.team}</div>
+                      {selectedSeason === 'all' && (
+                        <div className="text-xs text-acb-500 mb-1">{team.season - 1}-{String(team.season).slice(-2)}</div>
+                      )}
                       <div className="text-sm text-acb-600">
                         {statOptions.find(s => s.value === xAxis)?.label}: {formatValue(team[xAxis], xAxis)}
                       </div>
@@ -607,22 +624,22 @@ export default function TeamStats({ teams, teamLogos = {} }) {
               {/* Render each team as a separate Scatter with logo shape */}
               {teamsWithColors.map((team) => (
                 <Scatter
-                  key={team.team}
+                  key={teamRecordKey(team)}
                   data={[team]}
                   shape={(props) => (
                     <TeamDot
                       {...props}
                       teamLogos={teamLogos}
                       color={team.color}
-                      highlighted={highlightTeam === team.team}
+                      highlighted={highlightTeam === teamRecordKey(team)}
                     />
                   )}
-                  onMouseEnter={() => setHighlightTeam(team.team)}
+                  onMouseEnter={() => setHighlightTeam(teamRecordKey(team))}
                   onMouseLeave={() => setHighlightTeam(null)}
                 >
                   {showLabels && (
                     <LabelList
-                      dataKey="team"
+                      dataKey="displayLabel"
                       position="right"
                       offset={10}
                       style={{ fontSize: '9px', fontWeight: 'bold', fill: '#374151' }}
@@ -692,7 +709,19 @@ export default function TeamStats({ teams, teamLogos = {} }) {
             <thead>
               <tr className="bg-acb-100 border-b border-acb-300">
                 <th rowSpan={2} className="data-table-head data-table-identity data-table-sticky data-table-sticky-head data-col-team bg-acb-100">Equipo</th>
-                <th rowSpan={2} onClick={() => handleSort('games')} title={statTitle('PJ')} className="data-table-head data-table-number data-col-games cursor-pointer hover:bg-acb-100">
+                {selectedSeason === 'all' && (
+                  <th
+                    rowSpan={2}
+                    onClick={() => handleSort('season')}
+                    onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleSort('season')}
+                    tabIndex={0}
+                    aria-sort={sortKey === 'season' ? (sortDir === 'desc' ? 'descending' : 'ascending') : 'none'}
+                    className="data-table-head text-left cursor-pointer hover:bg-acb-100"
+                  >
+                    Temp.
+                  </th>
+                )}
+                <th rowSpan={2} onClick={() => handleSort('games')} onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleSort('games')} tabIndex={0} aria-sort={sortKey === 'games' ? (sortDir === 'desc' ? 'descending' : 'ascending') : 'none'} title={statTitle('PJ')} className="data-table-head data-table-number data-col-games cursor-pointer hover:bg-acb-100">
                   <span className="inline-flex items-center gap-1">PJ {sortKey === 'games' && (sortDir === 'desc' ? <ArrowDown className="w-3 h-3"/> : <ArrowUp className="w-3 h-3"/>)}</span>
                 </th>
                 {columnGroups.map(g => (
@@ -704,6 +733,9 @@ export default function TeamStats({ teams, teamLogos = {} }) {
                   <th
                     key={col.key}
                     onClick={() => handleSort(col.key)}
+                    onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleSort(col.key)}
+                    tabIndex={0}
+                    aria-sort={sortKey === col.key ? (sortDir === 'desc' ? 'descending' : 'ascending') : 'none'}
                     title={statTitle(col.label)}
                     className={`data-table-head data-table-number data-col-number cursor-pointer hover:bg-acb-100
                       ${groupBorderKeys.has(col.key) ? 'border-l border-acb-200' : ''}`}
@@ -717,29 +749,35 @@ export default function TeamStats({ teams, teamLogos = {} }) {
               </tr>
             </thead>
             <tbody>
-              {sortedTeams.map((team, i) => (
+              {sortedTeams.map((team) => (
                 <tr
-                  key={team.team}
+                  key={teamRecordKey(team)}
                   className={`data-table-row border-b border-acb-100
-                    ${highlightTeam === team.team ? 'bg-accent-50' : ''}`}
-                  onMouseEnter={() => setHighlightTeam(team.team)}
+                    ${highlightTeam === teamRecordKey(team) ? 'bg-accent-50' : ''}`}
+                  onMouseEnter={() => setHighlightTeam(teamRecordKey(team))}
                   onMouseLeave={() => setHighlightTeam(null)}
                 >
-                  {tableColumns.map(col => {
-                    const rank = rankings[team.team]?.[col.key]
+                  <td className="data-table-cell data-table-identity data-table-sticky data-col-team">
+                    {team.team}
+                  </td>
+                  {selectedSeason === 'all' && (
+                    <td className="data-table-cell whitespace-nowrap text-acb-600">
+                      {team.season - 1}-{String(team.season).slice(-2)}
+                    </td>
+                  )}
+                  {tableColumns.slice(1).map(col => {
+                    const rank = rankings[teamRecordKey(team)]?.[col.key]
                     const showRank = col.key !== 'team' && col.key !== 'games' && col.key !== 'wins' && col.key !== 'losses' && rank != null
-                    const totalTeams = seasonFilteredTeams.length
+                    const totalTeams = enrichedTeams.length
 
                     return (
                       <td
                         key={col.key}
                         className={`data-table-cell
                           ${col.align === 'right' ? 'data-table-number' : ''}
-                          ${col.key === 'team' ? 'data-table-identity data-table-sticky data-col-team' : col.key === 'games' ? 'data-col-games' : 'data-col-number'}`}
+                          ${col.key === 'games' ? 'data-col-games' : 'data-col-number'}`}
                       >
-                        {col.key === 'team' ? (
-                          team.team
-                        ) : showRank ? (
+                        {showRank ? (
                           <div className="data-table-value">
                             <span className={col.highlight ? getValueColor(team[col.key], col.key, col.inverse) : 'text-acb-700'}>
                               {formatValue(team[col.key], col.key)}

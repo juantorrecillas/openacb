@@ -117,6 +117,7 @@ function PlayerSelector({ players, onSelect, selectedLicenseId }) {
       <div className="flex flex-col gap-1">
         <label className="text-xs text-acb-500 font-medium">Temporada</label>
         <select
+          aria-label="Temporada"
           value={seasonFilter}
           onChange={(e) => { setSeasonFilter(e.target.value); setTeamFilter('') }}
           className="px-3 py-2.5 border border-acb-200 rounded-lg text-sm bg-white"
@@ -134,6 +135,7 @@ function PlayerSelector({ players, onSelect, selectedLicenseId }) {
         <div className="flex items-center gap-1.5">
           <Filter className="w-4 h-4 text-acb-400" />
           <select
+            aria-label="Equipo"
             value={teamFilter}
             onChange={(e) => setTeamFilter(e.target.value)}
             className="px-3 py-2.5 border border-acb-200 rounded-lg text-sm bg-white"
@@ -152,6 +154,7 @@ function PlayerSelector({ players, onSelect, selectedLicenseId }) {
         <div className="relative mt-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-acb-400" />
           <input
+            aria-label="Buscar jugador"
             type="text"
             value={query}
             onFocus={() => setOpen(true)}
@@ -184,15 +187,22 @@ function PlayerSelector({ players, onSelect, selectedLicenseId }) {
 }
 
 // ─── Season Picker (shared) ────────────────────────────────────
-function SeasonPicker({ seasons, selected, onChange }) {
+function playerRecordKey(record) {
+  return `${record.season}::${record.team}`
+}
+
+function SeasonPicker({ records, selected, onChange }) {
   return (
     <select
+      id="player-profile-record"
       value={selected ?? ''}
-      onChange={e => onChange(Number(e.target.value))}
+      onChange={e => onChange(records.find(record => playerRecordKey(record) === e.target.value))}
       className="px-3 py-1.5 border border-acb-200 rounded-md text-sm bg-white"
     >
-      {seasons.map(s => (
-        <option key={s} value={s}>{seasonLabel(s)}</option>
+      {records.map(record => (
+        <option key={playerRecordKey(record)} value={playerRecordKey(record)}>
+          {seasonLabel(record.season)} · {record.team}
+        </option>
       ))}
     </select>
   )
@@ -397,17 +407,15 @@ function CareerTable({ records }) {
 }
 
 // ─── Percentile Bar ────────────────────────────────────────────
-function PctBar({ label, value, pctKey, posPctKey, player, fmtKey, inverse, usePos }) {
+function PctBar({ label, value, pctKey, posPctKey, player, fmtKey, usePos }) {
   const v = player[value]
   const activePctKey = usePos && posPctKey ? posPctKey : pctKey
   const pct = activePctKey ? player[activePctKey] : null
-  // For inverse stats (turnovers, fouls), high percentile = bad, so flip the color
-  const colorPct = inverse ? (pct != null ? 100 - pct : null) : pct
 
-  const barColor = colorPct == null ? 'bg-acb-200'
-    : colorPct >= 75 ? 'bg-positive-500'
-    : colorPct >= 50 ? 'bg-info-500'
-    : colorPct >= 25 ? 'bg-info-400'
+  const barColor = pct == null ? 'bg-acb-200'
+    : pct >= 75 ? 'bg-positive-500'
+    : pct >= 50 ? 'bg-info-500'
+    : pct >= 25 ? 'bg-info-400'
     : 'bg-negative-400'
 
   return (
@@ -425,7 +433,7 @@ function PctBar({ label, value, pctKey, posPctKey, player, fmtKey, inverse, useP
           )}
         </div>
         <span className="font-mono text-xs text-acb-900 w-14 text-right shrink-0">{fmt(v, fmtKey || value)}</span>
-        <span className={`text-xs w-9 text-right shrink-0 font-medium ${pctBadge(colorPct)} px-1 py-0.5 rounded`}>
+        <span className={`text-xs w-9 text-right shrink-0 font-medium ${pctBadge(pct)} px-1 py-0.5 rounded`}>
           {pct != null ? `${Math.round(pct)}` : '-'}
         </span>
       </div>
@@ -459,8 +467,8 @@ const profileSections = [
     stats: [
       { label: 'APP', value: 'apg', pctKey: 'apgPct', posPctKey: 'apgPosPct' },
       { label: 'AST%', value: 'astPct', pctKey: 'astPctPct', posPctKey: 'astPctPosPct', fmtKey: 'astPct' },
-      { label: 'PER', value: 'topg', pctKey: 'topgPct', posPctKey: 'topgPosPct', inverse: true },
-      { label: 'PER%', value: 'tovPct', pctKey: 'tovPctPct', posPctKey: 'tovPctPosPct', fmtKey: 'tovPct', inverse: true },
+      { label: 'PER', value: 'topg', pctKey: 'topgPct', posPctKey: 'topgPosPct' },
+      { label: 'PER%', value: 'tovPct', pctKey: 'tovPctPct', posPctKey: 'tovPctPosPct', fmtKey: 'tovPct' },
     ],
   },
   {
@@ -673,6 +681,7 @@ function classifyArchetype(player, bio) {
 
   // Position group flags (all false when position is unknown → pure stat fallback)
   const isGuardPos  = position === 'Base' || position === 'Escolta'
+  const isPointGuard = position === 'Base'
   const isSecondGuard = position == 'Escolta'
   const isWingPos   = position === 'Alero'
   const isBigPos    = position === 'Ala-pívot' || position === 'Pívot'
@@ -690,14 +699,12 @@ function classifyArchetype(player, bio) {
   // Shot creation flags
   const isSelfCreator   = astdFgm != null && astdFgm < 0.40   // mostly creates own shot
   const isOffDribble3   = astdFgm3 != null && astdFgm3 < 0.60 // significant off-dribble 3PT ability
-  const isCatchAndShoot = astdFgm3 != null && astdFgm3 >= 0.75 // mostly catch-and-shoot from 3
 
   // Trait flags
   const isHighVolume = usg >= 80
   const isScorer = ppg >= 80 && usg >= 70
   const isEfficient = ts >= 75
   const isPlaymaker = ast >= 75
-  const isGoodPasser = ast >= 55
   const isRebounder = trb >= 80
   const isRimProtector = blk >= 75
   const isPerimDefender = stl >= 80
@@ -715,7 +722,7 @@ function classifyArchetype(player, bio) {
     return { name: 'Mandarinas', desc: 'Mandarinero de élite. Tira tanto como falla.', color: 'text-negative-700 bg-negative-50 border-negative-200' }
 
   // All-around elite guard: scores, creates, efficient AND elite defense
-  if (isScorer && isPlaymaker && isEfficient && isPerimDefender && thr > 20 && mpg >= 20 && !isRebounder && !isCenterPos)
+  if (isScorer && isPlaymaker && isEfficient && isPerimDefender && thr > 20 && mpg >= 20 && !isRebounder && isPointGuard)
     return { name: 'Base Estrella', desc: 'Anota, crea, defiende y lo hace todo con eficiencia de elite', color: 'text-accent-700 bg-accent-50 border-accent-200' }
   
     // elite creator + elite defender: high usage playmaker with lockdown defense and elite scorer w/ limited efficiecny
@@ -723,7 +730,7 @@ function classifyArchetype(player, bio) {
     return { name: 'Combo Guard Todoterreno Élite', desc: 'Escolta con gran defensa perimetral y capaz de anotar con gran volumen', color: 'text-accent-700 bg-accent-50 border-accent-200' }
 
   // elite creator + elite defender: high usage playmaker with lockdown defense and elite scorer w/ limited efficiecny
-  if (isPlaymaker && isPerimDefender && usg >= 75 && ppg >= 85 && thr > 20 && mpg >= 20 && !isRebounder && !isCenterPos && isGuardPos)
+  if (isPlaymaker && isPerimDefender && usg >= 75 && ppg >= 85 && thr > 20 && mpg >= 20 && !isRebounder && isPointGuard)
     return { name: 'Base Todoterreno Élite', desc: 'Anotador y creador estrella con defensa perimetral de alto nivel', color: 'text-accent-700 bg-accent-50 border-accent-200' }
   
 
@@ -732,7 +739,7 @@ function classifyArchetype(player, bio) {
     return { name: 'Estrella Anotadora', desc: 'Anotador élite de alto volumen y eficiencia', color: 'text-accent-700 bg-accent-50 border-accent-200' }
 
   // Complete guard: scores a lot AND creates a lot (without elite defense)
-  if (isScorer && isPlaymaker && isEfficient && trb < 50 && mpg >= 20 && !isCenterPos)
+  if (isScorer && isPlaymaker && isEfficient && trb < 50 && mpg >= 20 && isPointGuard)
     return { name: 'Base Dominador', desc: 'Anota, crea para otros y lo hace con eficiencia', color: 'text-info-700 bg-info-50 border-info-200' }
 
   // good creator + elite defender: high usage playmaker with lockdown defense (not elite scorer)
@@ -769,7 +776,7 @@ function classifyArchetype(player, bio) {
     return { name: 'Finalizador Eficiente', desc: 'Anotador eficiente que convierte oportunidades sin responsabilidades de creación', color: 'text-gold-700 bg-gold-50 border-gold-200' }
 
   // Volume scorer: high usage + high scoring, regardless of efficiency
-  if (isScorer && thr >= 40 && ast <= 40 && stl < 75 && mpg >= 20 && !isGuardPos)
+  if (isScorer && thr >= 40 && ast <= 40 && stl < 75 && mpg >= 20 && isWingPos)
     return { name: 'Alero Anotador', desc: 'Alero con gran volumen y capacidad de anotar y sin responsabilidades en la creación de juego', color: 'text-gold-700 bg-gold-50 border-gold-200' }
 
   // Defensive floor general: elite playmaker + elite perimeter defense, not a scorer
@@ -789,30 +796,30 @@ function classifyArchetype(player, bio) {
     return { name: 'Point Forward', desc: 'Prioriza la asistencia y la organización del ataque', color: 'text-info-700 bg-info-50 border-info-200' }
 
   // Two-way guard: scorer with elite defense
-  if (isScorer && (stl >= 75 || blk >= 65) && ast >= 50 && ast < 70 && trb < 75)
+  if (isScorer && (stl >= 75 || blk >= 65) && ast >= 50 && ast < 70 && trb < 75 && isSecondGuard)
     return { name: 'Escolta Two-Way', desc: 'Anotador con impacto defensivo elite', color: 'text-sage-700 bg-sage-50 border-sage-200' }
 
   // Pure scoring guard: efficient scorer with limited playmaking
-  if (isScorer && isEfficient && ast < 65 && ast >= 50 && trb < 75)
+  if (isScorer && isEfficient && ast < 65 && ast >= 50 && trb < 75 && isGuardPos)
     return { name: 'Combo Guard Anotador', desc: 'Anotador eficiente puro, genera poco para los demás', color: 'text-gold-700 bg-gold-50 border-gold-200' }
   
   // Pass-first guard: elite playmaker, not high volume
-  if (ast >= 85 && usg > 70 && ppg > 65 && trb < 50 && blk < 30 && !isBigPos)
+  if (ast >= 85 && usg > 70 && ppg > 65 && trb < 50 && blk < 30 && isPointGuard)
     return { name: 'Base Completo', desc: 'Organiza y anota eficientemente con buen volumen', color: 'text-info-700 bg-info-50 border-info-200' }
 
   
   // ── Wing / scorer archetypes ──
 
     // All-around Wing
-  if (ppg  >= 70 && trb >= 70 && stl >= 70 && thr > 20 && ppg > 90)
+  if (ppg  >= 70 && trb >= 70 && stl >= 70 && thr > 20 && ppg > 90 && isWingPos)
     return { name: 'Alero Dominante', desc: 'Estrella Anotadora que también contribuye en defensa y rebote', color: 'text-accent-700 bg-accent-50 border-accent-200'}
 
   // All-around Wing
-  if (ppg  >= 70 && trb >= 70 && stl >= 70 && thr > 20 && ppg < 90 && trb < 90 && stl < 90)
+  if (ppg  >= 70 && trb >= 70 && stl >= 70 && thr > 20 && ppg < 90 && trb < 90 && stl < 90 && isWingPos)
     return { name: 'Alero Completo', desc: 'Contribuye de forma equilibrada en ataque, rebote y defensa', color: 'text-sage-700 bg-sage-50 border-sage-200' }
 
         // Ala Pívot de Rol
-  if (trb >= 70 && ppg >= 60 && ppg < 75 && blk < 70 && isPerimDefender && stl < 90 && thr > 20)
+  if (trb >= 70 && ppg >= 60 && ppg < 75 && blk < 70 && isPerimDefender && stl < 90 && thr > 20 && isWingPos)
     return { name: 'Alero Defensivo Completo', desc: 'Rebotea y anota sin ser el foco de atención', color: 'text-sage-700 bg-sage-50 border-sage-200' }
 
 
@@ -821,9 +828,9 @@ function classifyArchetype(player, bio) {
     return { name: 'Finalizador Interior', desc: 'Anotador agresivo atacando el aro', color: 'text-gold-700 bg-gold-50 border-gold-200' }
 
   // 3&D Wing vs defensive shot creator: shooter + elite defense
-  if (thr >= 75 && (isPerimDefender || isRimProtector) && isOffDribble3)
+  if (thr >= 75 && (isPerimDefender || isRimProtector) && isOffDribble3 && isWingPos)
     return { name: 'Alero Creador Defensivo', desc: 'Crea su propio tiro exterior y defiende a alto nivel', color: 'text-sage-700 bg-sage-50 border-sage-200' }
-  if (thr >= 75 && (isPerimDefender || isRimProtector))
+  if (thr >= 75 && (isPerimDefender || isRimProtector) && isWingPos)
     return { name: 'Alero 3&D', desc: 'Tirador exterior con defensa de élite', color: 'text-sage-700 bg-sage-50 border-sage-200' }
 
   // Shot creator vs catch-and-shoot specialist: shooter without elite defense
@@ -858,7 +865,7 @@ function classifyArchetype(player, bio) {
     return { name: 'Estrella Two-Way', desc: 'Dominante en ataque y defensa', color: 'text-accent-700 bg-accent-50 border-accent-200' }
 
   // Versatile guard: high usage + creation + defense, but not a star
-  if (usg >= 65 && ast >= 70 && (stl >= 70) && ppg >= 70 && usg >= 70 && thr > 20 && !isRebounder && !isBigPos)
+  if (usg >= 65 && ast >= 70 && (stl >= 70) && ppg >= 70 && usg >= 70 && thr > 20 && !isRebounder && isPointGuard)
     return { name: 'Base Polivalente', desc: 'Base versátil con anotación, creación y defensa', color: 'text-info-700 bg-info-50 border-info-200' }
 
       // Point Forward
@@ -873,15 +880,15 @@ function classifyArchetype(player, bio) {
     return { name: 'Interior con Tiro', desc: 'Interior que abre el campo con su amenaza exterior', color: 'text-plum-700 bg-plum-50 border-plum-200' }
 
   // Elite Center: All around
-  if (isScorer && (trb >= 85 || (isCenterPos && trb >= 78)) && blk >70 && ast < 75 && mpg >= 20 && !isWingPos && !isGuardPos)
+  if (isScorer && trb >= 78 && blk >70 && ast < 75 && mpg >= 20 && isCenterPos)
     return { name: 'Pívot Estrella', desc: 'Domina la zona, intimida y lleva el peso ofensivo del equipo.', color: 'text-accent-700 bg-accent-50 border-accent-200' }
   
   // Versatile Center
-  if (isScorer && trb >= 80 && ast >= 70 && mpg >= 20 && !isWingPos && !isGuardPos)
+  if (isScorer && trb >= 80 && ast >= 70 && mpg >= 20 && isCenterPos)
     return { name: 'Pívot Moderno Estrella', desc: 'Anota en la pintura, rebotea, protege el aro y habilita a sus compañeros con facilidad', color: 'text-accent-700 bg-accent-50 border-accent-200' }
 
   // Versatile Center
-  if (isScorer && trb >= 80 && ast >= 70 && !isWingPos && !isGuardPos)
+  if (isScorer && trb >= 80 && ast >= 70 && isCenterPos)
     return { name: 'Pívot Moderno', desc: 'Anota en la pintura, rebotea y habilita a sus compañeros con facilidad', color: 'text-plum-700 bg-plum-50 border-plum-200' }
 
   // Post Scorer: self-creating vs finisher
@@ -906,13 +913,13 @@ function classifyArchetype(player, bio) {
     return { name: 'Intimidador Interior', desc: 'Presencia defensiva cerca del aro con tapones', color: 'text-plum-700 bg-plum-50 border-plum-200' }
 
   // Stretch Big: rebounds + shoots threes
-  if (trb >= 75 && blk >= 60 && thr >= 75 && (isBigPos || isVeryTall))
+  if (trb >= 75 && blk >= 60 && thr >= 75 && (isCenterPos || (position == null && isVeryTall)))
     return { name: 'Pívot Abierto', desc: 'Grande que abre el campo con tiro exterior', color: 'text-plum-700 bg-plum-50 border-plum-200' }
 
       // Ala Pívot: self-creating scorer vs finisher
-  if (trb >= 80 && ppg >= 75 && usg > 65 && ts >80 && !isGuardPos && isSelfCreator)
+  if (trb >= 80 && ppg >= 75 && usg > 65 && ts >80 && isPFPos && isSelfCreator)
     return { name: 'Ala-Pívot Anotador', desc: 'Rebotea y crea su propia anotación con gran eficiencia', color: 'text-plum-700 bg-plum-50 border-plum-200' }
-  if (trb >= 80 && ppg >= 75 && usg > 65 && ts >80 && !isGuardPos)
+  if (trb >= 80 && ppg >= 75 && usg > 65 && ts >80 && isPFPos)
     return { name: 'Ala Pívot Finalizador', desc: 'Rebotea y finaliza tras pase con gran eficiencia', color: 'text-plum-700 bg-plum-50 border-plum-200' }
 
 
@@ -921,7 +928,7 @@ function classifyArchetype(player, bio) {
     return { name: 'Interior de Rol Completo', desc: 'Rebotea, protege el aro y anota sin ser el foco de atención', color: 'text-plum-700 bg-plum-50 border-plum-200' }
 
       // Ala Pívot de Rol
-  if (trb >= 70 && ppg >= 70 && usg < 60 && !isGuardPos)
+  if (trb >= 70 && ppg >= 70 && usg < 60 && isPFPos)
     return { name: 'Ala Pívot de Rol', desc: 'Rebotea y anota sin ser el foco de atención', color: 'text-plum-700 bg-plum-50 border-plum-200' }
 
   // Glass Cleaner
@@ -929,7 +936,7 @@ function classifyArchetype(player, bio) {
     return { name: 'Aspiradora', desc: 'Dominador del rebote ofensivo y defensivo', color: 'text-sand-700 bg-sand-50 border-sand-200' }
 
   // Rim Protector
-  if (blk >= 70 && trb >= 70 && !isScorer && !isWingPos && !isGuardPos)
+  if (blk >= 70 && trb >= 70 && !isScorer && isCenterPos)
     return { name: 'Pívot de Rol', desc: 'Cumple su función de protector del aro y reboteador', color: 'text-plum-700 bg-plum-50 border-plum-200' }
 
 
@@ -1200,12 +1207,6 @@ function OnOffCard({ records, loadLineupsForSeason, lineupsCache, loadingLineups
     })
   }, [seasonTeams, lineupsCache, loadingLineups])
 
-  const ratingColor = (v, defensive = false) => {
-    if (v == null) return 'text-acb-400'
-    if (defensive) return v < 100 ? 'text-positive' : v > 110 ? 'text-negative' : 'text-acb-700'
-    return v > 110 ? 'text-positive' : v < 100 ? 'text-negative' : 'text-acb-700'
-  }
-
   const diffColor = (v) => {
     if (v == null) return 'text-acb-400'
     if (v > 2) return 'text-positive font-medium'
@@ -1345,7 +1346,13 @@ function OnOffCard({ records, loadLineupsForSeason, lineupsCache, loadingLineups
 
 // ─── Clutch Card ───────────────────────────────────────────────
 function ClutchCard({ records, loadClutchForSeason, clutchCache, loadingClutch }) {
-  const seasons = useMemo(() => records.map(r => r.season), [records])
+  const seasonTeams = useMemo(() => {
+    return [...new Map(records.map(record => [
+      `${record.season}::${record.team}`,
+      { season: record.season, team: record.team },
+    ])).values()]
+  }, [records])
+  const seasons = useMemo(() => [...new Set(seasonTeams.map(record => record.season))], [seasonTeams])
   const licenseId = records[0]?.licenseId
 
   // Load clutch data for all seasons this player played in
@@ -1354,18 +1361,19 @@ function ClutchCard({ records, loadClutchForSeason, clutchCache, loadingClutch }
   }, [seasons, loadClutchForSeason])
 
   const clutchRows = useMemo(() => {
-    return seasons
-      .map(season => {
+    return seasonTeams
+      .map(({ season, team }) => {
         const data = clutchCache[season]
         if (!data) return null
-        const entry = data.players?.find(p => String(p.licenseId) === String(licenseId))
+        const playerEntries = data.players?.filter(p => String(p.licenseId) === String(licenseId)) || []
+        const entry = playerEntries.find(p => p.team === team)
+          || (playerEntries.length === 1 ? playerEntries[0] : null)
         if (!entry) return null
-        const team = records.find(r => r.season === season)?.team || entry.team
-        return { season, team, ...entry }
+        return { ...entry, season, team: entry.team || team }
       })
       .filter(Boolean)
       .sort((a, b) => b.season - a.season)
-  }, [seasons, clutchCache, licenseId, records])
+  }, [seasonTeams, clutchCache, licenseId])
 
   const anyLoading = seasons.some(s => loadingClutch[s])
   const seasonLabel = s => `${s - 1}-${String(s).slice(-2)}`
@@ -1398,8 +1406,8 @@ function ClutchCard({ records, loadClutchForSeason, clutchCache, loadingClutch }
     const fmtNum = v => v == null || isNaN(v) ? '' : Number(v).toFixed(1)
     const exportRows = clutchRows.map(r => {
       const fga = (r.fg2A || 0) + (r.fg3A || 0)
-      const tsPct = fga + (r.ftA || 0) > 0
-        ? (r.pts * r.games) / (2 * (fga + 0.44 * (r.ftA || 0))) * 100
+      const tsPct = r.ptsT != null && fga + (r.ftA || 0) > 0
+        ? r.ptsT / (2 * (fga + 0.44 * (r.ftA || 0))) * 100
         : null
       const fg3Rate = fga > 0 ? (r.fg3A || 0) / fga * 100 : null
       return {
@@ -1457,12 +1465,12 @@ function ClutchCard({ records, loadClutchForSeason, clutchCache, loadingClutch }
             <tbody className="divide-y divide-acb-100">
               {clutchRows.map(r => {
                 const fga    = (r.fg2A || 0) + (r.fg3A || 0)
-                const tsPct  = fga + (r.ftA || 0) > 0
-                  ? (r.pts * r.games) / (2 * (fga + 0.44 * (r.ftA || 0))) * 100
+                const tsPct  = r.ptsT != null && fga + (r.ftA || 0) > 0
+                  ? r.ptsT / (2 * (fga + 0.44 * (r.ftA || 0))) * 100
                   : null
                 const fg3Rate = fga > 0 ? (r.fg3A || 0) / fga * 100 : null
                 return (
-                  <tr key={r.season} className="hover:bg-acb-50">
+                  <tr key={`${r.season}-${r.team}`} className="hover:bg-acb-50">
                     <td className="px-3 py-2 text-left font-medium text-acb-900 whitespace-nowrap">{seasonLabel(r.season)}</td>
                     <td className="profile-history-team">{r.team}</td>
                     <td className="px-3 py-2 text-right font-mono text-acb-700">{r.games}</td>
@@ -1495,6 +1503,7 @@ export default function PlayerProfile({ players, allPlayers = players, playerPho
   const navigate = useNavigate()
   const [selectedLicenseId, setSelectedLicenseId] = useState(null)
   const [selectedSeason, setSelectedSeason] = useState(null)
+  const [selectedTeam, setSelectedTeam] = useState(null)
   const [selectedStage, setSelectedStage] = useState('regular')
 
   // Sync from URL param when navigating via /jugador/:licenseId
@@ -1526,25 +1535,24 @@ export default function PlayerProfile({ players, allPlayers = players, playerPho
       .sort((a, b) => b.season - a.season)
   }, [allPlayers, selectedLicenseId])
 
-  // Available seasons for this player
-  const availableSeasons = useMemo(() => {
-    return [...new Set(playerRecords.map(r => r.season))]
-  }, [playerRecords])
-
   // Default to latest season when player changes
   useEffect(() => {
-    if (availableSeasons.length > 0) {
-      setSelectedSeason(availableSeasons[0])
+    if (playerRecords.length > 0) {
+      setSelectedSeason(playerRecords[0].season)
+      setSelectedTeam(playerRecords[0].team)
     } else {
       setSelectedSeason(null)
+      setSelectedTeam(null)
     }
-  }, [selectedLicenseId, selectedStage, availableSeasons.length])
+  }, [selectedLicenseId, selectedStage, playerRecords])
 
   // Record for the currently selected season
   const seasonRecord = useMemo(() => {
     if (!selectedSeason) return null
-    return playerRecords.find(r => r.season === selectedSeason) || null
-  }, [playerRecords, selectedSeason])
+    return playerRecords.find(r => r.season === selectedSeason && r.team === selectedTeam)
+      || playerRecords.find(r => r.season === selectedSeason)
+      || null
+  }, [playerRecords, selectedSeason, selectedTeam])
 
   // Bio: prefer fields embedded in the player record (from re-exported players.json),
   // fall back to the separate playerBio lookup for backwards compatibility.
@@ -1629,10 +1637,18 @@ export default function PlayerProfile({ players, allPlayers = players, playerPho
           <CareerTable records={playerRecords} />
 
           {/* Season picker for detail cards */}
-          {availableSeasons.length > 0 && (
+          {playerRecords.length > 0 && (
             <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-acb-700">Temporada detallada:</span>
-              <SeasonPicker seasons={availableSeasons} selected={selectedSeason} onChange={setSelectedSeason} />
+              <label htmlFor="player-profile-record" className="text-sm font-medium text-acb-700">Temporada y equipo:</label>
+              <SeasonPicker
+                records={playerRecords}
+                selected={seasonRecord ? playerRecordKey(seasonRecord) : ''}
+                onChange={(record) => {
+                  if (!record) return
+                  setSelectedSeason(record.season)
+                  setSelectedTeam(record.team)
+                }}
+              />
             </div>
           )}
 

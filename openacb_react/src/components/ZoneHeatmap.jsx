@@ -181,7 +181,7 @@ const CUSTOM_LABEL_POSITIONS = {
 };
 
 // Convert polygon points to SVG path
-function polygonToPath(points, scale, offsetX, offsetY) {
+function polygonToPath(points, scale, offsetX) {
   if (!points || points.length === 0) return '';
   const svgPoints = points.map(p => ({
     x: (p.x + offsetX) * scale,
@@ -241,7 +241,7 @@ function relativeTurboColor(normalizedValue, opacity = 0.7) {
   return `rgba(${r}, ${g}, ${b}, ${opacity})`;
 }
 
-export default function ZoneHeatmap({ shots, leagueShots = [], metric = 'efficiency', width = 750, height = 705 }) {
+export default function ZoneHeatmap({ shots, leagueShots = [], metric = 'efficiency', width = 750, height = 705, minEfficiencyAttempts = 10 }) {
   // Get zone polygon definitions
   const zonePolygons = useMemo(() => getZonePolygons(), []);
 
@@ -267,8 +267,8 @@ export default function ZoneHeatmap({ shots, leagueShots = [], metric = 'efficie
 
     // Calculate percentages for each zone
     const result = {};
-    Object.keys(stats).forEach(zone => {
-      const s = stats[zone];
+    Object.keys(zonePolygons).forEach(zone => {
+      const s = stats[zone] || { attempts: 0, makes: 0, points: 0 };
       result[zone] = {
         attempts: s.attempts,
         makes: s.makes,
@@ -279,7 +279,7 @@ export default function ZoneHeatmap({ shots, leagueShots = [], metric = 'efficie
     });
 
     return result;
-  }, [shots]);
+  }, [shots, zonePolygons]);
 
   // Calculate LEAGUE average FG% PER ZONE for comparison
   const leagueZoneAverages = useMemo(() => {
@@ -344,10 +344,10 @@ export default function ZoneHeatmap({ shots, leagueShots = [], metric = 'efficie
 
   if (shots.length === 0) {
     return (
-      <div className="flex items-center justify-center" style={{ width, height }}>
+      <div className="flex items-center justify-center" style={{ width: '100%', maxWidth: width, aspectRatio: `${width} / ${height}` }}>
         <div className="text-center text-acb-500">
-          <p className="text-sm">No shots available for the selected filters</p>
-          <p className="text-xs mt-1">Try adjusting your filter settings</p>
+          <p className="text-sm">No hay tiros disponibles con los filtros seleccionados</p>
+          <p className="text-xs mt-1">Prueba a ajustar los filtros</p>
         </div>
       </div>
     );
@@ -364,30 +364,30 @@ export default function ZoneHeatmap({ shots, leagueShots = [], metric = 'efficie
   const hasValidZones = shots.some(shot => shot.zoned || shot.zone);
   if (!hasValidZones) {
     return (
-      <div className="flex items-center justify-center" style={{ width, height }}>
+      <div className="flex items-center justify-center" style={{ width: '100%', maxWidth: width, aspectRatio: `${width} / ${height}` }}>
         <div className="text-center text-acb-500">
-          <p className="text-sm">No zone data available in shots</p>
-          <p className="text-xs mt-1">Zone information might be missing</p>
+          <p className="text-sm">No hay datos de zona disponibles</p>
+          <p className="text-xs mt-1">Puede faltar la zona en los datos de tiro</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="relative" style={{ width, height }}>
+    <div className="relative" style={{ width: '100%', maxWidth: width, aspectRatio: `${width} / ${height}` }}>
       <Court width={width} height={height} />
 
       <svg
-        width={width}
-        height={height}
         viewBox={`0 0 ${width} ${height}`}
-        className="absolute top-0 left-0"
+        className="absolute inset-0 w-full h-full"
+        role="img"
+        aria-label={isFrequencyMetric ? 'Frecuencia de tiro por zona' : 'Eficiencia de tiro por zona'}
         style={{ pointerEvents: 'none' }}
       >
         {/* Draw zone polygons */}
         {Object.entries(zonePolygons).map(([zoneName, points]) => {
-          const stats = zoneStats[zoneName];
-          if (!stats || stats.attempts === 0) return null;
+          const stats = zoneStats[zoneName] || { attempts: 0, makes: 0, fgPct: 0, freqPct: 0, pps: 0 };
+          if (!isFrequencyMetric && stats.attempts === 0) return null;
 
           const leagueAvgForZone = leagueZoneAverages[zoneName] || { fgPct: 0, freqPct: 0 };
           const pathD = polygonToPath(points, scale, offsetX);
@@ -395,9 +395,12 @@ export default function ZoneHeatmap({ shots, leagueShots = [], metric = 'efficie
           const freqPctDiff = stats.freqPct - leagueAvgForZone.freqPct;
           const metricValue = isFrequencyMetric ? stats.freqPct : stats.fgPct;
           const metricDiff = isFrequencyMetric ? freqPctDiff : fgPctDiff;
+          const hasEfficiencySample = stats.attempts >= minEfficiencyAttempts;
           const color = isFrequencyMetric
             ? relativeTurboColor(freqPctDiff / maxFrequencyDiff, 0.66)
-            : getColor(stats.fgPct, leagueAvgForZone.fgPct, 0.6);
+            : hasEfficiencySample
+              ? getColor(stats.fgPct, leagueAvgForZone.fgPct, 0.6)
+              : 'rgba(148, 163, 184, 0.25)';
 
           // Use custom position if available, otherwise use polygon centroid
           const customPos = CUSTOM_LABEL_POSITIONS[zoneName];
@@ -441,7 +444,7 @@ export default function ZoneHeatmap({ shots, leagueShots = [], metric = 'efficie
               </text>
 
               {/* Difference from league zone average */}
-              {Math.abs(metricDiff) > (isFrequencyMetric ? 1 : 2) && (
+              {(isFrequencyMetric || hasEfficiencySample) && Math.abs(metricDiff) > (isFrequencyMetric ? 1 : 2) && (
                 <text
                   x={labelX}
                   y={labelY + 22}
@@ -461,16 +464,17 @@ export default function ZoneHeatmap({ shots, leagueShots = [], metric = 'efficie
 
       {/* Legend */}
       <div className="absolute bottom-2 left-2 right-2 bg-white/95 p-2 rounded border border-acb-300 text-xs">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="font-medium text-acb-700">
-              {isFrequencyMetric ? 'Distribucion por zonas de tiro' : 'Carta de tiro por zonas de tiro'}
+              {isFrequencyMetric ? 'Distribución por zonas de tiro' : 'Eficiencia por zonas de tiro'}
             </span>
             <span className="text-acb-500">
-              (vs Media de la Liga)
+              (vs. media de la liga)
             </span>
+            {!isFrequencyMetric && <span className="text-acb-500">Color desde {minEfficiencyAttempts} intentos</span>}
           </div>
-          <div className="flex items-center gap-3 text-xs">
+          <div className="flex items-center gap-3 text-xs flex-wrap">
             <div className="flex items-center gap-1">
               <div
                 className="w-3 h-3 rounded"

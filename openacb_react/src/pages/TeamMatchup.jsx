@@ -47,11 +47,6 @@ function edgeClass(v) {
   return v > 0 ? 'text-positive font-semibold' : 'text-negative font-semibold'
 }
 
-function softEdgeClass(v) {
-  if (v == null || Math.abs(v) < 0.5) return 'text-acb-400'
-  return v > 0 ? 'text-positive-600 font-medium' : 'text-negative-600 font-medium'
-}
-
 function TeamLogo({ team, teamLogos, size = 'lg' }) {
   const logo = teamLogos?.[team]
   const cls = size === 'sm' ? 'w-8 h-8' : 'w-14 h-14'
@@ -60,10 +55,11 @@ function TeamLogo({ team, teamLogos, size = 'lg' }) {
 }
 
 function TeamSelector({ label, teams, selected, onChange, teamLogos, profileUrl }) {
+  const selectId = label === 'Equipo A' ? 'matchup-team-a' : 'matchup-team-b'
   return (
     <div className="bg-white rounded-lg border border-acb-200 p-4">
       <div className="flex items-center justify-between gap-2 mb-3">
-        <h3 className="font-semibold text-acb-900">{label}</h3>
+        <label htmlFor={selectId} className="font-semibold text-acb-900">{label}</label>
         {profileUrl && selected && (
           <Link to={profileUrl} className="text-xs text-acb-400 hover:text-acb-700 transition-colors" title="Ver perfil del equipo">
             Ver perfil →
@@ -73,6 +69,7 @@ function TeamSelector({ label, teams, selected, onChange, teamLogos, profileUrl 
       <div className="flex items-center gap-3">
         <TeamLogo team={selected} teamLogos={teamLogos} size="sm" />
         <select
+          id={selectId}
           value={selected || ''}
           onChange={e => onChange(e.target.value)}
           className="w-full px-3 py-2.5 border border-acb-200 rounded-lg text-sm bg-white"
@@ -267,7 +264,7 @@ function StatComparison({ a, b }) {
         <h3 className="font-semibold text-acb-900">Fortalezas y debilidades</h3>
         <p className="text-xs text-acb-500 mt-0.5">La barra central indica dirección y magnitud de la ventaja</p>
       </div>
-      <div className="grid grid-cols-[minmax(110px,1fr)_minmax(80px,108px)_80px_minmax(80px,108px)] items-center gap-2 px-4 py-2.5 bg-acb-50 border-b border-acb-200 text-[11px] font-semibold uppercase text-acb-500">
+      <div className="grid grid-cols-[minmax(80px,1fr)_64px_56px_64px] sm:grid-cols-[minmax(110px,1fr)_minmax(80px,108px)_80px_minmax(80px,108px)] items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2.5 bg-acb-50 border-b border-acb-200 text-[11px] font-semibold uppercase text-acb-500">
         <div>Métrica</div>
         <div className="text-right flex items-center justify-end gap-1">
           <span className="w-2 h-2 rounded-full bg-accent-500 shrink-0" />
@@ -293,7 +290,7 @@ function StatComparison({ a, b }) {
                   const diff = av == null || bv == null ? null : (m.lower ? bv - av : av - bv)
                   const barPct = diff != null && m.scale ? Math.min(100, (Math.abs(diff) / m.scale) * 100) : 0
                   return (
-                    <div key={m.key} className="grid grid-cols-[minmax(110px,1fr)_minmax(80px,108px)_80px_minmax(80px,108px)] items-center gap-2 text-sm">
+                    <div key={m.key} className="grid grid-cols-[minmax(80px,1fr)_64px_56px_64px] sm:grid-cols-[minmax(110px,1fr)_minmax(80px,108px)_80px_minmax(80px,108px)] items-center gap-1 sm:gap-2 text-sm">
                       <div className="text-acb-600 truncate">{m.label}</div>
                       <div className={`font-mono text-right ${diff != null && diff > 0 ? 'text-positive font-semibold' : 'text-acb-700'}`}>{fmt(av, m.type)}</div>
                       <div className="flex flex-col items-center gap-0.5">
@@ -766,6 +763,7 @@ export default function TeamMatchup({
         <div>
           <h2 className="text-2xl font-semibold text-acb-900">Cara a Cara</h2>
           <p className="text-acb-500 text-sm mt-1">Compara dos equipos por estilo, eficiencia, zonas, rebote, presión y clutch</p>
+          <p className="text-acb-400 text-xs mt-1">Temporada completa · Liga regular y playoffs</p>
         </div>
         <Link to="/equipos" className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-acb-200 bg-white text-sm text-acb-600 hover:bg-acb-50">
           Estadísticas de equipo
@@ -774,8 +772,9 @@ export default function TeamMatchup({
 
       <div className="grid lg:grid-cols-[160px_1fr_auto_1fr] gap-4 items-center">
         <div className="bg-white rounded-lg border border-acb-200 p-4">
-          <label className="text-xs text-acb-500 font-medium">Temporada</label>
+          <label htmlFor="matchup-season" className="text-xs text-acb-500 font-medium">Temporada</label>
           <select
+            id="matchup-season"
             value={selectedSeason}
             onChange={e => setSelectedSeason(Number(e.target.value))}
             className="w-full mt-1 px-3 py-2.5 border border-acb-200 rounded-lg text-sm bg-white"
@@ -792,7 +791,9 @@ export default function TeamMatchup({
           profileUrl={teamA ? `/perfil-equipo/${selectedSeason}/${toSlug(teamA)}` : null}
         />
         <button
+          type="button"
           onClick={() => { const tmp = teamA; setTeamA(teamB); setTeamB(tmp) }}
+          aria-label="Intercambiar equipos"
           className="p-2.5 rounded-lg border border-acb-200 bg-white hover:bg-acb-50 text-acb-500 hover:text-acb-900 transition-colors text-xl leading-none self-stretch flex items-center"
           title="Intercambiar equipos"
         >

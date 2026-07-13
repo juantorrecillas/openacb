@@ -40,15 +40,6 @@ function fmt(v, key) {
   return n.toFixed(1)
 }
 
-function pctColor(pct, inverse = false) {
-  if (pct == null || Number.isNaN(Number(pct))) return 'bg-acb-100 text-acb-500'
-  const adjusted = inverse ? 100 - pct : pct
-  if (adjusted >= 75) return 'bg-positive-100 text-positive-700'
-  if (adjusted >= 50) return 'bg-info-100 text-info-700'
-  if (adjusted >= 25) return 'bg-info-100 text-info-600'
-  return 'bg-negative-100 text-negative-700'
-}
-
 function valueColor(a, b, metric, side) {
   if (a == null || b == null || Number.isNaN(Number(a)) || Number.isNaN(Number(b))) return 'text-acb-700'
   if (Number(a) === Number(b)) return 'text-acb-700'
@@ -63,6 +54,7 @@ function PlayerSelector({ players, label, selectedLicenseId, onSelect }) {
   const [teamFilter, setTeamFilter] = useState('')
   const [seasonFilter, setSeasonFilter] = useState('')
   const ref = useRef(null)
+  const idPrefix = label === 'Jugador A' ? 'compare-a' : 'compare-b'
 
   useEffect(() => {
     const handler = (e) => {
@@ -120,8 +112,9 @@ function PlayerSelector({ players, label, selectedLicenseId, onSelect }) {
       </div>
       <div className="grid sm:grid-cols-[140px_180px_1fr] gap-3 items-end">
         <div>
-          <label className="text-xs text-acb-500 font-medium">Temporada</label>
+          <label htmlFor={`${idPrefix}-season`} className="text-xs text-acb-500 font-medium">Temporada</label>
           <select
+            id={`${idPrefix}-season`}
             value={seasonFilter}
             onChange={(e) => { setSeasonFilter(e.target.value); setTeamFilter('') }}
             className="w-full mt-1 px-3 py-2.5 border border-acb-200 rounded-lg text-sm bg-white"
@@ -133,10 +126,11 @@ function PlayerSelector({ players, label, selectedLicenseId, onSelect }) {
           </select>
         </div>
         <div>
-          <label className="text-xs text-acb-500 font-medium">Equipo</label>
+          <label htmlFor={`${idPrefix}-team`} className="text-xs text-acb-500 font-medium">Equipo</label>
           <div className="relative mt-1">
             <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-acb-400" />
             <select
+              id={`${idPrefix}-team`}
               value={teamFilter}
               onChange={(e) => setTeamFilter(e.target.value)}
               className="w-full pl-9 pr-3 py-2.5 border border-acb-200 rounded-lg text-sm bg-white"
@@ -149,10 +143,11 @@ function PlayerSelector({ players, label, selectedLicenseId, onSelect }) {
           </div>
         </div>
         <div ref={ref} className="relative">
-          <label className="text-xs text-acb-500 font-medium">Jugador</label>
+          <label htmlFor={`${idPrefix}-player`} className="text-xs text-acb-500 font-medium">Jugador</label>
           <div className="relative mt-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-acb-400" />
             <input
+              id={`${idPrefix}-player`}
               type="text"
               value={query}
               onFocus={() => setOpen(true)}
@@ -187,12 +182,12 @@ function PlayerSelector({ players, label, selectedLicenseId, onSelect }) {
   )
 }
 
-function PlayerSummary({ record, bio, photoUrl, colorClass, season, onSeasonChange, seasons }) {
+function PlayerSummary({ record, bio, photoUrl, colorClass, season, onSeasonChange, seasons, selectId }) {
   if (!record) return null
   const age = bio?.birthDate ? ageAtSeasonStart(bio.birthDate, season) : null
   return (
     <div className="bg-white rounded-lg border border-acb-200 p-5">
-      <div className="flex gap-4 items-start">
+      <div className="flex flex-col sm:flex-row gap-4 items-center sm:items-start">
         {photoUrl ? (
           <img
             src={photoUrl}
@@ -202,16 +197,18 @@ function PlayerSummary({ record, bio, photoUrl, colorClass, season, onSeasonChan
         ) : (
           <div className={`w-20 h-20 rounded-full border-2 ${colorClass} bg-acb-100`} />
         )}
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h3 className="text-xl font-bold text-acb-900 truncate">{getPlayerDisplayName(record)}</h3>
+        <div className="min-w-0 flex-1 w-full">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+            <div className="min-w-0">
+              <h3 className="text-xl font-bold text-acb-900 sm:truncate">{getPlayerDisplayName(record)}</h3>
               <p className="text-sm text-acb-500">{record.team} - {seasonLabel(record.season)}</p>
             </div>
+            <label htmlFor={selectId} className="sr-only">Temporada</label>
             <select
+              id={selectId}
               value={season || ''}
               onChange={(e) => onSeasonChange(Number(e.target.value))}
-              className="px-3 py-1.5 border border-acb-200 rounded-md text-sm bg-white shrink-0"
+              className="w-full sm:w-auto px-3 py-1.5 border border-acb-200 rounded-md text-sm bg-white shrink-0"
             >
               {seasons.map(s => (
                 <option key={s} value={s}>{seasonLabel(s)}</option>
@@ -227,7 +224,7 @@ function PlayerSummary({ record, bio, photoUrl, colorClass, season, onSeasonChan
             <span>{record.games} PJ</span>
             <span>{fmt(record.mpg, 'mpg')} MPP</span>
           </div>
-          <div className="grid grid-cols-4 gap-2 mt-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4">
             {[
               ['PPP', record.ppg],
               ['TS%', record.ts, 'ts'],
@@ -776,6 +773,7 @@ export default function PlayerComparison({
         <PlayerSelector players={players} label="Jugador A" selectedLicenseId={aId} onSelect={handleSelectA} />
         <button
           onClick={handleSwap}
+          aria-label="Intercambiar jugadores"
           className="p-2.5 rounded-lg border border-acb-200 bg-white hover:bg-acb-50 text-acb-500 hover:text-acb-900 transition-colors text-xl leading-none self-stretch flex items-center"
           title="Intercambiar jugadores"
         >
@@ -795,6 +793,7 @@ export default function PlayerComparison({
               season={aSeason}
               seasons={seasonsA}
               onSeasonChange={setASeason}
+              selectId="compare-a-selected-season"
             />
             <PlayerSummary
               record={playerB}
@@ -804,6 +803,7 @@ export default function PlayerComparison({
               season={bSeason}
               seasons={seasonsB}
               onSeasonChange={setBSeason}
+              selectId="compare-b-selected-season"
             />
           </div>
 

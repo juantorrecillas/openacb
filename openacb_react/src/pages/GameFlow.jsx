@@ -1,11 +1,26 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { ArrowUp, ArrowDown, Loader2 } from 'lucide-react'
 import TeamPace from './TeamPace'
+import { getPlayerDisplayName } from '../utils/playerNames'
 
 // ─── Helpers ──────────────────────────────────────────────────
 
 function seasonLabel(s) {
   return `${s - 1}-${String(s).slice(-2)}`
+}
+
+function gameRoundLabel(game) {
+  return game.competitionStage === 'playoffs'
+    ? game.competitionRound || 'Playoffs'
+    : `Jornada ${game.jornada}`
+}
+
+function normalizeName(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLocaleLowerCase('es')
 }
 
 function formatClock(seconds) {
@@ -43,7 +58,7 @@ function getRankColor(rank, total) {
   return 'bg-negative-100 text-negative-700'
 }
 
-function ClutchTeamsView({ tabBar, teams, selectedSeason, setSelectedSeason, availableSeasons, clutchCache, loadingClutch }) {
+function ClutchTeamsView({ tabBar, selectedSeason, setSelectedSeason, availableSeasons, clutchCache, loadingClutch }) {
   const [sortCol, setSortCol] = useState('plusMinus')
   const [sortDir, setSortDir] = useState('desc')
   const [viewTab, setViewTab] = useState('basico')
@@ -76,7 +91,7 @@ function ClutchTeamsView({ tabBar, teams, selectedSeason, setSelectedSeason, ava
       'ptsScoredAvg','fgPct','fg2Pct','fg3Pct','ftPct','efgPct','tsPct','fg3Rate',
       'plusMinus','winPct','netRtg','ortg','apg','spg','bpg',
       'orebAvg','drebAvg','rebAvg','orbPct','drbPct',
-      'astRate','blkRate','stlRate','astToRatio',
+      'astRate','blkRate','stlRate','astToRatio','opp_topg','opp_tovRate',
     ]
     rankDesc.forEach(key => {
       const s = [...copy].filter(t => t[key] != null).sort((a, b) => (b[key] || 0) - (a[key] || 0))
@@ -85,8 +100,8 @@ function ClutchTeamsView({ tabBar, teams, selectedSeason, setSelectedSeason, ava
     const rankAsc = [
       'ptsAllowedAvg','drtg','topg','tovRate',
       'opp_fgPct','opp_fg2Pct','opp_fg3Pct','opp_ftPct','opp_efgPct','opp_tsPct',
-      'opp_orebAvg','opp_drebAvg','opp_apg','opp_spg','opp_bpg','opp_topg',
-      'opp_astRate','opp_stlRate','opp_blkRate','opp_tovRate','opp_astToRatio',
+      'opp_orebAvg','opp_drebAvg','opp_apg','opp_spg','opp_bpg',
+      'opp_astRate','opp_stlRate','opp_blkRate','opp_astToRatio',
       'opp_orbPct','opp_drbPct',
     ]
     rankAsc.forEach(key => {
@@ -148,6 +163,7 @@ function ClutchTeamsView({ tabBar, teams, selectedSeason, setSelectedSeason, ava
       <div className="flex flex-col gap-1 w-fit">
         <label className="text-xs text-acb-500 font-medium">Temporada</label>
         <select
+          aria-label="Temporada de estadísticas clutch"
           value={selectedSeason}
           onChange={e => setSelectedSeason(Number(e.target.value))}
           className="px-3 py-2.5 border border-acb-200 rounded-lg text-sm bg-white"
@@ -380,7 +396,7 @@ function ClutchTeamsView({ tabBar, teams, selectedSeason, setSelectedSeason, ava
 
 // ─── Main Component ───────────────────────────────────────────
 
-export default function GameFlow({ teams, loadGameFlowForSeason, gameFlowCache, loadingGameFlow, loadTeamPaceForSeason, teamPaceCache, loadingTeamPace, loadClutchForSeason, clutchCache, loadingClutch }) {
+export default function GameFlow({ teams, playerRecords = [], loadGameFlowForSeason, gameFlowCache, loadingGameFlow, loadTeamPaceForSeason, teamPaceCache, loadingTeamPace, loadClutchForSeason, clutchCache, loadingClutch }) {
   const [view, setView] = useState('gameflow')
 
   const availableSeasons = useMemo(() => {
@@ -407,15 +423,17 @@ export default function GameFlow({ teams, loadGameFlowForSeason, gameFlowCache, 
 
   const isLoading = loadingGameFlow[selectedSeason] || false
 
-  // Group games by jornada
+  // agrupa la liga regular por jornada y los playoffs por ronda
   const jornadas = useMemo(() => {
     const map = new Map()
     games.forEach(g => {
-      const j = g.jornada
-      if (!map.has(j)) map.set(j, [])
-      map.get(j).push(g)
+      const key = g.competitionStage === 'playoffs'
+        ? `playoffs:${g.competitionRound || 'Playoffs'}`
+        : `regular:${g.jornada}`
+      if (!map.has(key)) map.set(key, { label: gameRoundLabel(g), games: [] })
+      map.get(key).games.push(g)
     })
-    return [...map.entries()].sort((a, b) => a[0] - b[0])
+    return [...map.entries()]
   }, [games])
 
   const [selectedJornada, setSelectedJornada] = useState(null)
@@ -432,13 +450,40 @@ export default function GameFlow({ teams, loadGameFlowForSeason, gameFlowCache, 
   const jornadaGames = useMemo(() => {
     if (selectedJornada == null) return []
     const entry = jornadas.find(([j]) => j === selectedJornada)
-    return entry ? entry[1] : []
+    return entry ? entry[1].games : []
   }, [jornadas, selectedJornada])
 
   // Current game data
   const game = selectedGame
     ? games.find(g => g.id === selectedGame)
     : null
+
+  const playerNameLookup = useMemo(() => {
+    const candidates = new Map()
+    playerRecords.forEach(record => {
+      if (Number(record.season) !== Number(selectedSeason) || !record.team) return
+      const displayName = getPlayerDisplayName(record, null)
+      if (!displayName) return
+      const aliases = [record.player, record.nickname, record.nick].filter(Boolean)
+      aliases.forEach(alias => {
+        const key = `${record.team}|${normalizeName(alias)}`
+        if (!candidates.has(key)) candidates.set(key, new Set())
+        candidates.get(key).add(displayName)
+      })
+    })
+
+    return new Map(
+      [...candidates.entries()]
+        .filter(([, names]) => names.size === 1)
+        .map(([key, names]) => [key, [...names][0]])
+    )
+  }, [playerRecords, selectedSeason])
+
+  const resolveEventPlayer = (event) => {
+    if (!game || !event?.player) return event?.player || '-'
+    const team = event.team === 'L' ? game.local : game.visitor
+    return playerNameLookup.get(`${team}|${normalizeName(event.player)}`) || event.player
+  }
 
   // ─── Chart dimensions ─────────────────────────────────────────
 
@@ -462,19 +507,26 @@ export default function GameFlow({ teams, loadGameFlowForSeason, gameFlowCache, 
       : 2400 + (maxPeriod - 4) * 300
 
     // Build margin curve from scoring events
-    const points = [{ t: 0, margin: 0, sl: 0, sv: 0 }]
+    const scorePoints = [{ t: 0, margin: 0, sl: 0, sv: 0 }]
 
     let lastSl = 0, lastSv = 0
     events.forEach(e => {
       if (e.sl != null && e.sv != null && (e.sl !== lastSl || e.sv !== lastSv)) {
-        points.push({ t: e.t, margin: e.sl - e.sv, sl: e.sl, sv: e.sv })
+        scorePoints.push({ t: e.t, margin: e.sl - e.sv, sl: e.sl, sv: e.sv })
         lastSl = e.sl
         lastSv = e.sv
       }
     })
 
     // Add final point at game end
-    points.push({ t: totalTime, margin: game.scoreL - game.scoreV, sl: game.scoreL, sv: game.scoreV })
+    scorePoints.push({ t: totalTime, margin: game.scoreL - game.scoreV, sl: game.scoreL, sv: game.scoreV })
+
+    // repite el valor anterior en cada instante para dibujar saltos de marcador
+    const points = []
+    scorePoints.forEach((point, index) => {
+      if (index > 0) points.push({ ...scorePoints[index - 1], t: point.t })
+      points.push(point)
+    })
 
     // Max absolute margin for Y scale
     const maxAbsMargin = Math.max(
@@ -516,8 +568,7 @@ export default function GameFlow({ teams, loadGameFlowForSeason, gameFlowCache, 
       if (i > 0) {
         const prev = points[i - 1]
         if ((prev.margin > 0 && p.margin < 0) || (prev.margin < 0 && p.margin > 0)) {
-          const r = Math.abs(prev.margin) / (Math.abs(prev.margin) + Math.abs(p.margin))
-          const crossX = xScale(prev.t + (p.t - prev.t) * r)
+          const crossX = xScale(p.t)
           posAreaPath += `L${crossX.toFixed(1)},${zeroY}`
           negAreaPath += `L${crossX.toFixed(1)},${zeroY}`
         }
@@ -624,7 +675,6 @@ export default function GameFlow({ teams, loadGameFlowForSeason, gameFlowCache, 
     return (
       <ClutchTeamsView
         tabBar={tabBar}
-        teams={teams}
         selectedSeason={selectedSeason}
         setSelectedSeason={setSelectedSeason}
         availableSeasons={availableSeasons}
@@ -645,6 +695,7 @@ export default function GameFlow({ teams, loadGameFlowForSeason, gameFlowCache, 
         <p className="text-acb-500 text-sm mt-1">
           Visualiza la evolución del marcador jugada a jugada en cada partido
         </p>
+        <p className="text-xs text-acb-400 mt-1">Temporada completa · Liga regular y playoffs</p>
       </div>
 
       {/* Season selector */}
@@ -652,6 +703,7 @@ export default function GameFlow({ teams, loadGameFlowForSeason, gameFlowCache, 
         <div className="flex flex-col gap-1">
           <label className="text-xs text-acb-500 font-medium">Temporada</label>
           <select
+            aria-label="Temporada del flujo de partido"
             value={selectedSeason}
             onChange={e => {
               setSelectedSeason(Number(e.target.value))
@@ -670,15 +722,16 @@ export default function GameFlow({ teams, loadGameFlowForSeason, gameFlowCache, 
           <div className="flex flex-col gap-1">
             <label className="text-xs text-acb-500 font-medium">Jornada</label>
             <select
+              aria-label="Jornada o ronda"
               value={selectedJornada ?? ''}
               onChange={e => {
-                setSelectedJornada(Number(e.target.value))
+                setSelectedJornada(e.target.value)
                 setSelectedGame(null)
               }}
               className="px-3 py-2.5 border border-acb-200 rounded-lg text-sm bg-white"
             >
-              {jornadas.map(([j]) => (
-                <option key={j} value={j}>Jornada {j}</option>
+              {jornadas.map(([j, group]) => (
+                <option key={j} value={j}>{group.label}</option>
               ))}
             </select>
           </div>
@@ -706,7 +759,7 @@ export default function GameFlow({ teams, loadGameFlowForSeason, gameFlowCache, 
                     : 'border-acb-200 bg-white hover:border-acb-300'
                 }`}
               >
-                <div className="text-xs text-acb-400 mb-1">J{g.jornada}</div>
+                <div className="text-xs text-acb-400 mb-1">{gameRoundLabel(g)}</div>
                 <div className="text-sm font-medium text-acb-900 truncate">{g.local}</div>
                 <div className="text-sm text-acb-500 truncate">{g.visitor}</div>
                 <div className="mt-1.5 flex items-center gap-1.5">
@@ -740,7 +793,7 @@ export default function GameFlow({ teams, loadGameFlowForSeason, gameFlowCache, 
               <h3 className="font-semibold text-acb-900">
                 {game.local} {game.scoreL} - {game.scoreV} {game.visitor}
               </h3>
-              <p className="text-xs text-acb-400">Jornada {game.jornada} - {seasonLabel(selectedSeason)}</p>
+              <p className="text-xs text-acb-400">{gameRoundLabel(game)} - {seasonLabel(selectedSeason)}</p>
             </div>
             <div className="flex items-center gap-4 text-xs">
               <div className="flex items-center gap-1.5">
@@ -760,6 +813,8 @@ export default function GameFlow({ teams, loadGameFlowForSeason, gameFlowCache, 
               ref={svgRef}
               viewBox={`0 0 ${chartWidth} ${chartHeight}`}
               className="w-full min-w-[600px]"
+              role="img"
+              aria-label={`Evolución del marcador: ${game.local} contra ${game.visitor}`}
               onMouseLeave={() => setHoveredEvent(null)}
             >
               <g transform={`translate(${margin.left},${margin.top})`}>
@@ -778,6 +833,13 @@ export default function GameFlow({ teams, loadGameFlowForSeason, gameFlowCache, 
                     fill={rb.team === 'L' ? 'rgba(22,163,74,0.12)' : 'rgba(220,38,38,0.12)'}
                     stroke="none"
                   />
+                ))}
+
+                {chartData.timeouts.map((timeout, i) => (
+                  <g key={`timeout-${i}`} transform={`translate(${timeout.x},0)`}>
+                    <line y1={0} y2={9} stroke="#64748b" strokeWidth={1.5} />
+                    <text y={18} textAnchor="middle" className="fill-acb-500 text-[8px] font-semibold">TO</text>
+                  </g>
                 ))}
 
                 {/* Quarter separators */}
@@ -879,7 +941,7 @@ export default function GameFlow({ teams, loadGameFlowForSeason, gameFlowCache, 
                 transform: 'translateX(-50%)',
               }}
             >
-              <div className="font-medium">{hoveredEvent.player} - {typeLabel(hoveredEvent.type)}</div>
+              <div className="font-medium">{resolveEventPlayer(hoveredEvent)} - {typeLabel(hoveredEvent.type)}</div>
               <div className="text-acb-300">
                 {hoveredEvent.sl}-{hoveredEvent.sv}
                 {' '}({hoveredEvent.margin > 0 ? '+' : ''}{hoveredEvent.margin})

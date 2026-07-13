@@ -6,6 +6,7 @@ import { statTitle } from '../utils/statLabels'
 import { getPlayerDisplayName, getPlayerSearchText } from '../utils/playerNames'
 
 const positionCol = { key: 'position', label: 'Pos', align: 'left', sortable: true }
+const POSITION_ORDER = ['Base', 'Escolta', 'Alero', 'Ala-pívot', 'Pívot']
 
 // Basic boxscore stats columns - with percentile key for inline display
 const basicColumns = [
@@ -169,27 +170,11 @@ export default function PlayerStats({ players, playerBio = {} }) {
   const [positionFilter, setPositionFilter] = useState('')
   const [showFilteredPlayers, setShowFilteredPlayers] = useState(false)
   const [pctMode, setPctMode] = useState('league') // 'league' or 'position'
+  const [showAll, setShowAll] = useState(false)
 
   // Use the 'qualified' field from R data (pre-calculated with correct thresholds)
   // Falls back to local calculation if field not present
   const mostRecentSeason = availableSeasons[0]
-
-  const meetsMinimumThreshold = (player) => {
-    // Use pre-calculated qualified field from R if available
-    if (player.qualified !== undefined) {
-      return player.qualified
-    }
-    // Fallback: calculate locally
-    // Most recent season: must have BOTH 5+ games AND 50+ minutes
-    // Previous seasons: must have BOTH 10+ games AND 150+ minutes
-    if (selectedStage === 'playoffs') {
-      return player.games >= 2 && player.totalMinutes >= 20
-    } else if (player.season === mostRecentSeason) {
-      return player.games >= 5 && player.totalMinutes >= 50
-    } else {
-      return player.games >= 10 && player.totalMinutes >= 150
-    }
-  }
 
   const columns = viewMode === 'basic' ? basicColumns
     : viewMode === 'advanced' ? advancedColumns
@@ -198,6 +183,10 @@ export default function PlayerStats({ players, playerBio = {} }) {
     : viewMode === 'frequency' ? frequencyColumns
     : viewMode === 'accuracy' ? accuracyColumns
     : defenseColumns
+
+  const displayColumns = selectedSeason === 'all'
+    ? [...columns.slice(0, 2), { key: 'season', label: 'Temp.', align: 'left', sortable: true }, ...columns.slice(2)]
+    : columns
 
   const stageFilteredPlayers = useMemo(() => {
     return enrichedPlayers.filter(p => (p.competitionStage || 'regular') === selectedStage)
@@ -214,7 +203,6 @@ export default function PlayerStats({ players, playerBio = {} }) {
     [seasonFilteredPlayers]
   )
 
-  const POSITION_ORDER = ['Base', 'Escolta', 'Alero', 'Ala-pívot', 'Pívot']
   const positions = useMemo(() => {
     const present = new Set(seasonFilteredPlayers.map(p => p.position).filter(v => typeof v === 'string' && v.trim()))
     return POSITION_ORDER.filter(pos => present.has(pos))
@@ -222,8 +210,13 @@ export default function PlayerStats({ players, playerBio = {} }) {
 
   // Players that meet the minimum threshold (for percentile calculation)
   const qualifiedPlayers = useMemo(() => {
-    return seasonFilteredPlayers.filter(meetsMinimumThreshold)
-  }, [seasonFilteredPlayers, mostRecentSeason])
+    return seasonFilteredPlayers.filter(player => {
+      if (player.qualified !== undefined) return player.qualified
+      if (selectedStage === 'playoffs') return player.games >= 2 && player.totalMinutes >= 20
+      if (player.season === mostRecentSeason) return player.games >= 5 && player.totalMinutes >= 50
+      return player.games >= 10 && player.totalMinutes >= 150
+    })
+  }, [seasonFilteredPlayers, selectedStage, mostRecentSeason])
 
   // Count of filtered out players
   const filteredOutCount = useMemo(() => {
@@ -303,6 +296,7 @@ export default function PlayerStats({ players, playerBio = {} }) {
 
   const formatValue = (value, key, player) => {
     if (key === 'playerFull') return getPlayerDisplayName(player)
+    if (key === 'season') return `${value - 1}-${String(value).slice(-2)}`
     if (value === undefined || value === null) {
       const isZoneStat = key.startsWith('freq') || key.startsWith('fgpct') ||
         (key.startsWith('fga') && key.length > 3) ||
@@ -369,17 +363,6 @@ export default function PlayerStats({ players, playerBio = {} }) {
     return value.toFixed(1)
   }
 
-  // Calculate league averages for percentile coloring (always based on qualified players only)
-  const avgStats = useMemo(() => {
-    const numericKeys = columns.filter(c => c.align === 'right' && c.key !== 'games').map(c => c.key)
-    const avgs = {}
-    numericKeys.forEach(key => {
-      const values = qualifiedPlayers.map(p => p[key]).filter(v => v != null)
-      avgs[key] = values.reduce((sum, v) => sum + v, 0) / values.length
-    })
-    return avgs
-  }, [qualifiedPlayers, columns])
-
   const getPercentileColor = () => 'text-acb-700'
 
   const handleDownloadCsv = () => {
@@ -435,6 +418,8 @@ export default function PlayerStats({ players, playerBio = {} }) {
     return 'bg-negative-100 text-negative-700'
   }
 
+  const displayedPlayers = showAll ? filteredPlayers : filteredPlayers.slice(0, 100)
+
   return (
     <div className="app-page space-y-6">
       {/* Header */}
@@ -450,10 +435,11 @@ export default function PlayerStats({ players, playerBio = {} }) {
         <div className="flex flex-wrap items-center gap-4 mb-4">
           {/* Season Filter */}
           <div className="flex items-center gap-2">
-            <span className="text-sm text-acb-600">Temporada:</span>
+            <label htmlFor="player-stats-season" className="text-sm text-acb-600">Temporada:</label>
             <select
+              id="player-stats-season"
               value={selectedSeason}
-              onChange={(e) => setSelectedSeason(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
+              onChange={(e) => { setSelectedSeason(e.target.value === 'all' ? 'all' : parseInt(e.target.value)); setShowAll(false) }}
               className="px-3 py-2 border border-acb-200 rounded-md text-sm bg-white"
             >
               {availableSeasons.map(season => (
@@ -463,7 +449,7 @@ export default function PlayerStats({ players, playerBio = {} }) {
             </select>
           </div>
 
-          <div className="flex items-center gap-1 bg-acb-100 rounded-md p-1">
+          <div className="flex items-center gap-1 bg-acb-100 rounded-md p-1" role="group" aria-label="Fase de la competición">
             <button
               onClick={() => { setSelectedStage('regular'); setTeamFilter('') }}
               className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
@@ -483,16 +469,17 @@ export default function PlayerStats({ players, playerBio = {} }) {
           </div>
 
           {/* View Mode Toggle */}
-          <div className="flex items-center gap-1 bg-acb-100 rounded-md p-1">
-            <button
-              onClick={() => setViewMode('basic')}
-              className={`px-3 py-1.5 text-sm font-medium rounded transition-colors
-                ${viewMode === 'basic'
-                  ? 'bg-white text-acb-900 shadow-sm'
-                  : 'text-acb-600 hover:text-acb-900'}`}
-            >
-              Básico
-            </button>
+          <div className="w-full overflow-x-auto pb-1">
+            <div className="flex items-center gap-1 bg-acb-100 rounded-md p-1 w-max" role="group" aria-label="Vista estadística">
+              <button
+                onClick={() => setViewMode('basic')}
+                className={`px-3 py-1.5 text-sm font-medium rounded transition-colors
+                  ${viewMode === 'basic'
+                    ? 'bg-white text-acb-900 shadow-sm'
+                    : 'text-acb-600 hover:text-acb-900'}`}
+              >
+                Básico
+              </button>
             <button
               onClick={() => setViewMode('advanced')}
               className={`px-3 py-1.5 text-sm font-medium rounded transition-colors
@@ -547,6 +534,7 @@ export default function PlayerStats({ players, playerBio = {} }) {
             >
               Tiro Rival
             </button>
+            </div>
           </div>
 
           {/* Percentile Mode Toggle - only for views with percentiles */}
@@ -570,6 +558,8 @@ export default function PlayerStats({ players, playerBio = {} }) {
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-acb-400" />
             <input
+              id="player-stats-search"
+              aria-label="Buscar jugadores"
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -581,7 +571,9 @@ export default function PlayerStats({ players, playerBio = {} }) {
           {/* Team Filter */}
           <div className="flex items-center gap-2">
             <Filter className="w-4 h-4 text-acb-400" />
+            <label htmlFor="player-stats-team" className="sr-only">Equipo</label>
             <select
+              id="player-stats-team"
               value={teamFilter}
               onChange={(e) => setTeamFilter(e.target.value)}
               className="px-3 py-2 border border-acb-200 rounded-md text-sm bg-white"
@@ -595,16 +587,20 @@ export default function PlayerStats({ players, playerBio = {} }) {
 
           {/* Position Filter */}
           {positions.length > 0 && (
-            <select
-              value={positionFilter}
-              onChange={(e) => setPositionFilter(e.target.value)}
-              className="px-3 py-2 border border-acb-200 rounded-md text-sm bg-white"
-            >
-              <option value="">Todas las Posiciones</option>
-              {positions.map(pos => (
-                <option key={pos} value={pos}>{pos}</option>
-              ))}
-            </select>
+            <div>
+              <label htmlFor="player-stats-position" className="sr-only">Posición</label>
+              <select
+                id="player-stats-position"
+                value={positionFilter}
+                onChange={(e) => setPositionFilter(e.target.value)}
+                className="px-3 py-2 border border-acb-200 rounded-md text-sm bg-white"
+              >
+                <option value="">Todas las Posiciones</option>
+                {positions.map(pos => (
+                  <option key={pos} value={pos}>{pos}</option>
+                ))}
+              </select>
+            </div>
           )}
 
           {/* Show Filtered Players Toggle */}
@@ -625,7 +621,7 @@ export default function PlayerStats({ players, playerBio = {} }) {
       {/* Results count + download */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="text-sm text-acb-500">
-          Mostrando {filteredPlayers.length} de {qualifiedPlayers.length + filteredOutCount} jugadores
+          Mostrando {displayedPlayers.length} de {filteredPlayers.length} resultados
           {filteredOutCount > 0 && !showFilteredPlayers && (
             <span className="text-acb-400"> ({filteredOutCount} filtrados al no cumplir mínimos en partidos y minutos)</span>
           )}
@@ -663,10 +659,13 @@ export default function PlayerStats({ players, playerBio = {} }) {
                 <th className="data-table-head data-table-number data-table-sticky data-table-sticky-head data-col-rank bg-acb-50">
                   #
                 </th>
-                {columns.map(col => (
+                {displayColumns.map(col => (
                   <th
                     key={col.key}
                     onClick={() => col.sortable && handleSort(col.key)}
+                    onKeyDown={(e) => col.sortable && (e.key === 'Enter' || e.key === ' ') && handleSort(col.key)}
+                    tabIndex={col.sortable ? 0 : undefined}
+                    aria-sort={col.sortable ? (sortKey === col.key ? (sortDir === 'desc' ? 'descending' : 'ascending') : 'none') : undefined}
                     title={col.title || statTitle(col.label)}
                     className={`data-table-head
                       ${col.align === 'right' ? 'data-table-number' : 'text-left'}
@@ -684,16 +683,25 @@ export default function PlayerStats({ players, playerBio = {} }) {
               </tr>
             </thead>
             <tbody>
-              {filteredPlayers.slice(0, 100).map((player, i) => (
+              {displayedPlayers.map((player, i) => (
                 <tr
-                  key={player.playerId || `${player.player}-${player.team}-${player.season}`}
+                  key={`${player.licenseId}-${player.season}-${player.competitionStage || selectedStage}-${player.team}`}
                   onClick={() => navigate(`/jugador/${player.licenseId}`)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      navigate(`/jugador/${player.licenseId}`)
+                    }
+                  }}
+                  tabIndex={0}
+                  role="link"
+                  aria-label={`Abrir perfil de ${getPlayerDisplayName(player)}`}
                   className="data-table-row border-b border-acb-100 cursor-pointer"
                 >
                   <td className="data-table-cell data-table-number data-table-sticky data-col-rank text-acb-400">
                     {i + 1}
                   </td>
-                  {columns.map(col => {
+                  {displayColumns.map(col => {
                     const activePctKey = pctMode === 'position' && col.posPctKey ? col.posPctKey : col.pctKey
                     const hasPercentile = activePctKey && player[activePctKey] != null
                     const percentileValue = hasPercentile ? player[activePctKey] : null
@@ -755,7 +763,12 @@ export default function PlayerStats({ players, playerBio = {} }) {
 
         {filteredPlayers.length > 100 && (
           <div className="px-4 py-3 bg-acb-50 border-t border-acb-200 text-sm text-acb-500 text-center">
-            Mostrando los primeros 100 jugadores. Usa los filtros para ajustar resultados.
+            <button
+              onClick={() => setShowAll(!showAll)}
+              className="text-acb-700 hover:text-acb-900 underline"
+            >
+              {showAll ? 'Mostrar los primeros 100' : `Mostrar todos (${filteredPlayers.length})`}
+            </button>
           </div>
         )}
       </div>

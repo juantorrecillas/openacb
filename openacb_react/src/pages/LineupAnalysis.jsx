@@ -13,6 +13,12 @@ import { Users, Info, Plus, X, Search, ChevronDown, ChevronUp } from 'lucide-rea
 
 // Extract licenseId from player key format "Name_12345"
 const getIdFromKey = (key) => key?.split('_').pop() || ''
+const MIN_ON_OFF_MINUTES = 50
+
+const normalizeSearch = (value) => String(value || '')
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .toLocaleLowerCase('es')
 
 // Convert team name to URL-friendly slug
 function toSlug(name) {
@@ -80,7 +86,7 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
     if (seasonTeams.length > 0 && !seasonTeams.find(t => t.team === selectedTeam)) {
       setSelectedTeam(seasonTeams[0].team)
     }
-  }, [selectedSeason, teams, selectedTeam])
+  }, [selectedSeason, teams, selectedTeam, urlTeamSlug])
 
   // Player selection state
   const [selectedPlayers, setSelectedPlayers] = useState([])
@@ -173,7 +179,16 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
     return Object.entries(playersObj).map(([key, player]) => ({
       ...player,
       key,
-      name: playerDisplayMap[key]?.name || player.name || player.nickname || key
+      name: playerDisplayMap[key]?.name || player.name || player.nickname || key,
+      deltaORtg: (player.onORtg ?? 0) - (player.offORtg ?? 0),
+      deltaDRtg: (player.onDRtg ?? 0) - (player.offDRtg ?? 0),
+      deltaEFG: (player.onEFG ?? 0) - (player.offEFG ?? 0),
+      deltaTOV: (player.onTOV ?? 0) - (player.offTOV ?? 0),
+      deltaORB: (player.onORB ?? 0) - (player.offORB ?? 0),
+      deltaAST: (player.onAST ?? 0) - (player.offAST ?? 0),
+      deltaOppEFG: (player.onOppEFG ?? 0) - (player.offOppEFG ?? 0),
+      deltaOppTOV: (player.onOppTOV ?? 0) - (player.offOppTOV ?? 0),
+      deltaDRB: (player.onDRB ?? 0) - (player.offDRB ?? 0),
     }))
   }, [currentTeamData, playerDisplayMap])
 
@@ -188,15 +203,20 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
     return sorted
   }, [allPlayersData, sortConfig])
 
+  const rankedPlayersData = useMemo(
+    () => sortedPlayersData.filter(player => (player.onMin ?? 0) >= MIN_ON_OFF_MINUTES),
+    [sortedPlayersData]
+  )
+
   // Filter players by search query (search by display name, not key)
   const filteredPlayers = useMemo(() => {
     if (searchQuery.trim() === '') return availablePlayers
-    const query = searchQuery.toLowerCase()
+    const query = normalizeSearch(searchQuery)
     return availablePlayers.filter(playerKey => {
       const displayName = playerDisplayMap[playerKey]?.name || playerKey
       const nickname = playerDisplayMap[playerKey]?.nickname || playerKey
-      return displayName.toLowerCase().includes(query) ||
-             nickname.toLowerCase().includes(query)
+      return normalizeSearch(displayName).includes(query) ||
+             normalizeSearch(nickname).includes(query)
     })
   }, [availablePlayers, searchQuery, playerDisplayMap])
 
@@ -304,6 +324,11 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
     setSelectedPlayers(selectedPlayers.filter(p => p !== player))
   }
 
+  const toggleSinglePlayer = (player) => {
+    if (selectedPlayers.includes(player)) removePlayer(player)
+    else setSelectedPlayers([player])
+  }
+
   const clearPlayers = () => setSelectedPlayers([])
 
   // Sort handler
@@ -315,8 +340,9 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
   }
 
   // Performance indicator helper
-  const getPerformanceIndicator = (value, threshold = 0, inverse = false) => {
+  const getPerformanceIndicator = (value, threshold = 0, inverse = false, minutes = MIN_ON_OFF_MINUTES) => {
     if (value == null) return { emoji: '➖', label: 'N/A', color: 'text-acb-400' }
+    if ((minutes ?? 0) < MIN_ON_OFF_MINUTES) return { emoji: '○', label: 'Muestra reducida', color: 'text-acb-400' }
 
     const adjusted = inverse ? -value : value
     if (adjusted > threshold + 5) return { emoji: '🔥', label: 'Elite', color: 'text-positive' }
@@ -371,6 +397,7 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
           <div className="flex items-center gap-2">
             <span className="text-sm text-acb-600 font-medium">Temporada:</span>
             <select
+              aria-label="Temporada"
               value={selectedSeason}
               onChange={(e) => {
                 const s = e.target.value === 'all' ? 'all' : parseInt(e.target.value)
@@ -390,6 +417,7 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4 text-acb-400" />
             <select
+              aria-label="Equipo"
               value={selectedTeam}
               onChange={(e) => {
                 const team = e.target.value
@@ -413,6 +441,7 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
           <div className="flex items-center gap-2">
             <Search className="w-4 h-4 text-acb-400" />
             <input
+              aria-label="Buscar jugadores"
               type="text"
               placeholder="Buscar jugadores..."
               value={searchQuery}
@@ -616,7 +645,7 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
             <div className="flex items-center justify-center gap-4">
               <div className="text-center">
                 <div className="text-3xl mb-1">
-                  {getPerformanceIndicator(currentLineupData.netDiff).emoji}
+                  {getPerformanceIndicator(currentLineupData.netDiff, 0, false, currentLineupData.onMin).emoji}
                 </div>
                 <div className={`text-2xl font-bold font-mono ${
                   currentLineupData.netDiff > 0 ? 'text-positive' :
@@ -683,7 +712,7 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
                 {analysisData.onNetRtg > 0 ? '+' : ''}{analysisData.onNetRtg?.toFixed(1)}
               </div>
               <div className="text-lg mt-1">
-                {getPerformanceIndicator(analysisData.onNetRtg).emoji}
+                {getPerformanceIndicator(analysisData.onNetRtg, 0, false, analysisData.onMin).emoji}
               </div>
             </div>
             {analysisData.netDiff != null ? (
@@ -700,7 +729,7 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
                   {(analysisData.netDiff > 0 ? '+' : '') + analysisData.netDiff?.toFixed(1)}
                 </div>
                 <div className="text-lg mt-1">
-                  {getPerformanceIndicator(analysisData.netDiff).emoji}
+                  {getPerformanceIndicator(analysisData.netDiff, 0, false, analysisData.onMin).emoji}
                 </div>
               </div>
             ) : (
@@ -786,8 +815,11 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
       {/* Team Overview Table */}
       {allPlayersData.length > 0 && (
         <div className="bg-white rounded-lg border border-acb-200 overflow-hidden">
-          <div className="px-4 py-3 border-b border-acb-200 flex items-center justify-between">
-            <h3 className="font-semibold text-acb-900">Resumen On/Off del Equipo</h3>
+          <div className="px-4 py-3 border-b border-acb-200 flex items-center justify-between gap-3">
+            <div>
+              <h3 className="font-semibold text-acb-900">Resumen On/Off del Equipo</h3>
+              <p className="text-xs text-acb-400">Ranking con un mínimo de {MIN_ON_OFF_MINUTES} minutos en pista</p>
+            </div>
             <button
               onClick={() => setShowAllPlayers(!showAllPlayers)}
               className="text-sm text-acb-600 hover:text-acb-800 flex items-center gap-1"
@@ -804,56 +836,61 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
                   <th className="data-table-head data-table-identity data-table-sticky data-table-sticky-head data-col-player bg-acb-50" rowSpan={2}>Jugador</th>
                   <th colSpan={2} className="data-table-group bg-acb-50">Rating</th>
                   <th colSpan={2} className="data-table-group bg-acb-50">Neto</th>
-                  <th className="data-table-head data-table-number data-col-number bg-accent-50 text-accent-700 cursor-pointer hover:bg-acb-100 transition-colors" rowSpan={2} onClick={() => handleSort('netDiff')}>
-                    <div className="flex items-center justify-end gap-1">
+                  <th
+                    className="data-table-head data-table-number data-col-number bg-accent-50 text-accent-700 cursor-pointer hover:bg-acb-100 transition-colors"
+                    rowSpan={2}
+                    aria-sort={sortConfig.key === 'netDiff' ? (sortConfig.direction === 'desc' ? 'descending' : 'ascending') : 'none'}
+                  >
+                    <button type="button" className="w-full flex items-center justify-end gap-1" onClick={() => handleSort('netDiff')}>
                       Impacto
                       {sortConfig.key === 'netDiff' && (
                         sortConfig.direction === 'desc'
                           ? <ChevronDown className="w-3 h-3" />
                           : <ChevronUp className="w-3 h-3" />
                       )}
-                    </div>
+                    </button>
                   </th>
                   <th colSpan={4} className="data-table-group bg-acb-50">Ataque</th>
                   <th colSpan={3} className="data-table-group bg-acb-50">Defensa</th>
                   <th className="data-table-head data-table-number data-col-games bg-acb-50" rowSpan={2}>Min</th>
                 </tr>
                 <tr className="text-xs text-acb-600 uppercase tracking-wider">
-                  <SortableHeader label="Δ ORtg" sortKey="onORtg" current={sortConfig} onSort={handleSort} />
-                  <SortableHeader label="Δ DRtg" sortKey="onDRtg" current={sortConfig} onSort={handleSort} />
+                  <SortableHeader label="Δ ORtg" sortKey="deltaORtg" current={sortConfig} onSort={handleSort} />
+                  <SortableHeader label="Δ DRtg" sortKey="deltaDRtg" current={sortConfig} onSort={handleSort} />
                   <SortableHeader label="On" sortKey="onNetRtg" current={sortConfig} onSort={handleSort} />
                   <SortableHeader label="Off" sortKey="offNetRtg" current={sortConfig} onSort={handleSort} />
-                  <SortableHeader label="Δ eFG%" sortKey="onEFG" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
-                  <SortableHeader label="Δ PER%" sortKey="onTOV" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
-                  <SortableHeader label="Δ RO%" sortKey="onORB" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
-                  <SortableHeader label="Δ AST%" sortKey="onAST" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
-                  <SortableHeader label="Δ eFG%" sortKey="onOppEFG" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
-                  <SortableHeader label="Δ PER%" sortKey="onOppTOV" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
-                  <SortableHeader label="Δ RD%" sortKey="onDRB" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
+                  <SortableHeader label="Δ eFG%" sortKey="deltaEFG" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
+                  <SortableHeader label="Δ PER%" sortKey="deltaTOV" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
+                  <SortableHeader label="Δ RO%" sortKey="deltaORB" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
+                  <SortableHeader label="Δ AST%" sortKey="deltaAST" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
+                  <SortableHeader label="Δ eFG%" sortKey="deltaOppEFG" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
+                  <SortableHeader label="Δ PER%" sortKey="deltaOppTOV" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
+                  <SortableHeader label="Δ RD%" sortKey="deltaDRB" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-acb-100">
-                {(showAllPlayers ? sortedPlayersData : sortedPlayersData.slice(0, 8)).map((player) => (
+                {(showAllPlayers ? rankedPlayersData : rankedPlayersData.slice(0, 8)).map((player) => (
                   <tr
                     key={player.key}
                     className={`data-table-row cursor-pointer ${
                       selectedPlayers.includes(player.key) ? 'bg-accent-50' : ''
                     }`}
-                    onClick={() => {
-                      if (selectedPlayers.includes(player.key)) {
-                        removePlayer(player.key)
-                      } else {
-                        setSelectedPlayers([player.key])
-                      }
-                    }}
+                    onClick={() => toggleSinglePlayer(player.key)}
                   >
                     <td className="data-table-cell data-table-identity data-table-sticky data-col-player">
-                      <span className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        className="flex items-center gap-2 text-left"
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          toggleSinglePlayer(player.key)
+                        }}
+                      >
                         {getPlayerPhoto(playerPhotos, player.id, selectedSeason) && (
                           <img src={getPlayerPhoto(playerPhotos, player.id, selectedSeason)} alt="" className="w-6 h-6 rounded-full object-cover object-top" />
                         )}
                         {player.name}
-                      </span>
+                      </button>
                     </td>
                     {(() => {
                       const ortgD = (player.onORtg ?? 0) - (player.offORtg ?? 0)
@@ -883,7 +920,7 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
                       player.netDiff > 2 ? 'text-positive' :
                       player.netDiff < -2 ? 'text-negative' : 'text-acb-500'
                     }`}>
-                      <span className="mr-1">{getPerformanceIndicator(player.netDiff).emoji}</span>
+                      <span className="mr-1">{getPerformanceIndicator(player.netDiff, 0, false, player.onMin).emoji}</span>
                       {player.netDiff > 0 ? '+' : ''}{player.netDiff?.toFixed(1)}
                     </td>
                     {(() => {
@@ -932,6 +969,7 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
         <span className="flex items-center gap-1">➖ Medio</span>
         <span className="flex items-center gap-1">⚠️ Debajo Media</span>
         <span className="flex items-center gap-1">🔻 Bajo</span>
+        <span className="flex items-center gap-1">○ Muestra reducida</span>
       </div>
 
       {/* On/Off Explanation */}
@@ -942,7 +980,7 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
         </h3>
         <div className="text-sm text-acb-600 space-y-3">
           <p>
-            El análisis <strong>On/Off</strong> mide el impacto de un jugador comparando cómo rinde el equipo cuando él está en pista versus cuando no.
+            El análisis <strong>On/Off</strong> describe cómo rinde el equipo cuando un jugador está en pista frente a sus minutos fuera.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
             <div className="bg-white p-3 rounded border border-acb-100">
@@ -955,14 +993,14 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
             </div>
             <div className="bg-white p-3 rounded border border-acb-100">
               <div className="font-medium text-acb-900 mb-1">Impacto (Dif.)</div>
-              <p className="text-xs">La diferencia entre On y Off. Indica cuánto mejora (o empeora) el equipo con su presencia.</p>
+              <p className="text-xs">La diferencia observada entre On y Off. No aísla el efecto individual del jugador.</p>
             </div>
           </div>
           <ul className="list-disc list-inside space-y-1 mt-2 text-xs">
             <li><strong>Eficiencia Ofensiva (ORtg):</strong> Puntos anotados por 100 posesiones. <span className="text-positive">Mayor es mejor</span>. Un Diff positivo significa que el ataque mejora con el jugador.</li>
             <li><strong>Eficiencia Defensiva (DRtg):</strong> Puntos recibidos por 100 posesiones. <span className="text-positive">Menor es mejor</span>. Un Diff negativo significa que la defensa mejora con el jugador.</li>
             <li><strong>Eficiencia Neta (NetRtg):</strong> Diferencia entre ORtg y DRtg. Muestra el margen de victoria por 100 posesiones.</li>
-            <li><strong>Impacto:</strong>Diferencia entre el Net rating del equipo cuando el jugador está dentro y el Net rating del equipo cuando el jugador está fuera de la pista. Intenta medir el impacto del jugador eliminando el efecto de la dinámica general del equipo. </li>
+            <li><strong>Impacto:</strong> Diferencia descriptiva entre el Net Rating con el jugador dentro y fuera. Depende también de compañeros, rivales, contexto y tamaño de muestra.</li>
           </ul>
         </div>
       </div>
@@ -1133,7 +1171,7 @@ const ExclusionComparisonCard = ({ data, focalName, excludedName }) => {
 }
 
 // Stat Row Component for the individual player table
-const StatRow = ({ label, onValue, offValue, unit, goodThreshold, inverse = false, highlight = false }) => {
+const StatRow = ({ label, onValue, offValue, inverse = false, highlight = false }) => {
   if (onValue == null || offValue == null) return null
 
   // Always calculate difference as (on - off)
@@ -1185,19 +1223,19 @@ const SortableHeader = ({ label, sortKey, current, onSort, highlight = false, th
 
   return (
     <th
-      className={`data-table-head data-table-number data-col-number cursor-pointer hover:bg-acb-100 transition-colors ${
+      className={`data-table-head data-table-number data-col-number hover:bg-acb-100 transition-colors ${
         highlight ? 'bg-accent-50' : ''
       } ${isActive ? 'text-accent-600' : ''} ${thClassName}`}
-      onClick={() => onSort(sortKey)}
+      aria-sort={isActive ? (current.direction === 'desc' ? 'descending' : 'ascending') : 'none'}
     >
-      <div className="flex items-center justify-end gap-1">
+      <button type="button" className="w-full flex items-center justify-end gap-1" onClick={() => onSort(sortKey)}>
         {label}
         {isActive && (
           current.direction === 'desc'
             ? <ChevronDown className="w-3 h-3" />
             : <ChevronUp className="w-3 h-3" />
         )}
-      </div>
+      </button>
     </th>
   )
 }

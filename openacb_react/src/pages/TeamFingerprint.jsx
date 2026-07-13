@@ -518,7 +518,10 @@ function TrendTooltip({ active, payload, stat }) {
 
 function TeamTrendChart({ teams, selectedTeam, selectedSeason }) {
   const [trendStat, setTrendStat] = useState('ortg')
-  const selectedStat = trendStatOptions.find(stat => stat.key === trendStat) || trendStatOptions[0]
+  const selectedStat = useMemo(
+    () => trendStatOptions.find(stat => stat.key === trendStat) || trendStatOptions[0],
+    [trendStat],
+  )
 
   const history = useMemo(() => {
     if (!selectedTeam) return []
@@ -539,7 +542,7 @@ function TeamTrendChart({ teams, selectedTeam, selectedSeason }) {
 
   const yAxis = useMemo(() => {
     return buildNiceTrendAxis(history.map(row => row.value), selectedStat)
-  }, [history])
+  }, [history, selectedStat])
 
   return (
     <div className="bg-white rounded-lg border border-acb-200 p-4 h-full">
@@ -646,12 +649,12 @@ export default function TeamFingerprint({ teams, teamLogos = {} }) {
   const [selectedSeason, setSelectedSeason] = useState(availableSeasons[0] || 2025)
   const [selectedTeam, setSelectedTeam] = useState('')
 
-  // Sync from URL params on mount / URL change
+  // sync from url params on mount or url change
   useEffect(() => {
     if (urlSeason) setSelectedSeason(Number(urlSeason))
   }, [urlSeason])
 
-  // Resolve team slug to actual team name once we know the season's teams
+  // resolve the team slug once the season teams are available
   const seasonTeamsForSlug = useMemo(() => {
     const s = urlSeason ? Number(urlSeason) : selectedSeason
     return teams.filter(t => t.season === s)
@@ -670,7 +673,7 @@ export default function TeamFingerprint({ teams, teamLogos = {} }) {
 
   const teamNames = useMemo(() => seasonTeams.map(t => t.team), [seasonTeams])
 
-  // Compute league stats (mean & std) for all 14 axes
+  // compute league stats for all 14 axes
   const leagueStats = useMemo(() => {
     const allAxes = [...offensiveAxes, ...defensiveAxes]
     const stats = {}
@@ -683,7 +686,7 @@ export default function TeamFingerprint({ teams, teamLogos = {} }) {
     return stats
   }, [seasonTeams])
 
-  // Compute z-scores for the selected team
+  // compute z-scores for the selected team
   const teamData = useMemo(() => {
     if (!selectedTeam) return null
     const team = seasonTeams.find(t => t.team === selectedTeam)
@@ -702,7 +705,7 @@ export default function TeamFingerprint({ teams, teamLogos = {} }) {
     const offZScores = computeZ(offensiveAxes)
     const defZScores = computeZ(defensiveAxes)
 
-    // Map z-scores to percentile scale for radar: 50 + z*15, clamped [5, 95]
+    // map z-scores to a percentile scale and clamp to [5, 95]
     const toPercentile = (z) => Math.max(5, Math.min(95, 50 + z * 15))
 
     const offValues = offensiveAxes.map(a => toPercentile(offZScores[a.key]))
@@ -755,15 +758,18 @@ export default function TeamFingerprint({ teams, teamLogos = {} }) {
 
   return (
     <div className="app-page space-y-6">
-      {/* Header */}
+      {/* header */}
       <div>
         <h2 className="text-2xl font-semibold text-acb-900">Estilo de Equipo</h2>
         <p className="text-acb-500 mt-1">Perfil de juego de cada equipo: fortalezas, debilidades y características destacables.</p>
+        <p className="text-acb-400 text-xs mt-1">Temporada completa · Liga regular y playoffs</p>
       </div>
 
-      {/* Selectors */}
+      {/* selectors */}
       <div className="flex flex-wrap gap-3">
+        <label htmlFor="fingerprint-season" className="sr-only">Temporada</label>
         <select
+          id="fingerprint-season"
           value={selectedSeason}
           onChange={(e) => {
             const newSeason = Number(e.target.value)
@@ -778,7 +784,9 @@ export default function TeamFingerprint({ teams, teamLogos = {} }) {
           ))}
         </select>
 
+        <label htmlFor="fingerprint-team" className="sr-only">Equipo</label>
         <select
+          id="fingerprint-team"
           value={selectedTeam}
           onChange={(e) => {
             const team = e.target.value
@@ -798,7 +806,7 @@ export default function TeamFingerprint({ teams, teamLogos = {} }) {
         </select>
       </div>
 
-      {/* Content */}
+      {/* content */}
       {!selectedTeam && (
         <div className="bg-white rounded-lg border border-acb-200 p-12 text-center text-acb-400">
           Selecciona un equipo para ver su estilo de juego.

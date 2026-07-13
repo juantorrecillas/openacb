@@ -159,28 +159,28 @@ export default function DensityHeatmap({
 
   if (shots.length === 0) {
     return (
-      <div className="flex items-center justify-center" style={{ width, height }}>
+      <div className="flex items-center justify-center" style={{ width: '100%', maxWidth: width, aspectRatio: `${width} / ${height}` }}>
         <div className="text-center text-acb-500">
-          <p className="text-sm">No shots available for the selected filters</p>
-          <p className="text-xs mt-1">Try adjusting your filter settings</p>
+          <p className="text-sm">No hay tiros disponibles con los filtros seleccionados</p>
+          <p className="text-xs mt-1">Prueba a ajustar los filtros</p>
         </div>
       </div>
     );
   }
 
-  const { grid, max, gridSize, cellWidth, cellHeight } = densityData;
+  const { grid, max, cellWidth, cellHeight } = densityData;
   const isFrequency = mode === 'relative' || mode === 'frequency';
   const isComparison = isFrequency;
 
   return (
-    <div className="relative" style={{ width, height }}>
+    <div className="relative" style={{ width: '100%', maxWidth: width, aspectRatio: `${width} / ${height}` }}>
       <Court width={width} height={height} />
 
       <svg
-        width={width}
-        height={height}
         viewBox={`0 0 ${width} ${height}`}
-        className="absolute top-0 left-0"
+        className="absolute inset-0 w-full h-full"
+        role="img"
+        aria-label={isComparison ? 'Frecuencia de tiro respecto a la liga' : 'Densidad de tiro'}
         style={{ pointerEvents: 'none' }}
       >
         {/* Add slight blur for smooth appearance */}
@@ -226,19 +226,19 @@ export default function DensityHeatmap({
 
       {/* Legend */}
       <div className="absolute bottom-2 left-2 right-2 bg-white/95 p-2 rounded border border-acb-300">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-medium text-acb-700">
               {isComparison ? 'Frecuencia' : 'Densidad de tiro'}
             </span>
             {isComparison && (
-              <span className="text-xs text-acb-500">(vs Media de Liga)</span>
+              <span className="text-xs text-acb-500">(vs. media de la liga)</span>
             )}
             <span className="text-xs text-acb-500">
-              ({shots.length} shots)
+              ({shots.length} tiros)
             </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {isComparison ? (
               <>
                 <span className="text-xs text-acb-600">Menos freq.</span>
@@ -257,7 +257,7 @@ export default function DensityHeatmap({
                     );
                   })}
                 </div>
-                <span className="text-xs text-acb-600">Mas freq.</span>
+                <span className="text-xs text-acb-600">Más freq.</span>
               </>
             ) : (
               <>

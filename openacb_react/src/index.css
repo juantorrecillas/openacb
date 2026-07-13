@@ -100,7 +100,7 @@
   }
 }
 
-/* Custom properties for our color scheme */
+/* custom properties for the color scheme */
 :root {
   --color-positive: #2aa867;
   --color-negative: #dd415d;
@@ -160,31 +160,37 @@ body {
 }
 
 @media (max-width: 639px) {
-  .app-page .data-table th { font-size: 0.59375rem; line-height: 0.8125rem; }
-  .app-page .data-table td { font-size: 0.6875rem; line-height: 1rem; }
-  .app-page :where(button, input, select, textarea).text-xs,
+  .app-page .data-table th { font-size: 0.6875rem; line-height: 0.9375rem; }
+  .app-page .data-table td { font-size: 0.75rem; line-height: 1.125rem; }
+  .app-page button.text-xs,
   .app-page .text-xs > button,
   .app-page label.text-xs,
   .app-page :where(label, span).text-xs:has(+ :where(input, select, textarea)) {
-    font-size: 0.625rem;
-    line-height: 0.875rem;
+    font-size: 0.75rem;
+    line-height: 1rem;
   }
-  .app-page :where(button, input, select, textarea).text-sm,
+  .app-page button.text-sm,
   .app-page .text-sm > button,
   .app-page label.text-sm,
   .app-page :where(label, span).text-sm:has(+ :where(input, select, textarea)) {
-    font-size: 0.71875rem;
-    line-height: 1rem;
+    font-size: 0.8125rem;
+    line-height: 1.125rem;
+  }
+  .app-page :where(input, select, textarea),
+  .app-page :where(input, select, textarea).text-xs,
+  .app-page :where(input, select, textarea).text-sm {
+    font-size: 1rem;
+    line-height: 1.25rem;
   }
 }
 
-/* Utility classes using CSS variables */
+/* utility classes using css variables */
 .text-positive { color: var(--color-positive); }
 .text-negative { color: var(--color-negative); }
 .bg-positive { background-color: var(--color-positive); }
 .bg-negative { background-color: var(--color-negative); }
 
-/* Shot chart specific */
+/* shot chart specific */
 .shot-made {
   fill: var(--color-positive);
   opacity: 0.75;
@@ -199,7 +205,7 @@ body {
   fill: #f8fafc;
 }
 
-/* Custom scrollbar */
+/* custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;

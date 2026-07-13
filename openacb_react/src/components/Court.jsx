@@ -46,6 +46,8 @@ export default function Court({ children, width = 500, height = 470 }) {
       viewBox={`0 0 ${width} ${height}`}
       className="w-full h-auto"
       style={{ maxWidth: width }}
+      role="img"
+      aria-label="Media cancha de baloncesto con localización de tiros"
     >
       {/* Background - light court surface (slightly lighter than paint area) */}
       <rect x={0} y={0} width={width} height={height} fill="#fafbfc" rx={4} />

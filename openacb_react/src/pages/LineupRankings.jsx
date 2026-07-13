@@ -300,6 +300,7 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
             <div className="flex items-center gap-2">
               <span className="text-sm text-acb-600 font-medium">Temporada:</span>
               <select
+                aria-label="Temporada"
                 value={selectedSeason}
                 onChange={(e) => setSelectedSeason(parseInt(e.target.value))}
                 className="px-3 py-2 border border-acb-200 rounded-md text-sm bg-white font-medium"
@@ -313,6 +314,7 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
             <div className="flex items-center gap-2">
               <span className="text-sm text-acb-600 font-medium">Equipo:</span>
               <select
+                aria-label="Equipo"
                 value={selectedTeam}
                 onChange={(e) => setSelectedTeam(e.target.value)}
                 className="px-3 py-2 border border-acb-200 rounded-md text-sm bg-white font-medium min-w-[220px]"
@@ -452,18 +454,19 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
               </thead>
               <tbody className="divide-y divide-acb-100">
                 {rankedData.map((item, index) => (
-                  <tr key={item.key} className="data-table-row">
+                  <tr key={`${item.team || selectedTeam || 'liga'}-${item.key}`} className="data-table-row">
                     <td className="data-table-cell data-table-number data-table-sticky data-col-rank text-acb-400">
-                      {showBottom ? rankedData.length - index : index + 1}
+                      {index + 1}
                     </td>
                     <td className="data-table-cell data-table-identity data-table-sticky-after-rank data-col-player">
                       {selectedCategory === 'players' ? (
-                        <span
-                          className="cursor-pointer hover:text-accent-600 hover:underline"
+                        <button
+                          type="button"
+                          className="text-left hover:text-accent-600 hover:underline"
                           onClick={() => navigate(`/jugador/${getIdFromKey(item.key)}`)}
                         >
                           {item.displayName}
-                        </span>
+                        </button>
                       ) : item.displayName}
                     </td>
                     {!hasTeamFilter && (

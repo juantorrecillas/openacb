@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Target, BarChart3, Users, TrendingUp, Trophy, Percent, UserCircle, ArrowRight, GitCompareArrows, Fingerprint, Activity, Crown, Sparkles, Scale, Flame } from 'lucide-react'
 
-// Tab id → URL path mapping (must match App.jsx)
+// tab id → url path mapping (must match app.jsx)
 const TAB_PATHS = {
   teams: '/equipos',
   fingerprint: '/perfil-equipo',
@@ -72,16 +72,16 @@ const categories = [
   },
 ]
 
-function CategoryBlock({ category }) {
+function CategoryBlock({ category, wide = false }) {
   return (
-    <div className="bg-white rounded-xl overflow-hidden border border-acb-200">
-      {/* Category header */}
+    <div className={`bg-white rounded-xl overflow-hidden border border-acb-200 ${wide ? 'md:col-span-2' : ''}`}>
+      {/* category header */}
       <div className="bg-acb-700 px-5 py-4">
         <h3 className="text-sm font-bold text-white uppercase tracking-wide">{category.title}</h3>
         <p className="text-acb-300 text-xs mt-0.5">{category.description}</p>
       </div>
-      {/* Tools list */}
-      <div className="divide-y divide-acb-100">
+      {/* tools list */}
+      <div className={wide ? 'divide-y divide-acb-100 md:grid md:grid-cols-2 md:divide-y-0 md:divide-x' : 'divide-y divide-acb-100'}>
         {category.tools.map((tool) => {
           const Icon = tool.icon
           return (
@@ -95,7 +95,7 @@ function CategoryBlock({ category }) {
               </div>
               <div className="min-w-0 flex-1">
                 <div className="text-sm font-semibold text-acb-800 group-hover:text-accent-700">{tool.title}</div>
-                <div className="text-xs text-acb-400 truncate">{tool.description}</div>
+                <div className="text-xs text-acb-400 leading-relaxed">{tool.description}</div>
               </div>
               <ArrowRight className="w-3.5 h-3.5 text-acb-300 group-hover:text-accent-500 group-hover:translate-x-0.5 transition-all flex-shrink-0" />
             </Link>
@@ -109,10 +109,10 @@ function CategoryBlock({ category }) {
 function Home() {
   return (
     <div className="app-page max-w-5xl mx-auto">
-      {/* Hero Section */}
+      {/* hero section */}
       <div className="text-center mb-10">
         <div className="flex justify-center mb-6">
-          <img src="/openacb_nobckg.png" alt="openACB Logo" className="w-28 h-28 object-contain" />
+          <img src="/openacb_nobckg.png" alt="Logotipo de openACB" className="w-28 h-28 object-contain" />
         </div>
         <h1 className="text-4xl font-bold text-acb-900 mb-4">Bienvenido a openACB</h1>
         <p className="text-xl text-acb-600 max-w-3xl mx-auto leading-relaxed">
@@ -121,19 +121,19 @@ function Home() {
         </p>
       </div>
 
-      {/* Category Grid */}
+      {/* category grid */}
       <div className="grid md:grid-cols-2 gap-5 mb-8">
-        {categories.map((category) => (
-          <CategoryBlock key={category.id} category={category} />
+        {categories.map((category, index) => (
+          <CategoryBlock key={category.id} category={category} wide={index === categories.length - 1} />
         ))}
       </div>
 
-      {/* Quick Stats Banner */}
+      {/* quick stats banner */}
       <div className="bg-gradient-to-r from-acb-900 to-acb-700 rounded-lg p-8 text-white">
         <div className="grid md:grid-cols-2 gap-8 text-center">
           <div>
             <div className="text-3xl font-bold mb-2">10</div>
-            <div className="text-acb-300 text-sm">Temporadas Disponibles: 2016-2026</div>
+            <div className="text-acb-300 text-sm">Temporadas disponibles: 2016-17 a 2025-26</div>
           </div>
           <a
             href="https://github.com/juantorrecillas/openacb"
@@ -148,7 +148,7 @@ function Home() {
         </div>
       </div>
 
-      {/* CTA */}
+      {/* cta */}
       <div className="mt-8 text-center">
         <Link
           to="/info"

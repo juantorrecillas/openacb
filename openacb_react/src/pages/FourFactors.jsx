@@ -4,7 +4,7 @@ import { downloadTableAsCsv } from '../utils/csvDownload'
 
 
 export default function FourFactors({ teams }) {
-  // Get available seasons and default to most recent
+  // get available seasons and default to most recent
   const availableSeasons = useMemo(() => {
     const seasons = [...new Set(teams.map(t => t.season))].sort((a, b) => b - a)
     return seasons
@@ -15,7 +15,7 @@ export default function FourFactors({ teams }) {
   const [sortDir, setSortDir] = useState('desc')
   const [highlightTeam, setHighlightTeam] = useState(null)
 
-  // Filter teams by season
+  // filter teams by season
   const seasonFilteredTeams = useMemo(() => {
     if (selectedSeason === 'all') return teams
     return teams.filter(t => t.season === selectedSeason)
@@ -23,19 +23,19 @@ export default function FourFactors({ teams }) {
 
   const teamsWithFourFactors = useMemo(() => {
     return seasonFilteredTeams.map(team => {
-      const offensiveShooting = (team.efg || 0) * 100 // eFG%
-      const offensiveTurnovers = (team.tovRate || 0) * 100 // TOV% 
-      const offensiveRebounding = (team.orbPct || 0) * 100 // ORB%
-      const offensiveFreeThrows = (team.ftRate || 0) * 100 // FT/FGA
-      const offensiveRating = team.ortg || 0 // Offensive Rating
+      const offensiveShooting = (team.efg || 0) * 100 // efg%
+      const offensiveTurnovers = (team.tovRate || 0) * 100 // tov%
+      const offensiveRebounding = (team.orbPct || 0) * 100 // orb%
+      const offensiveFreeThrows = (team.ftRate || 0) * 100 // tiros libres anotados / fga
+      const offensiveRating = team.ortg || 0 // offensive rating
 
-      const defensiveShooting = (team.opp_efg || 0) * 100 // Opponent eFG%
-      const defensiveTurnovers = (team.opp_tovRate || 0) * 100 // Opponent TOV%
-      const defensiveRebounding = (team.drbPct || 0) * 100 // DRB%
-      const defensiveFreeThrows = (team.opp_ftRate || 0) * 100 // Opponent FT/FGA
-      const defensiveRating = team.drtg || 0 // Defensive Rating
+      const defensiveShooting = (team.opp_efg || 0) * 100 // opponent efg%
+      const defensiveTurnovers = (team.opp_tovRate || 0) * 100 // opponent tov%
+      const defensiveRebounding = (team.drbPct || 0) * 100 // drb%
+      const defensiveFreeThrows = (team.opp_ftRate || 0) * 100 // opponent free throws made / fga
+      const defensiveRating = team.drtg || 0 // defensive rating
 
-      // Net Rating
+      // net rating
       const netRating = team.netRtg || 0
 
       return {
@@ -90,7 +90,7 @@ export default function FourFactors({ teams }) {
     return rankedTeams
   }, [teamsWithFourFactors])
 
-  // Sort teams
+  // sort teams
   const sortedTeams = useMemo(() => {
     return [...teamsWithRanks].sort((a, b) => {
       const aVal = a[sortKey] || 0
@@ -169,20 +169,22 @@ export default function FourFactors({ teams }) {
 
   return (
     <div className="app-page space-y-6">
-      {/* Header */}
+      {/* header */}
       <div>
         <h2 className="text-2xl font-semibold text-acb-900">Análisis de Four Factors</h2>
         <p className="text-acb-500 text-sm mt-1">
+          Temporada completa · Liga regular y playoffs
         </p>
       </div>
 
-      {/* Controls */}
+      {/* controls */}
       <div className="bg-white rounded-lg border border-acb-200 p-4 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          {/* Season Filter */}
+          {/* season filter */}
           <div className="flex items-center gap-2">
-            <span className="text-sm text-acb-600 font-medium">Temporada:</span>
+            <label htmlFor="four-factors-season" className="text-sm text-acb-600 font-medium">Temporada:</label>
             <select
+              id="four-factors-season"
               value={selectedSeason}
               onChange={(e) => setSelectedSeason(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
               className="px-3 py-2 border border-acb-200 rounded-md text-sm bg-white font-medium"
@@ -204,20 +206,23 @@ export default function FourFactors({ teams }) {
         </div>
       </div>
 
-      {/* Detailed Table */}
+      {/* detailed table */}
       <div className="bg-white rounded-lg border border-acb-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="data-table">
             <thead>
-              {/* Header row 1: Column groups */}
+              {/* header row 1: column groups */}
               <tr className="bg-acb-100 border-b border-acb-300">
                 <th className="data-table-head data-table-number data-table-sticky data-table-sticky-head data-col-rank bg-acb-100" rowSpan="2">#</th>
                 <th className="data-table-head data-table-identity data-table-sticky-after-rank data-table-sticky-head data-col-team bg-acb-100" rowSpan="2">Equipo</th>
+                {selectedSeason === 'all' && (
+                  <th className="data-table-head text-left" rowSpan="2">Temporada</th>
+                )}
                 <th className="data-table-group border-r border-acb-300" colSpan="5">Ataque</th>
                 <th className="data-table-group border-r border-acb-300" colSpan="5">Defensa</th>
                 <th className="data-table-group" rowSpan="2">Neto</th>
               </tr>
-              {/* Header row 2: Individual columns */}
+              {/* header row 2: individual columns */}
               <tr className="bg-acb-50 border-b border-acb-200">
                 <th className={`data-table-head data-table-number data-col-number cursor-pointer hover:bg-acb-100 ${
                   sortKey === 'offensiveShooting' ? 'bg-acb-100' : ''}`}
@@ -256,7 +261,7 @@ export default function FourFactors({ teams }) {
                 const totalTeams = sortedTeams.length
                 return (
                   <tr
-                    key={`${team.team}-${team.season}`}
+                    key={`${team.team}-${team.season}-${team.competitionStage || 'all'}`}
                     className={`data-table-row border-b border-acb-100 ${
                       highlightTeam === team.team ? 'bg-accent-50' : ''
                     }`}
@@ -265,6 +270,9 @@ export default function FourFactors({ teams }) {
                   >
                     <td className="data-table-cell data-table-number data-table-sticky data-col-rank text-acb-400">{i + 1}</td>
                     <td className="data-table-cell data-table-identity data-table-sticky-after-rank data-col-team">{team.team}</td>
+                    {selectedSeason === 'all' && (
+                      <td className="data-table-cell text-left">{team.season - 1}-{String(team.season).slice(-2)}</td>
+                    )}
                     {rankedCell(team.offensiveShooting, team.offensiveShootingRank, totalTeams)}
                     {rankedCell(team.offensiveTurnovers, team.offensiveTurnoversRank, totalTeams)}
                     {rankedCell(team.offensiveRebounding, team.offensiveReboundingRank, totalTeams)}
@@ -284,7 +292,7 @@ export default function FourFactors({ teams }) {
         </div>
       </div>
 
-      {/* Four Factors Explanation */}
+      {/* four factors explanation */}
       <div className="bg-acb-50 rounded-lg border border-acb-200 p-4">
         <h3 className="text-sm font-semibold text-acb-900 mb-3 flex items-center gap-2">
           <Circle className="w-4 h-4" />
@@ -298,8 +306,8 @@ export default function FourFactors({ teams }) {
           <ul className="list-disc list-inside space-y-1">
             <li><strong>Tiro (40%)</strong>: Porcentaje de Tiro Efectivo (Effective Field Goal; eFG%)</li>
             <li><strong>Pérdidas (25%)</strong>: Porcentaje de posesiones que acaban en pérdida de balón tanto en ataque como en defensa</li>
-            <li><strong>Rebotes (20%)</strong>: Porcentajes de rebotes ofensivos y defensivos que el equipo es capaz de capturar sobre el total potenciales rebotes disponibles</li>
-            <li><strong>Tiros Libres (15%)</strong>: Con qué frecuencia un equipo es capaz de ir a la línea de tiros libres y anotarlos</li>
+            <li><strong>Rebotes (20%)</strong>: Porcentajes de rebotes ofensivos y defensivos que el equipo captura sobre el total de rebotes potenciales disponibles</li>
+            <li><strong>Tiros libres (15%)</strong>: Tiros libres anotados por tiro de campo intentado (FTM/FGA)</li>
           </ul>
         </div>
       </div>

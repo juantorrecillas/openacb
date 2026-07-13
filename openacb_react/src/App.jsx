@@ -1,26 +1,58 @@
-import { useState, useEffect, useRef } from 'react'
-import { Routes, Route, useNavigate, useLocation, Link } from 'react-router-dom'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Routes, Route, useLocation, Link, Navigate } from 'react-router-dom'
 import { Analytics } from '@vercel/analytics/react'
 import { BarChart3, Target, Users, TrendingUp, Percent, Trophy, Info, UserCircle, Menu, X, GitCompareArrows, Fingerprint, ChevronDown, Activity, Crown, Flame, Scale, Sparkles } from 'lucide-react'
-import Home from './pages/Home'
-import ShotCharts from './pages/ShotCharts'
-import TeamStats from './pages/TeamStats'
-import PlayerStats from './pages/PlayerStats'
-import LineupAnalysis from './pages/LineupAnalysis'
-import LineupRankings from './pages/LineupRankings'
-import FourFactors from './pages/FourFactors'
-import PlayerProfile from './pages/PlayerProfile'
-import About from './pages/About'
-import PlayerSimilarity from './pages/PlayerSimilarity'
-import PlayerComparison from './pages/PlayerComparison'
-import TeamFingerprint from './pages/TeamFingerprint'
-import TeamMatchup from './pages/TeamMatchup'
-import GameFlow from './pages/GameFlow'
-import TeamPace from './pages/TeamPace'
-import ZoneLeaders from './pages/ZoneLeaders'
-import ClutchStats from './pages/ClutchStats'
+const Home = lazy(() => import('./pages/Home'))
+const ShotCharts = lazy(() => import('./pages/ShotCharts'))
+const TeamStats = lazy(() => import('./pages/TeamStats'))
+const PlayerStats = lazy(() => import('./pages/PlayerStats'))
+const LineupAnalysis = lazy(() => import('./pages/LineupAnalysis'))
+const LineupRankings = lazy(() => import('./pages/LineupRankings'))
+const FourFactors = lazy(() => import('./pages/FourFactors'))
+const PlayerProfile = lazy(() => import('./pages/PlayerProfile'))
+const About = lazy(() => import('./pages/About'))
+const PlayerSimilarity = lazy(() => import('./pages/PlayerSimilarity'))
+const PlayerComparison = lazy(() => import('./pages/PlayerComparison'))
+const TeamFingerprint = lazy(() => import('./pages/TeamFingerprint'))
+const TeamMatchup = lazy(() => import('./pages/TeamMatchup'))
+const GameFlow = lazy(() => import('./pages/GameFlow'))
+const ZoneLeaders = lazy(() => import('./pages/ZoneLeaders'))
+const ClutchStats = lazy(() => import('./pages/ClutchStats'))
 
-// Tab id → URL path mapping
+const DATA_RESOURCES = {
+  teams: { url: '/data/teams.json' },
+  teamsByStage: { url: '/data/teams-by-stage.json' },
+  players: { url: '/data/players.json' },
+  playersByStage: { url: '/data/players-by-stage.json' },
+  playerNames: { url: '/data/player-names.json', fallback: {} },
+  similarity: { url: '/data/similarity.json' },
+  teamLogos: { url: '/data/team-logos.json', fallback: {} },
+  playerPhotos: { url: '/data/player-photos.json', fallback: {} },
+  playerBio: { url: '/data/player-bio.json', fallback: {} },
+}
+
+const DATA_REQUIREMENTS = {
+  home: [],
+  about: [],
+  teams: ['teamsByStage', 'teamLogos'],
+  fingerprint: ['teams', 'teamLogos'],
+  matchup: ['teams', 'teamLogos'],
+  gameflow: ['teams', 'players', 'playerNames'],
+  factors: ['teams'],
+  players: ['playersByStage', 'playerNames', 'playerBio'],
+  profile: ['players', 'playersByStage', 'playerNames', 'playerPhotos', 'playerBio'],
+  similarity: ['players', 'playerNames', 'similarity'],
+  comparison: ['players', 'playerNames', 'playerPhotos', 'playerBio'],
+  clutch: ['teams', 'players', 'playerNames', 'playerBio'],
+  lineups: ['teams', 'players', 'playerNames', 'playerPhotos'],
+  rankings: ['teams', 'players', 'playerNames'],
+  shots: ['teams', 'players', 'playerNames', 'playerPhotos'],
+  zoneleaders: ['teams', 'players', 'playerNames', 'playerPhotos'],
+}
+
+const INITIAL_DATA = Object.fromEntries(Object.keys(DATA_RESOURCES).map(key => [key, null]))
+
+// tab id → url path mapping
 const TAB_PATHS = {
   home: '/',
   teams: '/equipos',
@@ -40,7 +72,7 @@ const TAB_PATHS = {
   about: '/info',
 }
 
-// Navigation structure: single tabs and grouped dropdowns
+// navigation structure: single tabs and grouped dropdowns
 const NAV = [
   {
     id: 'equipos', label: 'Equipos', short: 'Equipos', icon: BarChart3,
@@ -84,16 +116,16 @@ const NAV = [
   { id: 'about', label: 'Info', short: 'Info', icon: Info, single: true },
 ]
 
-// Derive active tab id from the current URL pathname
+// derive active tab id from the current url pathname
 function getTabFromPath(pathname) {
   for (const [tabId, path] of Object.entries(TAB_PATHS)) {
     if (tabId === 'home') continue // handle home separately
-    if (pathname.startsWith(path)) return tabId
+    if (pathname === path || pathname.startsWith(`${path}/`)) return tabId
   }
   return pathname === '/' ? 'home' : null
 }
 
-// Returns the group id that contains the given tab id
+// return the group id that contains the given tab id
 function getActiveGroup(tabId) {
   for (const item of NAV) {
     if (item.single && item.id === tabId) return item.id
@@ -103,18 +135,19 @@ function getActiveGroup(tabId) {
 }
 
 function App() {
-  const navigate = useNavigate()
   const location = useLocation()
   const activeTab = getTabFromPath(location.pathname)
 
-  const [data, setData] = useState({ teams: [], teamsByStage: [], players: [], playersByStage: [], similarity: [], teamLogos: {}, playerPhotos: {}, playerBio: {} })
-  const [loading, setLoading] = useState(true)
+  const [data, setData] = useState(INITIAL_DATA)
+  const [loadError, setLoadError] = useState('')
+  const [retryToken, setRetryToken] = useState(0)
   const [menuOpen, setMenuOpen] = useState(false)
   const [openGroup, setOpenGroup] = useState(null)
   const menuRef = useRef(null)
   const dropdownRef = useRef(null)
+  const dataRequestsRef = useRef({})
 
-  // Close mobile menu on outside click
+  // close the mobile menu on outside click
   useEffect(() => {
     const handler = (e) => {
       if (menuRef.current && menuRef.current.contains(e.target)) return
@@ -124,6 +157,20 @@ function App() {
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [])
+
+  useEffect(() => {
+    const tabs = NAV.flatMap(item => item.single ? [item] : item.tabs)
+    const current = tabs.find(tab => tab.id === activeTab)
+    document.title = activeTab === 'home'
+      ? 'openACB'
+      : `${current?.label || 'Página no encontrada'} | openACB`
+  }, [activeTab])
+
+  useEffect(() => {
+    setMenuOpen(false)
+    setOpenGroup(null)
+    window.scrollTo({ top: 0, left: 0 })
+  }, [location.pathname])
 
   const [shotsCache, setShotsCache] = useState({})
   const [loadingShots, setLoadingShots] = useState({})
@@ -136,73 +183,83 @@ function App() {
   const [clutchCache, setClutchCache] = useState({})
   const [loadingClutch, setLoadingClutch] = useState({})
 
+  const requiredResources = DATA_REQUIREMENTS[activeTab] || []
+  const missingResources = requiredResources.filter(key => data[key] == null)
+  const missingKey = missingResources.join('|')
+
   useEffect(() => {
-    async function loadData() {
-      try {
-        const [teamsRes, teamsByStageRes, playersRes, playersByStageRes, playerNamesRes, similarityRes, teamLogosRes, playerPhotosRes, playerBioRes] = await Promise.all([
-          fetch('/data/teams.json'),
-          fetch('/data/teams-by-stage.json'),
-          fetch('/data/players.json'),
-          fetch('/data/players-by-stage.json'),
-          fetch('/data/player-names.json'),
-          fetch('/data/similarity.json'),
-          fetch('/data/team-logos.json'),
-          fetch('/data/player-photos.json'),
-          fetch('/data/player-bio.json'),
-        ])
-        const [teams, teamsByStage, players, playersByStage, playerNames, similarity, teamLogos, playerPhotos, playerBio] = await Promise.all([
-          teamsRes.json(),
-          teamsByStageRes.ok ? teamsByStageRes.json() : [],
-          playersRes.json(),
-          playersByStageRes.ok ? playersByStageRes.json() : [],
-          playerNamesRes.ok ? playerNamesRes.json() : {},
-          similarityRes.ok ? similarityRes.json() : [],
-          teamLogosRes.ok ? teamLogosRes.json() : {},
-          playerPhotosRes.ok ? playerPhotosRes.json() : {},
-          playerBioRes.ok ? playerBioRes.json() : {},
-        ])
-        const addDisplayNames = records => records.map(player => ({
-          ...player,
-          playerDisplay: playerNames[String(player.licenseId)] || undefined,
-        }))
-
-        setData({
-          teams,
-          teamsByStage,
-          players: addDisplayNames(players),
-          playersByStage: addDisplayNames(playersByStage),
-          similarity,
-          teamLogos,
-          playerPhotos,
-          playerBio,
-        })
-      } catch (error) {
-        console.error('Error cargando datos:', error)
-      } finally {
-        setLoading(false)
-      }
+    if (!missingKey) {
+      setLoadError('')
+      return
     }
-    loadData()
-  }, [])
 
-  const loadShotsForSeason = async (season) => {
+    setLoadError('')
+    const loadResource = (key) => {
+      if (dataRequestsRef.current[key]) return dataRequestsRef.current[key]
+
+      const resource = DATA_RESOURCES[key]
+      const request = fetch(resource.url)
+        .then(async response => {
+          if (!response.ok) {
+            if (Object.hasOwn(resource, 'fallback')) return resource.fallback
+            throw new Error(`No se pudo cargar ${resource.url}`)
+          }
+          return response.json()
+        })
+        .then(value => {
+          setData(previous => previous[key] == null ? { ...previous, [key]: value } : previous)
+          return value
+        })
+        .finally(() => {
+          delete dataRequestsRef.current[key]
+        })
+
+      dataRequestsRef.current[key] = request
+      return request
+    }
+
+    Promise.all(missingKey.split('|').map(loadResource)).catch(error => {
+      console.error('Error cargando datos:', error)
+      setLoadError('No se han podido cargar los datos. Comprueba la conexión e inténtalo de nuevo.')
+    })
+  }, [missingKey, retryToken])
+
+  const namedPlayers = useMemo(() => {
+    const names = data.playerNames || {}
+    return (data.players || []).map(player => ({
+      ...player,
+      playerDisplay: names[String(player.licenseId)] || undefined,
+    }))
+  }, [data.players, data.playerNames])
+
+  const namedPlayersByStage = useMemo(() => {
+    const names = data.playerNames || {}
+    return (data.playersByStage || []).map(player => ({
+      ...player,
+      playerDisplay: names[String(player.licenseId)] || undefined,
+    }))
+  }, [data.playersByStage, data.playerNames])
+
+  const loadShotsForSeason = useCallback(async (season) => {
     if (shotsCache[season]) return shotsCache[season]
     if (loadingShots[season]) return []
     try {
       setLoadingShots(prev => ({ ...prev, [season]: true }))
       const response = await fetch(`/data/shots-${season}.json`)
+      if (!response.ok) throw new Error('Shot data not found')
       const shots = await response.json()
       setShotsCache(prev => ({ ...prev, [season]: shots }))
       setLoadingShots(prev => ({ ...prev, [season]: false }))
       return shots
     } catch (error) {
       console.error(`Error loading shots for season ${season}:`, error)
+      setShotsCache(prev => ({ ...prev, [season]: [] }))
       setLoadingShots(prev => ({ ...prev, [season]: false }))
       return []
     }
-  }
+  }, [shotsCache, loadingShots])
 
-  const loadLineupsForSeason = async (season) => {
+  const loadLineupsForSeason = useCallback(async (season) => {
     if (lineupsCache[season]) return lineupsCache[season]
     if (loadingLineups[season]) return null
     try {
@@ -215,12 +272,13 @@ function App() {
       return lineupData
     } catch (error) {
       console.error(`Error loading lineups for season ${season}:`, error)
+      setLineupsCache(prev => ({ ...prev, [season]: {} }))
       setLoadingLineups(prev => ({ ...prev, [season]: false }))
       return null
     }
-  }
+  }, [lineupsCache, loadingLineups])
 
-  const loadGameFlowForSeason = async (season) => {
+  const loadGameFlowForSeason = useCallback(async (season) => {
     if (gameFlowCache[season]) return gameFlowCache[season]
     if (loadingGameFlow[season]) return []
     try {
@@ -233,12 +291,13 @@ function App() {
       return gameFlowData
     } catch (error) {
       console.error(`Error loading game flow for season ${season}:`, error)
+      setGameFlowCache(prev => ({ ...prev, [season]: [] }))
       setLoadingGameFlow(prev => ({ ...prev, [season]: false }))
       return []
     }
-  }
+  }, [gameFlowCache, loadingGameFlow])
 
-  const loadTeamPaceForSeason = async (season) => {
+  const loadTeamPaceForSeason = useCallback(async (season) => {
     if (teamPaceCache[season]) return teamPaceCache[season]
     if (loadingTeamPace[season]) return []
     try {
@@ -251,12 +310,13 @@ function App() {
       return teamPaceData
     } catch (error) {
       console.error(`Error loading team pace for season ${season}:`, error)
+      setTeamPaceCache(prev => ({ ...prev, [season]: [] }))
       setLoadingTeamPace(prev => ({ ...prev, [season]: false }))
       return []
     }
-  }
+  }, [teamPaceCache, loadingTeamPace])
 
-  const loadClutchForSeason = async (season) => {
+  const loadClutchForSeason = useCallback(async (season) => {
     if (clutchCache[season]) return clutchCache[season]
     if (loadingClutch[season]) return null
     try {
@@ -269,19 +329,35 @@ function App() {
       return clutchData
     } catch (error) {
       console.error(`Error loading clutch data for season ${season}:`, error)
+      setClutchCache(prev => ({ ...prev, [season]: {} }))
       setLoadingClutch(prev => ({ ...prev, [season]: false }))
       return null
     }
-  }
+  }, [clutchCache, loadingClutch])
 
-  // Helper: navigate to a tab by its id
-  const goTo = (tabId) => navigate(TAB_PATHS[tabId] || '/')
-
-  if (loading) {
+  if (missingResources.length > 0 && !loadError) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-acb-500">Cargando datos...</div>
+        <div className="text-acb-500" role="status" aria-live="polite">Cargando datos...</div>
       </div>
+    )
+  }
+
+  if (loadError) {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-acb-50 px-4">
+        <div className="max-w-md rounded-lg border border-negative-200 bg-white p-6 text-center shadow-sm">
+          <h1 className="text-xl font-semibold text-acb-900">No se pueden mostrar los datos</h1>
+          <p className="mt-2 text-sm text-acb-600">{loadError}</p>
+          <button
+            type="button"
+            onClick={() => setRetryToken(token => token + 1)}
+            className="mt-5 rounded-lg bg-acb-900 px-4 py-2 text-sm font-medium text-white hover:bg-acb-800"
+          >
+            Reintentar
+          </button>
+        </div>
+      </main>
     )
   }
 
@@ -290,13 +366,13 @@ function App() {
   return (
     <>
       <div className="min-h-screen bg-acb-50">
-        {/* Header */}
+        {/* header */}
         <header className="bg-white border-b border-acb-200 sticky top-0 z-50 relative">
           <div className="h-12 sm:h-16 xl:h-20">
             <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-full">
               <div className="flex items-center justify-between h-full">
 
-                {/* Logo */}
+                {/* logo */}
                 <Link
                   to="/"
                   onClick={() => setMenuOpen(false)}
@@ -304,14 +380,14 @@ function App() {
                 >
                   <img
                     src="/openacb_nobckg.png"
-                    alt="openACB Logo"
+                    alt="Logotipo de openACB"
                     className="w-10 h-10 sm:w-14 sm:h-14 xl:w-20 xl:h-20 object-contain"
                   />
-                  <h1 className="text-base sm:text-lg font-semibold text-acb-900 hidden sm:block">openACB</h1>
+                  <span className="text-base sm:text-lg font-semibold text-acb-900 hidden sm:block">openACB</span>
                 </Link>
 
-                {/* Desktop Navigation */}
-                <nav className="hidden xl:flex items-center gap-0.5 ml-4 flex-1 min-w-0">
+                {/* desktop navigation */}
+                <nav className="hidden xl:flex items-center gap-0.5 ml-4 flex-1 min-w-0" aria-label="Navegación principal">
                   {NAV.map((item) => {
                     const Icon = item.icon
                     const isActive = activeGroupId === item.id || (item.single && activeTab === item.id)
@@ -330,26 +406,40 @@ function App() {
                       )
                     }
 
-                    // Grouped dropdown
+                    // grouped dropdown
                     return (
                       <div
                         key={item.id}
                         className="relative"
                         onMouseEnter={() => setOpenGroup(item.id)}
                         onMouseLeave={() => setOpenGroup(null)}
+                        onBlur={(event) => {
+                          if (!event.currentTarget.contains(event.relatedTarget)) setOpenGroup(null)
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Escape') {
+                            setOpenGroup(null)
+                            event.currentTarget.querySelector('button')?.focus()
+                          }
+                        }}
                       >
                         <button
+                          type="button"
+                          onClick={() => setOpenGroup(item.id)}
+                          aria-expanded={openGroup === item.id}
+                          aria-haspopup="menu"
+                          aria-controls={`desktop-menu-${item.id}`}
                           className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border transition-colors text-xs font-medium whitespace-nowrap
                             ${isActive ? 'border-transparent text-accent-700 font-semibold' : 'border-transparent text-acb-600 hover:text-accent-700'}`}
                         >
                           <Icon className="w-3.5 h-3.5" />
                           <span>{item.short}</span>
-                          <ChevronDown className="w-3 h-3 opacity-40" />
+                          <ChevronDown className={`w-3 h-3 opacity-40 transition-transform ${openGroup === item.id ? 'rotate-180' : ''}`} />
                         </button>
 
                         {openGroup === item.id && (
                           <div className="absolute top-full left-0 pt-1 z-50 min-w-max">
-                          <div className="bg-white border border-acb-200 rounded-lg shadow-lg py-1">
+                            <div id={`desktop-menu-${item.id}`} role="menu" className="bg-white border border-acb-200 rounded-lg shadow-lg py-1">
                             {item.tabs.map(tab => {
                               const TabIcon = tab.icon
                               return (
@@ -357,6 +447,7 @@ function App() {
                                   key={tab.id}
                                   to={TAB_PATHS[tab.id] || '/'}
                                   onClick={() => setOpenGroup(null)}
+                                  role="menuitem"
                                   className={`flex items-center gap-2.5 w-full px-4 py-2 text-xs transition-colors
                                     ${activeTab === tab.id
                                       ? 'text-accent-700 font-semibold'
@@ -375,10 +466,14 @@ function App() {
                   })}
                 </nav>
 
-                {/* Hamburger button */}
+                {/* hamburger button */}
                 <div className="xl:hidden" ref={menuRef}>
                   <button
+                    type="button"
                     onClick={() => setMenuOpen(!menuOpen)}
+                    aria-label={menuOpen ? 'Cerrar menú de navegación' : 'Abrir menú de navegación'}
+                    aria-expanded={menuOpen}
+                    aria-controls="mobile-navigation"
                     className="p-2 rounded-md text-acb-600 hover:text-acb-900 hover:bg-acb-100 transition-colors"
                   >
                     {menuOpen ? <X className="w-5 h-5 sm:w-6 sm:h-6" /> : <Menu className="w-5 h-5 sm:w-6 sm:h-6" />}
@@ -388,10 +483,14 @@ function App() {
             </div>
           </div>
 
-          {/* Mobile dropdown */}
+          {/* mobile dropdown */}
           {menuOpen && (
-            <div ref={dropdownRef} className="xl:hidden absolute left-0 right-0 top-full bg-white border-b border-acb-200 shadow-lg z-50">
-              <nav className="max-w-7xl mx-auto px-3 sm:px-4 py-2 flex flex-col gap-0.5">
+            <div
+              id="mobile-navigation"
+              ref={dropdownRef}
+              className="xl:hidden absolute left-0 right-0 top-full max-h-[calc(100vh-3rem)] sm:max-h-[calc(100vh-4rem)] overflow-y-auto bg-white border-b border-acb-200 shadow-lg z-50"
+            >
+              <nav className="max-w-7xl mx-auto px-3 sm:px-4 py-2 flex flex-col gap-0.5" aria-label="Navegación móvil">
                 {NAV.map((item) => {
                   const Icon = item.icon
 
@@ -439,9 +538,10 @@ function App() {
           )}
         </header>
 
-        {/* Main Content */}
+        {/* main content */}
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <Routes>
+          <Suspense fallback={<div className="py-16 text-center text-acb-500" role="status">Cargando herramienta...</div>}>
+            <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/equipos" element={<TeamStats teams={data.teamsByStage} teamLogos={data.teamLogos} />} />
             <Route path="/perfil-equipo" element={<TeamFingerprint teams={data.teams} teamLogos={data.teamLogos} />} />
@@ -479,6 +579,7 @@ function App() {
             <Route path="/flujo-partido" element={
               <GameFlow
                 teams={data.teams}
+                playerRecords={namedPlayers}
                 loadGameFlowForSeason={loadGameFlowForSeason}
                 gameFlowCache={gameFlowCache}
                 loadingGameFlow={loadingGameFlow}
@@ -493,14 +594,14 @@ function App() {
             <Route path="/cuatro-factores" element={<FourFactors teams={data.teams} />} />
             <Route path="/jugadores" element={
               <PlayerStats
-                players={data.playersByStage}
+                players={namedPlayersByStage}
                 playerBio={data.playerBio}
               />
             } />
             <Route path="/jugador" element={
               <PlayerProfile
-                players={data.playersByStage}
-                allPlayers={data.players}
+                players={namedPlayersByStage}
+                allPlayers={namedPlayers}
                 playerPhotos={data.playerPhotos}
                 playerBio={data.playerBio}
                 loadLineupsForSeason={loadLineupsForSeason}
@@ -513,8 +614,8 @@ function App() {
             } />
             <Route path="/jugador/:licenseId" element={
               <PlayerProfile
-                players={data.playersByStage}
-                allPlayers={data.players}
+                players={namedPlayersByStage}
+                allPlayers={namedPlayers}
                 playerPhotos={data.playerPhotos}
                 playerBio={data.playerBio}
                 loadLineupsForSeason={loadLineupsForSeason}
@@ -527,19 +628,19 @@ function App() {
             } />
             <Route path="/similitud" element={
               <PlayerSimilarity
-                players={data.players}
+                players={namedPlayers}
                 similarity={data.similarity}
               />
             } />
             <Route path="/similitud/:licenseId/:season" element={
               <PlayerSimilarity
-                players={data.players}
+                players={namedPlayers}
                 similarity={data.similarity}
               />
             } />
             <Route path="/comparar" element={
               <PlayerComparison
-                players={data.players}
+                players={namedPlayers}
                 playerPhotos={data.playerPhotos}
                 playerBio={data.playerBio}
                 loadLineupsForSeason={loadLineupsForSeason}
@@ -549,7 +650,7 @@ function App() {
             } />
             <Route path="/comparar/:aId/:aSeason/:bId/:bSeason" element={
               <PlayerComparison
-                players={data.players}
+                players={namedPlayers}
                 playerPhotos={data.playerPhotos}
                 playerBio={data.playerBio}
                 loadLineupsForSeason={loadLineupsForSeason}
@@ -564,7 +665,7 @@ function App() {
                 lineupsCache={lineupsCache}
                 loadingLineups={loadingLineups}
                 playerPhotos={data.playerPhotos}
-                playerRecords={data.players}
+                playerRecords={namedPlayers}
               />
             } />
             <Route path="/alineaciones/:season/:team" element={
@@ -574,7 +675,7 @@ function App() {
                 lineupsCache={lineupsCache}
                 loadingLineups={loadingLineups}
                 playerPhotos={data.playerPhotos}
-                playerRecords={data.players}
+                playerRecords={namedPlayers}
               />
             } />
             <Route path="/mejores-alineaciones" element={
@@ -583,7 +684,7 @@ function App() {
                 loadLineupsForSeason={loadLineupsForSeason}
                 lineupsCache={lineupsCache}
                 loadingLineups={loadingLineups}
-                playerRecords={data.players}
+                playerRecords={namedPlayers}
               />
             } />
             <Route path="/cartas-tiro" element={
@@ -592,7 +693,7 @@ function App() {
                 shotsCache={shotsCache}
                 loadingShots={loadingShots}
                 teams={data.teams}
-                players={data.players}
+                players={namedPlayers}
                 playerPhotos={data.playerPhotos}
               />
             } />
@@ -602,7 +703,7 @@ function App() {
                 shotsCache={shotsCache}
                 loadingShots={loadingShots}
                 teams={data.teams}
-                players={data.players}
+                players={namedPlayers}
                 playerPhotos={data.playerPhotos}
               />
             } />
@@ -612,14 +713,14 @@ function App() {
                 shotsCache={shotsCache}
                 loadingShots={loadingShots}
                 teams={data.teams}
-                players={data.players}
+                players={namedPlayers}
                 playerPhotos={data.playerPhotos}
               />
             } />
             <Route path="/estadisticas-clutch" element={
               <ClutchStats
                 teams={data.teams}
-                players={data.players}
+                players={namedPlayers}
                 playerBio={data.playerBio}
                 loadClutchForSeason={loadClutchForSeason}
                 clutchCache={clutchCache}
@@ -627,12 +728,13 @@ function App() {
               />
             } />
             <Route path="/info" element={<About />} />
-            {/* Catch-all: redirect to home */}
-            <Route path="*" element={<Home />} />
-          </Routes>
+            {/* redirect unknown routes to home */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
         </main>
 
-        {/* Footer */}
+        {/* footer */}
         <footer className="border-t border-acb-200 bg-white mt-12">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <div className="flex items-center justify-between text-sm text-acb-500">

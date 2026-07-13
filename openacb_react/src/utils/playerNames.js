@@ -18,7 +18,7 @@ export function getPlayerDisplayName(player, fallback = '-') {
 export function getPlayerSearchText(player) {
   if (!player) return ''
 
-  return [
+  const searchText = [
     player.playerDisplay,
     player.playerName,
     player.displayName,
@@ -33,4 +33,7 @@ export function getPlayerSearchText(player) {
     .filter(Boolean)
     .join(' ')
     .toLocaleLowerCase('es')
+
+  const withoutAccents = searchText.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  return withoutAccents === searchText ? searchText : `${searchText} ${withoutAccents}`
 }

@@ -36,6 +36,7 @@ function rankToPercentile(rank, n) {
 
 const POSITION_ORDER = ['Base', 'Escolta', 'Alero', 'Ala-pívot', 'Pívot']
 const DEFAULT_SHOW = 25
+const RANK_KEYS = ['pts','reb','oreb','dreb','ast','stl','blk','fgPct','efgPct','tsPct','fg2Pct','fg3Pct','ftPct','ptsT','rebT','orebT','drebT','astT','stlT','blkT']
 
 // ─── Column sets ───────────────────────────────────────────────
 const basicCols = [
@@ -134,6 +135,7 @@ export default function ClutchStats({ teams, players = [], playerBio = {}, loadC
     const map = {}
     players.forEach(p => {
       const id = String(p.licenseId)
+      map[`${id}::${p.season}::${p.team}`] = p
       if (!map[id] || p.season === selectedSeason) map[id] = p
     })
     return map
@@ -147,7 +149,7 @@ export default function ClutchStats({ teams, players = [], playerBio = {}, loadC
   const enriched = useMemo(() => {
     const num = v => (v == null || v === 'NA') ? null : Number(v)
     return rawPlayers.map(p => {
-      const bio = playerLookup[String(p.licenseId)] || playerBio[String(p.licenseId)]
+      const bio = playerLookup[`${p.licenseId}::${selectedSeason}::${p.team}`] || playerLookup[String(p.licenseId)] || playerBio[String(p.licenseId)]
       const playerAbbrev = bio?.playerAbbrev || null
       const playerFull   = bio?.playerFull   || p.nick || null
       const position     = bio?.position     || null
@@ -172,10 +174,9 @@ export default function ClutchStats({ teams, players = [], playerBio = {}, loadC
           : null
 
       // tsPct (requires total pts, not per-game)
-      const totalPts = (p.pts || 0) * g
       const fga = (p.fg2A || 0) + (p.fg3A || 0)
-      const tsPct = fga + (p.ftA || 0) > 0
-        ? Math.round(totalPts / (2 * (fga + 0.44 * (p.ftA || 0))) * 1000) / 10
+      const tsPct = p.ptsT != null && fga + (p.ftA || 0) > 0
+        ? Math.round(p.ptsT / (2 * (fga + 0.44 * (p.ftA || 0))) * 1000) / 10
         : null
 
       const fg3Rate = fga > 0 ? Math.round((p.fg3A || 0) / fga * 1000) / 10 : null
@@ -202,7 +203,7 @@ export default function ClutchStats({ teams, players = [], playerBio = {}, loadC
         fgmTot,
       }
     })
-  }, [rawPlayers, playerLookup, playerBio])
+  }, [rawPlayers, playerLookup, playerBio, selectedSeason])
 
   const allPositions = useMemo(() => {
     const present = new Set(enriched.map(p => p.position).filter(Boolean))
@@ -222,10 +223,9 @@ export default function ClutchStats({ teams, players = [], playerBio = {}, loadC
     })
   }, [enriched, minGames, teamFilter, positionFilter, search])
 
-  const rankKeys = ['pts','reb','oreb','dreb','ast','stl','blk','fgPct','efgPct','tsPct','fg2Pct','fg3Pct','ftPct','ptsT','rebT','orebT','drebT','astT','stlT','blkT']
   const withRanks = useMemo(() => {
     const copy = filtered.map(p => ({ ...p }))
-    rankKeys.forEach(key => {
+    RANK_KEYS.forEach(key => {
       const sorted = [...copy]
         .filter(p => p[key] != null)
         .sort((a, b) => (b[key] || 0) - (a[key] || 0))
@@ -280,8 +280,9 @@ export default function ClutchStats({ teams, players = [], playerBio = {}, loadC
         <div className="flex flex-wrap items-center gap-4 mb-4">
           {/* Season */}
           <div className="flex items-center gap-2">
-            <span className="text-sm text-acb-600">Temporada:</span>
+            <label htmlFor="clutch-season" className="text-sm text-acb-600">Temporada:</label>
             <select
+              id="clutch-season"
               value={selectedSeason}
               onChange={e => setSelectedSeason(Number(e.target.value))}
               className="px-3 py-2 border border-acb-200 rounded-md text-sm bg-white"
@@ -291,7 +292,7 @@ export default function ClutchStats({ teams, players = [], playerBio = {}, loadC
           </div>
 
           {/* View mode */}
-          <div className="flex items-center gap-1 bg-acb-100 rounded-md p-1">
+          <div className="flex items-center gap-1 bg-acb-100 rounded-md p-1" role="group" aria-label="Vista estadística">
             {[['basic','Básico'],['advanced','Avanzado'],['absolutos','Absolutos']].map(([mode, label]) => (
               <button
                 key={mode}
@@ -310,7 +311,9 @@ export default function ClutchStats({ teams, players = [], playerBio = {}, loadC
           {/* Team filter */}
           <div className="flex items-center gap-2">
             <Filter className="w-4 h-4 text-acb-400" />
+            <label htmlFor="clutch-team" className="sr-only">Equipo</label>
             <select
+              id="clutch-team"
               value={teamFilter}
               onChange={e => setTeamFilter(e.target.value)}
               className="px-3 py-2 border border-acb-200 rounded-md text-sm bg-white"
@@ -322,20 +325,25 @@ export default function ClutchStats({ teams, players = [], playerBio = {}, loadC
 
           {/* Position filter */}
           {allPositions.length > 0 && (
-            <select
-              value={positionFilter}
-              onChange={e => setPositionFilter(e.target.value)}
-              className="px-3 py-2 border border-acb-200 rounded-md text-sm bg-white"
-            >
-              <option value="">Todas las posiciones</option>
-              {allPositions.map(pos => <option key={pos} value={pos}>{pos}</option>)}
-            </select>
+            <div>
+              <label htmlFor="clutch-position" className="sr-only">Posición</label>
+              <select
+                id="clutch-position"
+                value={positionFilter}
+                onChange={e => setPositionFilter(e.target.value)}
+                className="px-3 py-2 border border-acb-200 rounded-md text-sm bg-white"
+              >
+                <option value="">Todas las posiciones</option>
+                {allPositions.map(pos => <option key={pos} value={pos}>{pos}</option>)}
+              </select>
+            </div>
           )}
 
           {/* Min games */}
           <div className="flex items-center gap-2">
-            <span className="text-sm text-acb-600">Mín. PJ clutch:</span>
+            <label htmlFor="clutch-min-games" className="text-sm text-acb-600">Mín. PJ clutch:</label>
             <select
+              id="clutch-min-games"
               value={minGames}
               onChange={e => setMinGames(Number(e.target.value))}
               className="px-3 py-2 border border-acb-200 rounded-md text-sm bg-white"
@@ -349,6 +357,8 @@ export default function ClutchStats({ teams, players = [], playerBio = {}, loadC
         <div className="relative max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-acb-400" />
           <input
+            id="clutch-search"
+            aria-label="Buscar jugador"
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -373,6 +383,9 @@ export default function ClutchStats({ teams, players = [], playerBio = {}, loadC
                   <th
                     key={col.key}
                     onClick={() => !nonSortable.has(col.key) && handleSort(col.key)}
+                    onKeyDown={(e) => !nonSortable.has(col.key) && (e.key === 'Enter' || e.key === ' ') && handleSort(col.key)}
+                    tabIndex={!nonSortable.has(col.key) ? 0 : undefined}
+                    aria-sort={!nonSortable.has(col.key) ? (sortKey === col.key ? (sortDir === 'desc' ? 'descending' : 'ascending') : 'none') : undefined}
                     title={col.title || statTitle(col.label)}
                     className={`data-table-head
                       ${col.left ? 'text-left' : 'data-table-number'}
@@ -399,8 +412,17 @@ export default function ClutchStats({ teams, players = [], playerBio = {}, loadC
                 <tr><td colSpan={cols.length + 1} className="py-12 text-center text-acb-400">No hay jugadores con {minGames}+ partidos clutch.</td></tr>
               ) : displayed.map((p, i) => (
                 <tr
-                  key={`${p.licenseId}-${p.team}`}
+                  key={`${p.licenseId}-${selectedSeason}-${p.team}`}
                   onClick={() => p.licenseId && navigate(`/jugador/${p.licenseId}`)}
+                  onKeyDown={(e) => {
+                    if (p.licenseId && (e.key === 'Enter' || e.key === ' ')) {
+                      e.preventDefault()
+                      navigate(`/jugador/${p.licenseId}`)
+                    }
+                  }}
+                  tabIndex={p.licenseId ? 0 : undefined}
+                  role={p.licenseId ? 'link' : undefined}
+                  aria-label={p.licenseId ? `Abrir perfil de ${getPlayerDisplayName(p)}` : undefined}
                   className="data-table-row border-b border-acb-100 cursor-pointer"
                 >
                   <td className="data-table-cell data-table-number data-table-sticky data-col-rank text-acb-400">{i + 1}</td>

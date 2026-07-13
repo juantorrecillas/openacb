@@ -9,7 +9,7 @@ function seasonLabel(s) {
   return `${s - 1}-${String(s).slice(-2)}`
 }
 
-// ─── Player Selector (reused pattern from PlayerProfile) ────────────────
+// selector de jugador
 function PlayerSelector({ players, onSelect, selectedLicenseId }) {
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
@@ -59,17 +59,18 @@ function PlayerSelector({ players, onSelect, selectedLicenseId }) {
 
   const filtered = useMemo(() => {
     if (!query.trim()) return uniquePlayers.slice(0, 50)
-    const q = query.toLowerCase()
+    const q = query.toLocaleLowerCase('es').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
     return uniquePlayers.filter(p =>
-      p.searchText.includes(q)
+      p.searchText.normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(q)
     ).slice(0, 50)
   }, [uniquePlayers, query])
 
   return (
     <div className="flex flex-wrap items-end gap-3">
       <div className="flex flex-col gap-1">
-        <label className="text-xs text-acb-500 font-medium">Temporada</label>
+        <label htmlFor="similarity-season-filter" className="text-xs text-acb-500 font-medium">Temporada</label>
         <select
+          id="similarity-season-filter"
           value={seasonFilter}
           onChange={(e) => { setSeasonFilter(e.target.value); setTeamFilter('') }}
           className="px-3 py-2.5 border border-acb-200 rounded-lg text-sm bg-white"
@@ -82,10 +83,11 @@ function PlayerSelector({ players, onSelect, selectedLicenseId }) {
       </div>
 
       <div className="flex flex-col gap-1">
-        <label className="text-xs text-acb-500 font-medium">Equipo</label>
+        <label htmlFor="similarity-team-filter" className="text-xs text-acb-500 font-medium">Equipo</label>
         <div className="flex items-center gap-1.5">
           <Filter className="w-4 h-4 text-acb-400" />
           <select
+            id="similarity-team-filter"
             value={teamFilter}
             onChange={(e) => setTeamFilter(e.target.value)}
             className="px-3 py-2.5 border border-acb-200 rounded-lg text-sm bg-white"
@@ -99,10 +101,11 @@ function PlayerSelector({ players, onSelect, selectedLicenseId }) {
       </div>
 
       <div ref={ref} className="relative flex-1 min-w-[200px]">
-        <label className="text-xs text-acb-500 font-medium">Jugador</label>
+        <label htmlFor="similarity-player-search" className="text-xs text-acb-500 font-medium">Jugador</label>
         <div className="relative mt-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-acb-400" />
           <input
+            id="similarity-player-search"
             type="text"
             value={query}
             onFocus={() => setOpen(true)}
@@ -114,17 +117,19 @@ function PlayerSelector({ players, onSelect, selectedLicenseId }) {
         {open && filtered.length > 0 && (
           <ul className="absolute z-50 mt-1 w-full bg-white border border-acb-200 rounded-lg shadow-lg max-h-64 overflow-y-auto">
             {filtered.map(p => (
-              <li
-                key={p.licenseId}
-                onClick={() => { onSelect(p.licenseId); setQuery(p.name || p.abbrev); setOpen(false) }}
-                className={`px-4 py-2 text-sm cursor-pointer hover:bg-accent-50 flex items-center justify-between ${
-                  String(selectedLicenseId) === String(p.licenseId) ? 'bg-accent-50 font-medium' : ''
-                }`}
-              >
-                <span>{p.name || p.abbrev}</span>
-                {(teamFilter || seasonFilter) && (
-                  <span className="text-xs text-acb-400 ml-2">{p.team}</span>
-                )}
+              <li key={p.licenseId}>
+                <button
+                  type="button"
+                  onClick={() => { onSelect(p.licenseId); setQuery(p.name || p.abbrev); setOpen(false) }}
+                  className={`w-full px-4 py-2 text-sm hover:bg-accent-50 flex items-center justify-between ${
+                    String(selectedLicenseId) === String(p.licenseId) ? 'bg-accent-50 font-medium' : ''
+                  }`}
+                >
+                  <span>{p.name || p.abbrev}</span>
+                  {(teamFilter || seasonFilter) && (
+                    <span className="text-xs text-acb-400 ml-2">{p.team}</span>
+                  )}
+                </button>
               </li>
             ))}
           </ul>
@@ -164,7 +169,7 @@ const SIMILARITY_STATS = [
   { key: 'assistedFgm', label: '% Asist.',  fmt: v => v != null ? `${(v * 100).toFixed(1)}%` : '-' },
 ]
 
-// Compute mean & std for each stat across qualified players (games>=10, mpg>=10)
+// compute mean and standard deviation across qualified players
 function computeStatDistributions(players) {
   const qualified = players.filter(p => p.games >= 10 && p.mpg >= 10)
   const stats = {}
@@ -179,7 +184,7 @@ function computeStatDistributions(players) {
   return stats
 }
 
-// Pick top N stats by absolute z-score for a player
+// pick the top statistics by absolute z-score for a player
 function getStandoutStats(player, distributions, n = 5) {
   const scored = SIMILARITY_STATS.map(stat => {
     const val = player[stat.key]
@@ -197,7 +202,7 @@ export default function PlayerSimilarity({ players, similarity }) {
   const [selectedLicenseId, setSelectedLicenseId] = useState(null)
   const [selectedSeason, setSelectedSeason] = useState(null)
 
-  // Sync from URL params when navigating via /similitud/:licenseId/:season
+  // sync from url params when navigating via /similitud/:licenseId/:season
   useEffect(() => {
     if (urlLicenseId) {
       const parsed = Number(urlLicenseId)
@@ -206,7 +211,7 @@ export default function PlayerSimilarity({ players, similarity }) {
     }
   }, [urlLicenseId, urlSeason])
 
-  // Build lookup: players by licenseId_season
+  // build lookup by license id and season
   const playerLookup = useMemo(() => {
     const map = new Map()
     players.forEach(p => {
@@ -216,10 +221,10 @@ export default function PlayerSimilarity({ players, similarity }) {
     return map
   }, [players])
 
-  // Compute stat distributions once across all qualified players
+  // compute distributions once across all qualified players
   const distributions = useMemo(() => computeStatDistributions(players), [players])
 
-  // Available seasons for the selected player
+  // available seasons for the selected player
   const playerRecords = useMemo(() => {
     if (!selectedLicenseId) return []
     return players
@@ -228,37 +233,37 @@ export default function PlayerSimilarity({ players, similarity }) {
   }, [players, selectedLicenseId])
 
   const availableSeasons = useMemo(() => {
-    return playerRecords.map(r => r.season)
+    return [...new Set(playerRecords.map(r => r.season))]
   }, [playerRecords])
 
-  // Default to latest season when player changes (unless URL provided a season)
+  // default to the latest season when the player changes
   useEffect(() => {
     if (urlSeason) return // don't override if navigated with target season in URL
     if (availableSeasons.length > 0 && !availableSeasons.includes(selectedSeason)) {
       setSelectedSeason(availableSeasons[0])
     }
-  }, [selectedLicenseId, availableSeasons])
+  }, [selectedLicenseId, selectedSeason, availableSeasons, urlSeason])
 
-  // Current player record
+  // current player record
   const currentRecord = useMemo(() => {
     if (!selectedLicenseId || !selectedSeason) return null
     return playerRecords.find(r => r.season === selectedSeason) || null
-  }, [playerRecords, selectedSeason])
+  }, [playerRecords, selectedLicenseId, selectedSeason])
 
-  // Standout stats for the selected player (top 5 by |z-score|)
+  // standout statistics for the selected player
   const standoutCols = useMemo(() => {
     if (!currentRecord) return []
     return getStandoutStats(currentRecord, distributions, 5)
   }, [currentRecord, distributions])
 
-  // Find similarity entry
+  // find the similarity entry
   const similarityEntry = useMemo(() => {
     if (!selectedLicenseId || !selectedSeason) return null
     const id = `${selectedLicenseId}_${selectedSeason}`
     return similarity.find(s => s.id === id) || null
   }, [similarity, selectedLicenseId, selectedSeason])
 
-  // Resolve similar players to full records
+  // resolve similar players to full records
   const similarPlayers = useMemo(() => {
     if (!similarityEntry?.similar) return []
     return similarityEntry.similar.map((s, idx) => {
@@ -283,7 +288,7 @@ export default function PlayerSimilarity({ players, similarity }) {
 
   return (
     <div className="app-page space-y-6">
-      {/* Header */}
+      {/* header */}
       <div>
         <h2 className="text-2xl font-semibold text-acb-900">Similitud de Jugadores</h2>
         <p className="text-acb-500 text-sm mt-1">
@@ -291,18 +296,19 @@ export default function PlayerSimilarity({ players, similarity }) {
         </p>
       </div>
 
-      {/* Player Selector */}
+      {/* player selector */}
       <PlayerSelector
         players={players}
         onSelect={handlePlayerSelect}
         selectedLicenseId={selectedLicenseId}
       />
 
-      {/* Season picker */}
+      {/* season picker */}
       {selectedLicenseId && availableSeasons.length > 0 && (
         <div className="flex items-center gap-3">
-          <span className="text-sm font-medium text-acb-700">Temporada:</span>
+          <label htmlFor="similarity-result-season" className="text-sm font-medium text-acb-700">Temporada:</label>
           <select
+            id="similarity-result-season"
             value={selectedSeason || ''}
             onChange={e => setSelectedSeason(Number(e.target.value))}
             className="px-3 py-1.5 border border-acb-200 rounded-md text-sm bg-white"
@@ -314,7 +320,7 @@ export default function PlayerSimilarity({ players, similarity }) {
         </div>
       )}
 
-      {/* Selected player info + results */}
+      {/* selected player info and results */}
       {currentRecord && standoutCols.length > 0 && (
         <div className="bg-white rounded-lg border border-acb-200 p-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -335,7 +341,7 @@ export default function PlayerSimilarity({ players, similarity }) {
         </div>
       )}
 
-      {/* Results */}
+      {/* results */}
       {currentRecord && standoutCols.length > 0 && similarPlayers.length > 0 && (
         <div className="bg-white rounded-lg border border-acb-200 overflow-hidden">
           <div className="px-5 py-3 border-b border-acb-200">
@@ -359,8 +365,13 @@ export default function PlayerSimilarity({ players, similarity }) {
               <tbody className="divide-y divide-acb-100">
                 {similarPlayers.map(p => (
                   <tr
-                    key={`${p.licenseId}_${p.season}`}
+                    key={`${p.licenseId}_${p.season}_${p.team}`}
                     onClick={() => navigate(`/jugador/${p.licenseId}`)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') navigate(`/jugador/${p.licenseId}`)
+                    }}
+                    role="link"
+                    tabIndex={0}
                     className="data-table-row cursor-pointer hover:bg-accent-50"
                   >
                     <td className="data-table-cell data-table-number data-table-sticky data-col-rank text-acb-400">{p.rank}</td>
