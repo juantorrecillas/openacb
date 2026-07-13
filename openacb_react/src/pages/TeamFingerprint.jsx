@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import PageHeader from '../components/PageHeader'
+import ZoneHeatmap from '../components/ZoneHeatmap'
 
 
 // ─── Axis Definitions ─────────────────────────────────────────
@@ -392,9 +393,21 @@ function RadarChart({ axes, values, fillColor, strokeColor, title }) {
 // ─── Z-Score Badge ────────────────────────────────────────────
 
 function ZBadge({ z }) {
-  if (z > 0.75) return <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-acb-800 text-white">+{z.toFixed(2)}</span>
-  if (z < -0.75) return <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-acb-200 text-acb-800">{z.toFixed(2)}</span>
-  return <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-acb-100 text-acb-600">{z >= 0 ? '+' : ''}{z.toFixed(2)}</span>
+  const colorClass = z > 0.75
+    ? 'bg-accent-200 text-accent-900'
+    : z > 0
+      ? 'bg-accent-100 text-accent-800'
+      : z < -0.75
+        ? 'bg-info-200 text-info-900'
+        : z < 0
+          ? 'bg-info-100 text-info-800'
+          : 'bg-acb-100 text-acb-600'
+
+  return (
+    <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${colorClass}`}>
+      {z >= 0 ? '+' : ''}{z.toFixed(2)}
+    </span>
+  )
 }
 
 // ─── Trait Card ───────────────────────────────────────────────
@@ -603,6 +616,7 @@ function TeamTrendChart({ teams, selectedTeam, selectedSeason }) {
                   const isSelected = props.payload.season === selectedSeason
                   return (
                     <circle
+                      key={`trend-dot-${props.payload.season}`}
                       cx={props.cx}
                       cy={props.cy}
                       r={isSelected ? 4.5 : 3.2}
@@ -622,8 +636,78 @@ function TeamTrendChart({ teams, selectedTeam, selectedSeason }) {
   )
 }
 
-// ─── Season Label Helper ──────────────────────────────────────
+// ─── perfil de tiro por zonas ─────────────────────────────────
 
+function TeamShotProfile({ team, shots, isLoading, isAvailable }) {
+  const [mode, setMode] = useState('attack')
+  const [metric, setMetric] = useState('efficiency')
+
+  const teamShots = useMemo(() => {
+    if (!team) return []
+    return mode === 'attack'
+      ? shots.filter(shot => shot.team === team)
+      : shots.filter(shot => shot.opponent === team)
+  }, [mode, shots, team])
+
+  const toggleBtn = (active, onClick, label) => (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`px-2.5 py-1 text-xs rounded transition-colors ${active ? 'bg-acb-800 text-white font-medium' : 'bg-acb-100 text-acb-600 hover:bg-acb-200'}`}
+    >
+      {label}
+    </button>
+  )
+
+  if (!isAvailable) {
+    return (
+      <div className="bg-white rounded-lg border border-acb-200 p-5">
+        <h3 className="font-semibold text-acb-900">Perfil de Tiro</h3>
+        <p className="text-xs text-acb-500">Datos disponibles desde la temporada 2020-21</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="bg-white rounded-lg border border-acb-200 p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+        <div>
+          <h3 className="font-semibold text-acb-900">Perfil de Tiro</h3>
+          <p className="text-xs text-acb-500">Comparado con la media de la liga en cada zona</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <div className="flex gap-1">
+            {toggleBtn(mode === 'attack', () => setMode('attack'), 'Ataque')}
+            {toggleBtn(mode === 'defense', () => setMode('defense'), 'Defensa')}
+          </div>
+          <div className="flex gap-1">
+            {toggleBtn(metric === 'efficiency', () => setMetric('efficiency'), 'Eficiencia')}
+            {toggleBtn(metric === 'frequency', () => setMetric('frequency'), 'Frecuencia')}
+          </div>
+        </div>
+      </div>
+      {isLoading ? (
+        <div className="text-center py-10 text-acb-400" role="status">Cargando tiros...</div>
+      ) : (
+        <div className="mx-auto min-w-0 max-w-[430px]">
+          <div className="overflow-x-auto">
+            <ZoneHeatmap
+              shots={teamShots}
+              leagueShots={shots}
+              metric={metric}
+              higherIsBetter={mode !== 'defense'}
+              width={430}
+              height={405}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// etiqueta de temporada
 function seasonLabel(s) {
   return `${s - 1}-${String(s).slice(-2)}`
 }
@@ -639,7 +723,13 @@ function toSlug(name) {
     .replace(/[^a-z0-9-]/g, '')
 }
 
-export default function TeamFingerprint({ teams, teamLogos = {} }) {
+export default function TeamFingerprint({
+  teams,
+  teamLogos = {},
+  loadShotsForSeason,
+  shotsCache = {},
+  loadingShots = {},
+}) {
   const { season: urlSeason, team: urlTeamSlug } = useParams()
   const navigate = useNavigate()
 
@@ -647,19 +737,30 @@ export default function TeamFingerprint({ teams, teamLogos = {} }) {
     return [...new Set(teams.map(t => t.season))].sort((a, b) => b - a)
   }, [teams])
 
-  const [selectedSeason, setSelectedSeason] = useState(availableSeasons[0] || 2025)
+  const parsedUrlSeason = Number(urlSeason)
+  const initialSeason = availableSeasons.includes(parsedUrlSeason) ? parsedUrlSeason : (availableSeasons[0] || 2025)
+  const [selectedSeason, setSelectedSeason] = useState(initialSeason)
   const [selectedTeam, setSelectedTeam] = useState('')
 
   // sync from url params on mount or url change
   useEffect(() => {
-    if (urlSeason) setSelectedSeason(Number(urlSeason))
-  }, [urlSeason])
+    const nextSeason = Number(urlSeason)
+    if (availableSeasons.includes(nextSeason)) setSelectedSeason(nextSeason)
+  }, [availableSeasons, urlSeason])
 
   const seasonTeams = useMemo(() => {
     return teams.filter(t => t.season === selectedSeason).sort((a, b) => a.team.localeCompare(b.team))
   }, [teams, selectedSeason])
 
   const teamNames = useMemo(() => seasonTeams.map(t => t.team), [seasonTeams])
+
+  useEffect(() => {
+    if (selectedSeason >= 2021) loadShotsForSeason?.(selectedSeason)
+  }, [loadShotsForSeason, selectedSeason])
+
+  const shotRows = shotsCache[selectedSeason] || []
+  const hasLoadedShots = Object.prototype.hasOwnProperty.call(shotsCache, selectedSeason)
+  const isShotsLoading = selectedSeason >= 2021 && (!hasLoadedShots || Boolean(loadingShots[selectedSeason]))
 
   useEffect(() => {
     if (teamNames.length === 0) return
@@ -882,6 +983,13 @@ export default function TeamFingerprint({ teams, teamLogos = {} }) {
               />
             </div>
           </div>
+
+          <TeamShotProfile
+            team={selectedTeam}
+            shots={shotRows}
+            isLoading={isShotsLoading}
+            isAvailable={selectedSeason >= 2021}
+          />
 
           {/* Stat Breakdown */}
           <div className="grid md:grid-cols-2 gap-6">

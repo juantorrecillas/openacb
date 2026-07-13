@@ -535,8 +535,24 @@ function App() {
             <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/equipos" element={<TeamStats teams={data.teamsByStage} teamLogos={data.teamLogos} />} />
-            <Route path="/perfil-equipo" element={<TeamFingerprint teams={data.teams} teamLogos={data.teamLogos} />} />
-            <Route path="/perfil-equipo/:season/:team" element={<TeamFingerprint teams={data.teams} teamLogos={data.teamLogos} />} />
+            <Route path="/perfil-equipo" element={
+              <TeamFingerprint
+                teams={data.teams}
+                teamLogos={data.teamLogos}
+                loadShotsForSeason={loadShotsForSeason}
+                shotsCache={shotsCache}
+                loadingShots={loadingShots}
+              />
+            } />
+            <Route path="/perfil-equipo/:season/:team" element={
+              <TeamFingerprint
+                teams={data.teams}
+                teamLogos={data.teamLogos}
+                loadShotsForSeason={loadShotsForSeason}
+                shotsCache={shotsCache}
+                loadingShots={loadingShots}
+              />
+            } />
             <Route path="/matchup-equipos" element={
               <TeamMatchup
                 teams={data.teams}

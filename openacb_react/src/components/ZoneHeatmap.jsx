@@ -377,7 +377,7 @@ export default function ZoneHeatmap({ shots, leagueShots = [], metric = 'efficie
   return (
     <div className="w-full" style={{ maxWidth: width }}>
       <div className="overflow-x-auto pb-1">
-        <div className="relative min-w-[560px]" style={{ aspectRatio: `${width} / ${height}` }}>
+        <div className="relative" style={{ minWidth: Math.min(560, width), aspectRatio: `${width} / ${height}` }}>
           <Court width={width} height={height} />
 
           <svg
@@ -460,7 +460,7 @@ export default function ZoneHeatmap({ shots, leagueShots = [], metric = 'efficie
                   y={labelY + 22}
                   textAnchor="middle"
                   fontSize={fontSize * 0.85}
-                  fill="#334e68"
+                  className="fill-acb-600"
                   fontFamily="JetBrains Mono, Consolas, monospace"
                   fontWeight="bold"
                 >
