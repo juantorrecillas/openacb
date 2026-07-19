@@ -248,8 +248,17 @@ body {
 }
 
 @media (max-width: 639px) {
-  .team-roster-sticky-position { left: 8.5rem; }
-  .team-roster-sticky-archetype { left: 13rem; }
+  .team-roster-sticky-position,
+  .team-roster-sticky-archetype,
+  .career-sticky-team,
+  .career-sticky-role {
+    position: static;
+    box-shadow: none;
+  }
+  .team-roster-sticky-player,
+  .career-sticky-season {
+    box-shadow: 1px 0 0 #d9e2ec;
+  }
   .team-roster-col-player { width: 8.5rem; min-width: 8.5rem; max-width: 8.5rem; }
   .team-roster-col-position { width: 4.5rem; min-width: 4.5rem; max-width: 4.5rem; }
   .team-roster-col-archetype { width: 9rem; min-width: 9rem; max-width: 9rem; }

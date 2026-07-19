@@ -327,7 +327,7 @@ function CareerTable({ records, archetypeRecords = records, bio, tab = 'basic', 
           </thead>
           <tbody className="divide-y divide-acb-100">
             {sorted.map(r => (
-              <tr key={`${r.season}-${r.team}`} className="hover:bg-acb-50">
+              <tr key={`${r.season}-${r.team}`} className="data-table-row">
                 {cols.map(c => {
                   const display = formatPlayerProfileTableValue(r, c)
                   const stickyClass = c.key === 'season'
