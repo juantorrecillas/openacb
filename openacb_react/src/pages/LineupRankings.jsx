@@ -1,9 +1,11 @@
-import React, { useState, useMemo, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React, { useMemo, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Trophy, TrendingDown, Filter } from 'lucide-react'
 import { statTitle } from '../utils/statLabels'
 import { getPlayerDisplayName } from '../utils/playerNames'
 import PageHeader from '../components/PageHeader'
+import { buildPlayerProfilePath } from '../routing/paths'
+import { parseRouteQuery, serializeRouteQuery, withQuery } from '../routing/query'
 
 // Extract licenseId from player key format "Name_12345"
 const getIdFromKey = (key) => key?.split('_').pop() || ''
@@ -36,11 +38,12 @@ const MIN_MINUTES = {
 
 export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCache, loadingLineups, playerRecords = [] }) {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
 
-  // State
-  const [selectedCategory, setSelectedCategory] = useState('players') // players, pairs, trios, lineups
-  const [sortByImpact, setSortByImpact] = useState(true) // true = Impact (netDiff), false = ORtg
-  const [showBottom, setShowBottom] = useState(false) // Show bottom instead of top
+  const parsedQuery = parseRouteQuery('lineupRankings', searchParams)
+  const selectedCategory = parsedQuery.values.categoria || 'players'
+  const sortByImpact = parsedQuery.values.metrica !== 'offense'
+  const showBottom = parsedQuery.values.extremo === 'bottom'
 
   const playerNameById = useMemo(() => {
     const names = new Map()
@@ -58,10 +61,22 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
     return seasons
   }, [teams])
 
-  const [selectedSeason, setSelectedSeason] = useState(availableSeasons[0] || 2025)
+  const requestedSeason = parsedQuery.values.temporada
+  const selectedSeason = availableSeasons.includes(requestedSeason)
+    ? requestedSeason
+    : (availableSeasons[0] || 2026)
 
   const minMinutes = MIN_MINUTES
-  const [selectedTeam, setSelectedTeam] = useState('')
+  const seasonTeamRows = useMemo(
+    () => teams.filter(team => team.season === selectedSeason).sort((a, b) => a.team.localeCompare(b.team, 'es')),
+    [selectedSeason, teams]
+  )
+  const selectedTeamId = parsedQuery.values.equipo || ''
+  const selectedTeam = seasonTeamRows.find(team => team.teamId === selectedTeamId)?.team || ''
+  const teamIdByName = useMemo(
+    () => new Map(seasonTeamRows.map(team => [team.team, team.teamId])),
+    [seasonTeamRows]
+  )
 
   // Load lineups when season changes
   useEffect(() => {
@@ -77,17 +92,51 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
 
   const loading = loadingLineups[selectedSeason] || false
 
-  // Get teams for current season
-  const seasonTeams = useMemo(() => {
-    return teams.filter(t => t.season === selectedSeason).map(t => t.team).sort()
-  }, [teams, selectedSeason])
+  const canonicalSearch = serializeRouteQuery('lineupRankings', {
+    temporada: selectedSeason,
+    equipo: selectedTeam ? selectedTeamId : undefined,
+    categoria: selectedCategory,
+    metrica: sortByImpact ? 'impact' : 'offense',
+    extremo: showBottom ? 'bottom' : 'top',
+  })
+  const currentSearch = searchParams.toString()
 
-  // keep the selected team valid when the season changes
   useEffect(() => {
-    if (selectedTeam && !seasonTeams.includes(selectedTeam)) {
-      setSelectedTeam('')
+    if (canonicalSearch !== currentSearch) {
+      setSearchParams(canonicalSearch, { replace: true })
     }
-  }, [seasonTeams, selectedTeam])
+  }, [canonicalSearch, currentSearch, setSearchParams])
+
+  const updateState = ({
+    season = selectedSeason,
+    teamId = selectedTeamId,
+    category = selectedCategory,
+    impact = sortByImpact,
+    bottom = showBottom,
+  }) => {
+    setSearchParams(serializeRouteQuery('lineupRankings', {
+      temporada: season,
+      equipo: teamId || undefined,
+      categoria: category,
+      metrica: impact ? 'impact' : 'offense',
+      extremo: bottom ? 'bottom' : 'top',
+    }))
+  }
+
+  const playerProfileUrl = item => {
+    const licenseId = getIdFromKey(item.key)
+    const teamId = selectedTeam ? selectedTeamId : (teamIdByName.get(item.team) || item.teamId)
+    const profileRecord = playerRecords.find(player => (
+      String(player.licenseId) === String(licenseId)
+      && Number(player.season) === Number(selectedSeason)
+      && (!teamId || player.teamId === teamId)
+    )) || { licenseId, playerDisplay: item.displayName }
+    const search = serializeRouteQuery('playerProfile', {
+      temporada: selectedSeason,
+      equipo: teamId,
+    }, { strict: false })
+    return withQuery(buildPlayerProfilePath(profileRecord, item.displayName), search)
+  }
 
   // Extract and process all data from all teams
   const allData = useMemo(() => {
@@ -107,6 +156,7 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
               ...player,
               key,
               team: teamName,
+              teamId: teamData.teamId,
               displayName: getPlayerName(key, player, playerNameById)
             })
           }
@@ -179,6 +229,7 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
             ...player,
             key,
             team: selectedTeam,
+            teamId: teamInfo.teamId || selectedTeamId,
             displayName: getPlayerName(key, player, playerNameById)
           })
         }
@@ -228,7 +279,7 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
     }
 
     return { players, pairs, trios, lineups }
-  }, [lineupData, selectedTeam, minMinutes, playerNameById])
+  }, [lineupData, selectedTeam, selectedTeamId, minMinutes, playerNameById])
 
   const hasTeamFilter = selectedTeam !== ''
   const currentData = hasTeamFilter ? teamFilteredData : allData
@@ -294,7 +345,7 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
               <select
                 aria-label="Temporada"
                 value={selectedSeason}
-                onChange={(e) => setSelectedSeason(parseInt(e.target.value))}
+                onChange={(e) => updateState({ season: parseInt(e.target.value), teamId: null })}
                 className="form-control"
               >
                 {availableSeasons.map(season => (
@@ -307,13 +358,13 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
               <span className="field-label">Equipo</span>
               <select
                 aria-label="Equipo"
-                value={selectedTeam}
-                onChange={(e) => setSelectedTeam(e.target.value)}
+                value={selectedTeamId || ''}
+                onChange={(e) => updateState({ teamId: e.target.value || null })}
                 className="form-control min-w-[220px]"
               >
                 <option value="">Toda la liga</option>
-                {seasonTeams.map(team => (
-                  <option key={team} value={team}>{team}</option>
+                {seasonTeamRows.map(team => (
+                  <option key={team.teamId} value={team.teamId}>{team.team}</option>
                 ))}
               </select>
             </div>
@@ -332,7 +383,7 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
           {Object.entries(categoryLabels).map(([key, label]) => (
             <button
               key={key}
-              onClick={() => setSelectedCategory(key)}
+              onClick={() => updateState({ category: key })}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                 selectedCategory === key
                   ? 'bg-accent-100 text-accent-700 border border-accent-200'
@@ -349,7 +400,7 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
           {/* Top/Bottom Toggle */}
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setShowBottom(false)}
+              onClick={() => updateState({ bottom: false })}
               className={`flex items-center gap-1 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
                 !showBottom
                   ? 'bg-accent-100 text-accent-700'
@@ -360,7 +411,7 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
               Mejores 10
             </button>
             <button
-              onClick={() => setShowBottom(true)}
+              onClick={() => updateState({ bottom: true })}
               className={`flex items-center gap-1 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
                 showBottom
                   ? 'bg-accent-100 text-accent-700'
@@ -378,7 +429,7 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
               <Filter className="w-4 h-4 text-acb-400" />
               <span className="text-sm text-acb-600">Ordenar por:</span>
               <button
-                onClick={() => setSortByImpact(true)}
+                onClick={() => updateState({ impact: true })}
                 className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
                   sortByImpact
                     ? 'bg-acb-700 text-white'
@@ -388,7 +439,7 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
                 Impacto
               </button>
               <button
-                onClick={() => setSortByImpact(false)}
+                onClick={() => updateState({ impact: false })}
                 className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
                   !sortByImpact
                     ? 'bg-acb-700 text-white'
@@ -455,7 +506,7 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
                         <button
                           type="button"
                           className="text-left hover:text-accent-600 hover:underline"
-                          onClick={() => navigate(`/jugador/${getIdFromKey(item.key)}`)}
+                          onClick={() => navigate(playerProfileUrl(item))}
                         >
                           {item.displayName}
                         </button>

@@ -1,11 +1,14 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Loader2, ArrowRight } from 'lucide-react'
 import { getPlayerPhoto } from '../utils/playerPhotos'
 import { statTitle } from '../utils/statLabels'
 import { getPlayerDisplayName, getPlayerSearchText } from '../utils/playerNames'
 import PageHeader from '../components/PageHeader'
 import PlayerCombobox from '../components/PlayerCombobox'
+import { buildPlayerComparisonPath, buildPlayerProfilePath } from '../routing/paths'
+import { normalizeNumericId, parsePlayerSegment } from '../routing/identifiers'
+import { readRouteQuery, serializeRouteQuery, withQuery } from '../routing/query'
 
 function seasonLabel(s) {
   return `${s - 1}-${String(s).slice(-2)}`
@@ -64,7 +67,34 @@ function fmtComparisonDiff(value, key) {
 
 function recordKey(record) {
   if (!record) return ''
-  return `${record.licenseId}::${record.season}::${record.team}`
+  return `${record.licenseId}::${record.season}::${record.teamId}`
+}
+
+function routePlayerId(segment, legacyId) {
+  return parsePlayerSegment(segment)?.id || normalizeNumericId(legacyId)
+}
+
+function buildComparisonSearch(playerA, playerB, reference) {
+  return serializeRouteQuery('playerComparison', {
+    'temporada-a': playerA?.season,
+    'equipo-a': playerA?.teamId,
+    'temporada-b': playerB?.season,
+    'equipo-b': playerB?.teamId,
+    referencia: reference,
+  })
+}
+
+function buildProfileUrl(record) {
+  const search = serializeRouteQuery('playerProfile', {
+    temporada: record.season,
+    equipo: record.teamId,
+    fase: 'regular',
+    tabla: 'basico',
+    radar: 'league',
+    percentiles: 'league',
+    tiro: 'own',
+  })
+  return withQuery(buildPlayerProfilePath(record), search)
 }
 
 function compareRecordIdentity(a, b) {
@@ -152,9 +182,9 @@ function getRadarValues(player, usePos) {
   })
 }
 
-function RadarOverlay({ playerA, playerB }) {
-  const [usePos, setUsePos] = useState(false)
+function RadarOverlay({ playerA, playerB, reference, onReferenceChange }) {
   const canUsePos = playerA?.ppgPosPct != null && playerB?.ppgPosPct != null
+  const usePos = reference === 'position' && canUsePos
   const size = 360
   const cx = size / 2
   const cy = size / 2
@@ -195,13 +225,13 @@ function RadarOverlay({ playerA, playerB }) {
         {canUsePos && (
           <div className="flex rounded-md border border-acb-200 text-xs overflow-hidden shrink-0">
             <button
-              onClick={() => setUsePos(false)}
+              onClick={() => onReferenceChange('league')}
               className={`px-3 py-1.5 font-medium transition-colors ${!usePos ? 'bg-acb-800 text-white' : 'bg-white text-acb-600 hover:bg-acb-50'}`}
             >
               Liga
             </button>
             <button
-              onClick={() => setUsePos(true)}
+              onClick={() => onReferenceChange('position')}
               className={`px-3 py-1.5 font-medium transition-colors ${usePos ? 'bg-acb-800 text-white' : 'bg-white text-acb-600 hover:bg-acb-50'}`}
             >
               Posición
@@ -574,6 +604,7 @@ export default function PlayerComparison({
   const params = useParams()
   const location = useLocation()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
 
   const records = useMemo(() => {
     const unique = new Map()
@@ -585,61 +616,63 @@ export default function PlayerComparison({
   }, [players])
 
   const recordMap = useMemo(() => new Map(records.map(record => [recordKey(record), record])), [records])
-  const latestSeason = useMemo(() => {
-    const seasons = records.map(p => Number(p.season)).filter(Number.isFinite)
-    return seasons.length ? Math.max(...seasons) : null
-  }, [records])
-  const defaults = useMemo(() => {
-    const qualified = records
-      .filter(p => p.season === latestSeason && p.games >= 5 && p.mpg >= 10)
-    const pool = qualified.length >= 2 ? qualified : records
-    return [...pool]
-      .sort((a, b) => {
-        const ppgOrder = (Number(b.ppg) || 0) - (Number(a.ppg) || 0)
-        return ppgOrder || compareRecordIdentity(a, b)
-      })
-      .slice(0, 2)
-  }, [records, latestSeason])
+  const playerAId = routePlayerId(params.playerA, params.aId)
+  const playerBId = routePlayerId(params.playerB, params.bId)
+  const latestSeasonForPlayer = (licenseId) => {
+    const seasons = records
+      .filter(record => String(record.licenseId) === String(licenseId))
+      .map(record => Number(record.season))
+      .filter(Number.isFinite)
+    return seasons.length ? Math.max(...seasons) : undefined
+  }
+  const queryState = readRouteQuery('playerComparison', searchParams, {
+    defaults: {
+      'temporada-a': params.aSeason ? Number(params.aSeason) : latestSeasonForPlayer(playerAId),
+      'temporada-b': params.bSeason ? Number(params.bSeason) : latestSeasonForPlayer(playerBId),
+    },
+  })
+  const hasExplicitPair = Boolean(params.playerA || params.playerB || params.aId || params.bId)
 
-  const queryParams = useMemo(() => new URLSearchParams(location.search), [location.search])
-  const resolveLegacyRecord = (id, season, team) => {
-    if (id == null || season == null) return null
+  const resolveRecord = (id, season, teamId, legacyTeamName) => {
+    if (!id || !season) return null
     const candidates = records
       .filter(record => String(record.licenseId) === String(id) && Number(record.season) === Number(season))
       .sort((a, b) => String(a.team).localeCompare(String(b.team), 'es'))
-    return candidates.find(record => team && record.team === team) || candidates[0] || null
+    if (teamId) return candidates.find(record => record.teamId === teamId) || null
+    if (legacyTeamName) return candidates.find(record => record.team === legacyTeamName) || null
+    return candidates.length === 1 ? candidates[0] : null
   }
-  const legacyA = resolveLegacyRecord(params.aId, params.aSeason, queryParams.get('teamA'))
-  const legacyB = resolveLegacyRecord(params.bId, params.bSeason, queryParams.get('teamB'))
-  const preferredAKey = recordKey(legacyA || defaults[0])
-  const preferredBKey = recordKey(legacyB || defaults.find(record => recordKey(record) !== preferredAKey))
 
-  const [aKey, setAKey] = useState(preferredAKey)
-  const [bKey, setBKey] = useState(preferredBKey)
-  const syncedLocationRef = useRef(`${location.pathname}${location.search}`)
+  const playerA = resolveRecord(
+    playerAId,
+    queryState['temporada-a'],
+    queryState['equipo-a'],
+    params.aId ? searchParams.get('teamA') : null,
+  )
+  const playerB = resolveRecord(
+    playerBId,
+    queryState['temporada-b'],
+    queryState['equipo-b'],
+    params.bId ? searchParams.get('teamB') : null,
+  )
+  const canUsePositionReference = playerA?.ppgPosPct != null && playerB?.ppgPosPct != null
+  const reference = queryState.referencia === 'position' && canUsePositionReference ? 'position' : 'league'
+
+  const [draftAKey, setDraftAKey] = useState('')
+  const [draftBKey, setDraftBKey] = useState('')
+  const previousExplicitPairRef = useRef(hasExplicitPair)
+  const aKey = recordKey(playerA) || draftAKey
+  const bKey = recordKey(playerB) || draftBKey
+  const draftPlayerA = recordMap.get(draftAKey) || null
+  const draftPlayerB = recordMap.get(draftBKey) || null
 
   useEffect(() => {
-    const locationKey = `${location.pathname}${location.search}`
-    if (syncedLocationRef.current === locationKey) return
-    syncedLocationRef.current = locationKey
-    const urlAKey = recordKey(legacyA)
-    const urlBKey = recordKey(legacyB)
-    if (urlAKey && recordMap.has(urlAKey)) setAKey(urlAKey)
-    if (urlBKey && urlBKey !== urlAKey && recordMap.has(urlBKey)) setBKey(urlBKey)
-  }, [legacyA, legacyB, location.pathname, location.search, recordMap])
-
-  useEffect(() => {
-    const nextA = recordMap.has(aKey) ? aKey : preferredAKey
-    let nextB = recordMap.has(bKey) ? bKey : preferredBKey
-    if (nextA && nextB === nextA) {
-      nextB = recordKey(defaults.find(record => recordKey(record) !== nextA) || records.find(record => recordKey(record) !== nextA))
+    if (previousExplicitPairRef.current && !hasExplicitPair) {
+      setDraftAKey('')
+      setDraftBKey('')
     }
-    if (nextA !== aKey) setAKey(nextA)
-    if (nextB !== bKey) setBKey(nextB)
-  }, [aKey, bKey, defaults, preferredAKey, preferredBKey, recordMap, records])
-
-  const playerA = recordMap.get(aKey) || null
-  const playerB = recordMap.get(bKey) || null
+    previousExplicitPairRef.current = hasExplicitPair
+  }, [hasExplicitPair])
 
   const recordOptions = useMemo(() => records.map(record => ({
     value: recordKey(record),
@@ -650,25 +683,51 @@ export default function PlayerComparison({
 
   useEffect(() => {
     if (playerA && playerB) {
-      const targetParams = new URLSearchParams()
-      const aIsAmbiguous = records.filter(record => String(record.licenseId) === String(playerA.licenseId) && record.season === playerA.season).length > 1
-      const bIsAmbiguous = records.filter(record => String(record.licenseId) === String(playerB.licenseId) && record.season === playerB.season).length > 1
-      if (aIsAmbiguous) targetParams.set('teamA', playerA.team)
-      if (bIsAmbiguous) targetParams.set('teamB', playerB.team)
-      const search = targetParams.toString()
-      const target = `/comparar/${playerA.licenseId}/${playerA.season}/${playerB.licenseId}/${playerB.season}${search ? `?${search}` : ''}`
+      const search = buildComparisonSearch(playerA, playerB, reference)
+      const target = withQuery(buildPlayerComparisonPath(playerA, playerB), search)
       if (`${location.pathname}${location.search}` !== target) navigate(target, { replace: true })
+    } else if (!hasExplicitPair && searchParams.toString()) {
+      setSearchParams(new URLSearchParams(), { replace: true })
     }
-  }, [location.pathname, location.search, navigate, playerA, playerB, records])
+  }, [hasExplicitPair, location.pathname, location.search, navigate, playerA, playerB, reference, searchParams, setSearchParams])
 
   const bioA = playerA ? playerBio[String(playerA.licenseId)] : null
   const bioB = playerB ? playerBio[String(playerB.licenseId)] : null
   const photoA = playerA ? getPlayerPhoto(playerPhotos, playerA.licenseId, playerA.season) : null
   const photoB = playerB ? getPlayerPhoto(playerPhotos, playerB.licenseId, playerB.season) : null
 
+  const navigateToComparison = (nextA, nextB, nextReference = reference) => {
+    if (!nextA || !nextB || recordKey(nextA) === recordKey(nextB)) return false
+    const search = buildComparisonSearch(nextA, nextB, nextReference)
+    navigate(withQuery(buildPlayerComparisonPath(nextA, nextB), search))
+    return true
+  }
+
+  const handlePlayerAChange = (key) => {
+    const nextA = recordMap.get(key) || null
+    const currentB = playerB || draftPlayerB
+    setDraftAKey(key)
+    navigateToComparison(nextA, currentB)
+  }
+
+  const handlePlayerBChange = (key) => {
+    const currentA = playerA || draftPlayerA
+    const nextB = recordMap.get(key) || null
+    setDraftBKey(key)
+    navigateToComparison(currentA, nextB)
+  }
+
   const handleSwap = () => {
-    setAKey(bKey)
-    setBKey(aKey)
+    const currentA = playerA || draftPlayerA
+    const currentB = playerB || draftPlayerB
+    if (!navigateToComparison(currentB, currentA)) {
+      setDraftAKey(draftBKey)
+      setDraftBKey(draftAKey)
+    }
+  }
+
+  const handleReferenceChange = (nextReference) => {
+    if (playerA && playerB) navigateToComparison(playerA, playerB, nextReference)
   }
 
   return (
@@ -680,14 +739,14 @@ export default function PlayerComparison({
         actions={playerA && playerB ? (
           <div className="flex gap-2 flex-wrap">
             <Link
-              to={`/jugador/${playerA.licenseId}`}
+              to={buildProfileUrl(playerA)}
               className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-md border border-acb-200 text-acb-600 hover:bg-acb-50"
             >
               <span className="w-2 h-2 rounded-full bg-accent-500 shrink-0" />
               {getPlayerDisplayName(playerA)} <ArrowRight className="w-3.5 h-3.5" />
             </Link>
             <Link
-              to={`/jugador/${playerB.licenseId}`}
+              to={buildProfileUrl(playerB)}
               className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-md border border-acb-200 text-acb-600 hover:bg-acb-50"
             >
               <span className="w-2 h-2 rounded-full bg-info-500 shrink-0" />
@@ -704,7 +763,7 @@ export default function PlayerComparison({
             label="Jugador A"
             options={recordOptions.filter(option => option.value !== bKey)}
             value={aKey}
-            onChange={option => option?.value && setAKey(option.value)}
+            onChange={option => option?.value && handlePlayerAChange(option.value)}
             placeholder="Buscar jugador, equipo o temporada..."
           />
         </div>
@@ -723,7 +782,7 @@ export default function PlayerComparison({
             label="Jugador B"
             options={recordOptions.filter(option => option.value !== aKey)}
             value={bKey}
-            onChange={option => option?.value && setBKey(option.value)}
+            onChange={option => option?.value && handlePlayerBChange(option.value)}
             placeholder="Buscar jugador, equipo o temporada..."
           />
         </div>
@@ -749,7 +808,12 @@ export default function PlayerComparison({
           <div className="grid lg:grid-cols-[minmax(0,1fr)_360px] gap-4">
             <MetricComparison playerA={playerA} playerB={playerB} />
             <div className="space-y-4">
-              <RadarOverlay playerA={playerA} playerB={playerB} />
+              <RadarOverlay
+                playerA={playerA}
+                playerB={playerB}
+                reference={reference}
+                onReferenceChange={handleReferenceChange}
+              />
               <PercentileDeltas playerA={playerA} playerB={playerB} />
             </div>
           </div>
@@ -764,7 +828,9 @@ export default function PlayerComparison({
         </>
       ) : (
         <div className="text-center py-12 text-acb-400">
-          Selecciona dos jugadores para iniciar la comparación
+          {hasExplicitPair
+            ? 'No se ha podido resolver uno de los jugadores, temporadas o equipos indicados. Selecciona dos registros válidos.'
+            : 'Selecciona dos jugadores para iniciar la comparación'}
         </div>
       )}
     </div>

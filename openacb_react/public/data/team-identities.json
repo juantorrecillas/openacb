@@ -1,0 +1,564 @@
+{
+  "teams": [
+    {
+      "teamId": "barcelona",
+      "aliases": [
+        {
+          "name": "Barcelona Lassa",
+          "seasons": [
+            2017,
+            2018
+          ]
+        },
+        {
+          "name": "Barça Lassa",
+          "seasons": [
+            2019
+          ]
+        },
+        {
+          "name": "Barça",
+          "seasons": [
+            2020,
+            2021,
+            2022,
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        }
+      ]
+    },
+    {
+      "teamId": "baskonia",
+      "aliases": [
+        {
+          "name": "Baskonia",
+          "seasons": [
+            2017,
+            2024,
+            2025
+          ]
+        },
+        {
+          "name": "Kirolbet Baskonia",
+          "seasons": [
+            2018,
+            2019,
+            2020
+          ]
+        },
+        {
+          "name": "TD Systems Baskonia",
+          "seasons": [
+            2021
+          ]
+        },
+        {
+          "name": "Bitci Baskonia",
+          "seasons": [
+            2022
+          ]
+        },
+        {
+          "name": "Cazoo Baskonia",
+          "seasons": [
+            2023
+          ]
+        },
+        {
+          "name": "Kosner Baskonia",
+          "seasons": [
+            2026
+          ]
+        }
+      ]
+    },
+    {
+      "teamId": "joventut",
+      "aliases": [
+        {
+          "name": "Divina Seguros Joventut",
+          "seasons": [
+            2017,
+            2018,
+            2019
+          ]
+        },
+        {
+          "name": "Joventut Badalona",
+          "seasons": [
+            2020,
+            2021,
+            2022,
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        }
+      ]
+    },
+    {
+      "teamId": "gran-canaria",
+      "aliases": [
+        {
+          "name": "Herbalife Gran Canaria",
+          "seasons": [
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ]
+        },
+        {
+          "name": "Gran Canaria",
+          "seasons": [
+            2022,
+            2023
+          ]
+        },
+        {
+          "name": "Dreamland Gran Canaria",
+          "seasons": [
+            2024,
+            2025,
+            2026
+          ]
+        }
+      ]
+    },
+    {
+      "teamId": "tenerife",
+      "aliases": [
+        {
+          "name": "Iberostar Tenerife",
+          "seasons": [
+            2017,
+            2018,
+            2019,
+            2020
+          ]
+        },
+        {
+          "name": "Lenovo Tenerife",
+          "seasons": [
+            2021,
+            2022,
+            2023,
+            2024
+          ]
+        },
+        {
+          "name": "La Laguna Tenerife",
+          "seasons": [
+            2025,
+            2026
+          ]
+        }
+      ]
+    },
+    {
+      "teamId": "manresa",
+      "aliases": [
+        {
+          "name": "ICL Manresa",
+          "seasons": [
+            2017
+          ]
+        },
+        {
+          "name": "BAXI Manresa",
+          "seasons": [
+            2019,
+            2020,
+            2021,
+            2022,
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        }
+      ]
+    },
+    {
+      "teamId": "fuenlabrada",
+      "aliases": [
+        {
+          "name": "Montakit Fuenlabrada",
+          "seasons": [
+            2017,
+            2018,
+            2019,
+            2020
+          ]
+        },
+        {
+          "name": "Urbas Fuenlabrada",
+          "seasons": [
+            2021,
+            2022
+          ]
+        },
+        {
+          "name": "Carplus Fuenlabrada",
+          "seasons": [
+            2023
+          ]
+        }
+      ]
+    },
+    {
+      "teamId": "andorra",
+      "aliases": [
+        {
+          "name": "MoraBanc Andorra",
+          "seasons": [
+            2017,
+            2018,
+            2019,
+            2021,
+            2022,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        {
+          "name": "Morabanc Andorra",
+          "seasons": [
+            2020
+          ]
+        }
+      ]
+    },
+    {
+      "teamId": "estudiantes",
+      "aliases": [
+        {
+          "name": "Movistar Estudiantes",
+          "seasons": [
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ]
+        }
+      ]
+    },
+    {
+      "teamId": "real-betis",
+      "aliases": [
+        {
+          "name": "Real Betis Energía Plus",
+          "seasons": [
+            2017
+          ]
+        },
+        {
+          "name": "Real Betis Energia Plus",
+          "seasons": [
+            2018
+          ]
+        },
+        {
+          "name": "Coosur Real Betis",
+          "seasons": [
+            2020,
+            2021,
+            2022
+          ]
+        },
+        {
+          "name": "Real Betis Baloncesto",
+          "seasons": [
+            2023
+          ]
+        }
+      ]
+    },
+    {
+      "teamId": "real-madrid",
+      "aliases": [
+        {
+          "name": "Real Madrid",
+          "seasons": [
+            2017,
+            2018,
+            2019,
+            2020,
+            2021,
+            2022,
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        }
+      ]
+    },
+    {
+      "teamId": "bilbao-basket",
+      "aliases": [
+        {
+          "name": "RETAbet Bilbao Basket",
+          "seasons": [
+            2017,
+            2018,
+            2020,
+            2021
+          ]
+        },
+        {
+          "name": "Surne Bilbao Basket",
+          "seasons": [
+            2022,
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        }
+      ]
+    },
+    {
+      "teamId": "obradoiro",
+      "aliases": [
+        {
+          "name": "Rio Natura Monbus Obradoiro",
+          "seasons": [
+            2017
+          ]
+        },
+        {
+          "name": "Monbus Obradoiro",
+          "seasons": [
+            2018,
+            2019,
+            2020,
+            2021,
+            2022,
+            2023,
+            2024
+          ]
+        }
+      ]
+    },
+    {
+      "teamId": "zaragoza",
+      "aliases": [
+        {
+          "name": "Tecnyconta Zaragoza",
+          "seasons": [
+            2017,
+            2018,
+            2019
+          ]
+        },
+        {
+          "name": "Casademont Zaragoza",
+          "seasons": [
+            2020,
+            2021,
+            2022,
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        }
+      ]
+    },
+    {
+      "teamId": "murcia",
+      "aliases": [
+        {
+          "name": "UCAM Murcia",
+          "seasons": [
+            2017,
+            2018,
+            2019,
+            2020,
+            2021,
+            2022,
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        }
+      ]
+    },
+    {
+      "teamId": "unicaja",
+      "aliases": [
+        {
+          "name": "Unicaja",
+          "seasons": [
+            2017,
+            2018,
+            2019,
+            2020,
+            2021,
+            2022,
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        }
+      ]
+    },
+    {
+      "teamId": "valencia-basket",
+      "aliases": [
+        {
+          "name": "Valencia Basket",
+          "seasons": [
+            2017,
+            2018,
+            2019,
+            2020,
+            2021,
+            2022,
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        }
+      ]
+    },
+    {
+      "teamId": "gipuzkoa",
+      "aliases": [
+        {
+          "name": "Delteco GBC",
+          "seasons": [
+            2018,
+            2019
+          ]
+        },
+        {
+          "name": "Acunsa GBC",
+          "seasons": [
+            2021
+          ]
+        }
+      ]
+    },
+    {
+      "teamId": "burgos",
+      "aliases": [
+        {
+          "name": "San Pablo Burgos",
+          "seasons": [
+            2018,
+            2019,
+            2020
+          ]
+        },
+        {
+          "name": "Hereda San Pablo Burgos",
+          "seasons": [
+            2021,
+            2022
+          ]
+        },
+        {
+          "name": "Recoletas Salud San Pablo Burgos",
+          "seasons": [
+            2026
+          ]
+        }
+      ]
+    },
+    {
+      "teamId": "breogan",
+      "aliases": [
+        {
+          "name": "Cafés Candelas Breogán",
+          "seasons": [
+            2019
+          ]
+        },
+        {
+          "name": "Río Breogán",
+          "seasons": [
+            2022,
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        }
+      ]
+    },
+    {
+      "teamId": "girona",
+      "aliases": [
+        {
+          "name": "Bàsquet Girona",
+          "seasons": [
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        }
+      ]
+    },
+    {
+      "teamId": "granada",
+      "aliases": [
+        {
+          "name": "Coviran Granada",
+          "seasons": [
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        }
+      ]
+    },
+    {
+      "teamId": "palencia",
+      "aliases": [
+        {
+          "name": "Zunder Palencia",
+          "seasons": [
+            2024
+          ]
+        }
+      ]
+    },
+    {
+      "teamId": "lleida",
+      "aliases": [
+        {
+          "name": "Hiopos Lleida",
+          "seasons": [
+            2025,
+            2026
+          ]
+        }
+      ]
+    },
+    {
+      "teamId": "coruna",
+      "aliases": [
+        {
+          "name": "Leyma Coruña",
+          "seasons": [
+            2025
+          ]
+        }
+      ]
+    }
+  ]
+}

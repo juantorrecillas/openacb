@@ -210,6 +210,12 @@ run_full_pipeline <- function(season_ids = NULL, run_cross_season = TRUE, run_ex
     cat("║  Exporting to React                                          ║\n")
     cat("╚══════════════════════════════════════════════════════════════╝\n")
 
+    cat("\n[Export] Exporting team identities\n")
+    tryCatch(
+      export_team_identities(),
+      error = function(e) cat("Team identity export error:", e$message, "\n")
+    )
+
     cat("\n[Export] Exporting shot data\n")
     tryCatch(export_shot_data(),        error = function(e) cat("✗ Error:", e$message, "\n"))
 
@@ -228,6 +234,12 @@ run_full_pipeline <- function(season_ids = NULL, run_cross_season = TRUE, run_ex
       export_player_data(stage_players, "players-by-stage.json")
       export_similarity_data(all_players)
     }, error = function(e) cat("✗ Error:", e$message, "\n"))
+
+    cat("\n[Export] Exporting clutch data\n")
+    tryCatch(
+      export_clutch_data(),
+      error = function(e) cat("Clutch export error:", e$message, "\n")
+    )
 
     cat("\n[Export] Exporting team pace data\n")
     tryCatch(export_teampace_data(),    error = function(e) cat("✗ Error:", e$message, "\n"))
@@ -269,6 +281,7 @@ quick_update <- function(
   if (export) {
     cat("\n[Export] Running export to React...\n")
     all_players <- load_all_player_data()
+    export_team_identities()
     export_shot_data()
     export_team_data()
     export_team_data(c("regular", "playoffs"), "teams-by-stage.json")
@@ -276,6 +289,7 @@ quick_update <- function(
     stage_players <- load_all_player_data(c("regular", "playoffs"))
     export_player_data(stage_players, "players-by-stage.json")
     export_similarity_data(all_players)
+    export_clutch_data()
     export_teampace_data()
     export_gameflow_data()
     export_lineup_data_to_react()
@@ -313,9 +327,11 @@ if (interactive()) {
   cat("  generate_player_bio()               - Player bio data (cross-season)\n")
   cat("\n")
   cat("Export:\n")
+  cat("  export_team_identities()            - Export stable team identities\n")
   cat("  export_shot_data()                  - Export shot charts to React\n")
   cat("  export_team_data()                  - Export team stats to React\n")
   cat("  export_player_data(load_all_player_data()) - Export player stats to React\n")
+  cat("  export_clutch_data()                - Export clutch stats to React\n")
   cat("  export_teampace_data()              - Export team pace to React\n")
   cat("  export_gameflow_data()              - Export game flow to React\n")
   cat("  export_lineup_data_to_react()       - Export lineup data to React\n")

@@ -1,15 +1,11 @@
-import { useState, useMemo, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useMemo, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import Court from '../components/Court'
 import { getPlayerPhoto } from '../utils/playerPhotos'
 import { getPlayerCompactName, getPlayerDisplayName } from '../utils/playerNames'
 import PageHeader from '../components/PageHeader'
 import { Filter } from 'lucide-react'
-
-
-// Metric slug ↔ value mapping for URLs
-const METRIC_SLUGS = { 'maximo-anotador': 'points', 'mejor-eficiencia': 'fgPct' }
-const METRIC_TO_SLUG = { points: 'maximo-anotador', fgPct: 'mejor-eficiencia' }
+import { parseRouteQuery, serializeRouteQuery } from '../routing'
 
 // ─── Court constants (same as ZoneHeatmap.jsx) ────────────────────────────────
 const BASKET_Y = -12.425
@@ -191,34 +187,30 @@ const ZONE_STROKE = 'rgba(234, 150, 80, 0.5)'     // softer orange
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingShots, teams, players, playerPhotos = {} }) {
-  const { season: urlSeason, metric: urlMetricSlug } = useParams()
-  const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const search = searchParams.toString()
+  const query = useMemo(() => parseRouteQuery('zoneLeaders', search), [search])
   const availableSeasons = useMemo(() => {
     const seasons = [...new Set(teams.map(t => t.season))].filter(s => s >= 2021).sort((a, b) => b - a)
     return seasons
   }, [teams])
 
-  const [selectedSeason, setSelectedSeason] = useState(availableSeasons[0] || 2026)
-  const [minAttempts, setMinAttempts] = useState(15)
-  const [selectedTeam, setSelectedTeam] = useState('')
-  const [metric, setMetric] = useState('points') // 'fgPct' or 'points'
-
-  // Sync from URL params
-  useEffect(() => {
-    if (urlSeason) setSelectedSeason(Number(urlSeason))
-    if (urlMetricSlug && METRIC_SLUGS[urlMetricSlug]) setMetric(METRIC_SLUGS[urlMetricSlug])
-  }, [urlSeason, urlMetricSlug])
-
-  // Push URL when season or metric changes
-  const updateUrl = (season, met) => {
-    navigate(`/lideres-zona/${season}/${METRIC_TO_SLUG[met]}`, { replace: true })
-  }
+  const requestedSeason = Number(query.values.temporada)
+  const selectedSeason = availableSeasons.includes(requestedSeason)
+    ? requestedSeason
+    : (availableSeasons[0] || 2026)
+  const requestedAttempts = Number(query.values['min-intentos'])
+  const minAttempts = Number.isInteger(requestedAttempts) && requestedAttempts >= 3 && requestedAttempts <= 50
+    ? requestedAttempts
+    : 15
+  const metric = query.values.metrica || 'points'
 
   useEffect(() => {
     if (selectedSeason) loadShotsForSeason(selectedSeason)
   }, [selectedSeason, loadShotsForSeason])
 
   const seasonShots = useMemo(() => shotsCache[selectedSeason] || [], [shotsCache, selectedSeason])
+  const hasLoadedSeason = Object.hasOwn(shotsCache, selectedSeason)
   const isLoading = loadingShots[selectedSeason] || false
 
   const teamList = useMemo(() =>
@@ -226,9 +218,44 @@ export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingSho
     [seasonShots]
   )
 
+  const seasonTeamRows = useMemo(
+    () => teams
+      .filter(team => (
+        team.season === selectedSeason
+        && (!hasLoadedSeason || teamList.includes(team.team))
+      ))
+      .sort((a, b) => a.team.localeCompare(b.team, 'es')),
+    [hasLoadedSeason, selectedSeason, teamList, teams]
+  )
+  const selectedTeamId = query.values.equipo || null
+  const selectedTeam = seasonTeamRows.find(team => team.teamId === selectedTeamId)?.team || ''
+
   useEffect(() => {
-    if (selectedTeam && !teamList.includes(selectedTeam)) setSelectedTeam('')
-  }, [selectedTeam, teamList])
+    const canonical = serializeRouteQuery('zoneLeaders', {
+      temporada: selectedSeason,
+      metrica: metric,
+      equipo: selectedTeam ? selectedTeamId : null,
+      'min-intentos': minAttempts,
+    }, { strict: false })
+    if (canonical !== search) {
+      setSearchParams(canonical, { replace: true })
+    }
+  }, [metric, minAttempts, search, selectedSeason, selectedTeam, selectedTeamId, setSearchParams])
+
+  const updateState = ({
+    season = selectedSeason,
+    teamId = selectedTeamId,
+    nextMetric = metric,
+    attempts = minAttempts,
+  }) => {
+    const next = serializeRouteQuery('zoneLeaders', {
+      temporada: season,
+      metrica: nextMetric,
+      equipo: teamId,
+      'min-intentos': attempts,
+    }, { strict: false })
+    setSearchParams(next)
+  }
 
   const filteredShots = useMemo(() => {
     if (!selectedTeam) return seasonShots
@@ -421,12 +448,7 @@ export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingSho
             <select
               aria-label="Temporada"
               value={selectedSeason}
-              onChange={(e) => {
-                const s = parseInt(e.target.value)
-                setSelectedSeason(s)
-                setSelectedTeam('')
-                updateUrl(s, metric)
-              }}
+              onChange={(e) => updateState({ season: parseInt(e.target.value), teamId: null })}
               className="form-control"
             >
               {availableSeasons.map(season => (
@@ -440,13 +462,13 @@ export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingSho
             <label className="field-label mb-1">Equipo</label>
             <select
               aria-label="Equipo"
-              value={selectedTeam}
-              onChange={(e) => setSelectedTeam(e.target.value)}
+              value={selectedTeamId || ''}
+              onChange={(e) => updateState({ teamId: e.target.value || null })}
               className="form-control"
             >
               <option value="">Toda la liga</option>
-              {teamList.map(team => (
-                <option key={team} value={team}>{team}</option>
+              {seasonTeamRows.map(team => (
+                <option key={team.teamId} value={team.teamId}>{team.team}</option>
               ))}
             </select>
           </div>
@@ -461,7 +483,7 @@ export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingSho
               min={3}
               max={50}
               value={minAttempts}
-              onChange={(e) => setMinAttempts(parseInt(e.target.value))}
+              onChange={(e) => updateState({ attempts: parseInt(e.target.value) })}
               aria-label={`Intentos mínimos por zona: ${minAttempts}`}
               className="w-full accent-slate-700"
             />
@@ -477,11 +499,7 @@ export default function ZoneLeaders({ loadShotsForSeason, shotsCache, loadingSho
             <select
               aria-label="Métrica de líderes"
               value={metric}
-              onChange={(e) => {
-                const m = e.target.value
-                setMetric(m)
-                updateUrl(selectedSeason, m)
-              }}
+              onChange={(e) => updateState({ nextMetric: e.target.value })}
               className="form-control"
             >
               <option value="points">Máximo anotador (puntos)</option>

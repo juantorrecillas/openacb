@@ -8,6 +8,9 @@
 #'   source("export_lineup_data.R")
 #'   export_lineup_data_to_react()ex
 
+# load stable team identities for every export entry point
+source("./config/team_identities.R", encoding = "UTF-8")
+
 # ============================================================================
 # Configuration
 # ============================================================================
@@ -99,12 +102,20 @@ export_lineup_data_to_react <- function(seasons = SEASONS) {
 export_season_lineup_json <- function(lineup_data, season_id, output_file) {
   # Transform to React-friendly format
   teams_data <- list()
+  team_names <- names(lineup_data)
+  team_ids <- validate_unique_team_seasons(
+    team_names,
+    rep(season_id, length(team_names)),
+    context = sprintf("lineup export for season %d", season_id)
+  )
+  names(team_ids) <- team_names
 
   for (team_name in names(lineup_data)) {
     team_info <- lineup_data[[team_name]]
 
     teams_data[[team_name]] <- list(
       team = team_info$team,
+      teamId = unname(team_ids[[team_name]]),
       season = as.integer(season_id),
       players = transform_individual_stats(team_info$individual),
       pairs = transform_pair_stats(team_info$pairs),
@@ -143,6 +154,11 @@ export_combined_lineup_data <- function(all_lineup_data, output_file) {
 
       combined_data[[key]] <- list(
         team = team_info$team,
+        teamId = resolve_team_ids(
+          team_info$team,
+          as.integer(season_id),
+          context = "combined lineup export"
+        ),
         season = as.integer(season_id),
         players = transform_individual_stats(team_info$individual),
         pairs = transform_pair_stats(team_info$pairs),
@@ -180,6 +196,11 @@ create_lineup_index <- function(all_lineup_data, output_dir) {
       team_info <- season_data[[team_name]]
       list(
         team = team_name,
+        teamId = resolve_team_ids(
+          team_name,
+          as.integer(season_id),
+          context = "lineup index export"
+        ),
         playerCount = length(team_info$individual),
         pairCount = length(team_info$pairs),
         trioCount = length(team_info$trios),

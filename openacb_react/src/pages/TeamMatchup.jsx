@@ -1,14 +1,26 @@
-import { useState, useMemo, useEffect } from 'react'
-import { useNavigate, useParams, Link } from 'react-router-dom'
+import { useState, useMemo, useEffect, useRef } from 'react'
+import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom'
 import ZoneHeatmap from '../components/ZoneHeatmap'
 import PageHeader from '../components/PageHeader'
+import { buildTeamComparisonPath, buildTeamProfilePath, buildTeamStatsPath } from '../routing/paths'
+import { readRouteQuery, serializeRouteQuery } from '../routing/query'
+import { createTeamIdentityIndexFromRows, resolveTeamId } from '../routing/teamIdentities'
 
 function seasonLabel(s) {
   return `${s - 1}-${String(s).slice(-2)}`
 }
 
-function toSlug(str) {
-  return str.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+function parseSeasonParam(value, availableSeasons) {
+  const season = Number(value)
+  return availableSeasons.includes(season) ? season : (availableSeasons[0] || 2026)
+}
+
+function buildTeamComparisonSearch({ season, mode, metric }) {
+  return new URLSearchParams(serializeRouteQuery('teamComparison', {
+    temporada: season,
+    lado: mode,
+    metrica: metric,
+  }))
 }
 
 function num(v) {
@@ -78,6 +90,7 @@ function TeamSelector({ label, teams, selected, onChange, teamLogos, profileUrl 
           onChange={e => onChange(e.target.value)}
           className="w-full px-3 py-2.5 border border-acb-200 rounded-lg text-sm bg-white"
         >
+          <option value="">Selecciona un equipo</option>
           {teams.map(t => <option key={t.team} value={t.team}>{t.team}</option>)}
         </select>
       </div>
@@ -337,10 +350,7 @@ function StatComparison({ a, b }) {
 }
 
 
-function ShotProfile({ teamA, teamB, shots, isLoading }) {
-  const [mode, setMode] = useState('attack')
-  const [metric, setMetric] = useState('efficiency')
-
+function ShotProfile({ teamA, teamB, shots, isLoading, mode, metric, onModeChange, onMetricChange }) {
   const shotsA = useMemo(() => mode === 'attack'
     ? shots.filter(s => s.team === teamA?.team)
     : shots.filter(s => s.opponent === teamA?.team), [shots, teamA, mode])
@@ -368,12 +378,12 @@ function ShotProfile({ teamA, teamB, shots, isLoading }) {
         </div>
         <div className="flex flex-wrap gap-2">
           <div className="flex gap-1">
-            {toggleBtn(mode === 'attack', () => setMode('attack'), 'Ataque')}
-            {toggleBtn(mode === 'defense', () => setMode('defense'), 'Defensa')}
+            {toggleBtn(mode === 'attack', () => onModeChange('attack'), 'Ataque')}
+            {toggleBtn(mode === 'defense', () => onModeChange('defense'), 'Defensa')}
           </div>
           <div className="flex gap-1">
-            {toggleBtn(metric === 'efficiency', () => setMetric('efficiency'), 'Eficiencia')}
-            {toggleBtn(metric === 'frequency', () => setMetric('frequency'), 'Frecuencia')}
+            {toggleBtn(metric === 'efficiency', () => onMetricChange('efficiency'), 'Eficiencia')}
+            {toggleBtn(metric === 'frequency', () => onMetricChange('frequency'), 'Frecuencia')}
           </div>
         </div>
       </div>
@@ -724,45 +734,68 @@ export default function TeamMatchup({
   loadingShots,
 }) {
   const navigate = useNavigate()
-  const { season: urlSeason, teamA: urlTeamA, teamB: urlTeamB } = useParams()
+  const routeParams = useParams()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const urlTeamA = routeParams.teamAId || routeParams.teamA || ''
+  const urlTeamB = routeParams.teamBId || routeParams.teamB || ''
 
   const availableSeasons = useMemo(() => [...new Set(teams.map(t => t.season))].sort((a, b) => b - a), [teams])
-  const parsedUrlSeason = urlSeason ? Number(urlSeason) : null
-  const initialSeason = parsedUrlSeason && availableSeasons.includes(parsedUrlSeason)
-    ? parsedUrlSeason
-    : (availableSeasons[0] || 2026)
-  const [selectedSeason, setSelectedSeason] = useState(initialSeason)
+  const teamIdentityIndex = useMemo(() => createTeamIdentityIndexFromRows(teams), [teams])
+  const queryState = readRouteQuery('teamComparison', searchParams, {
+    defaults: { temporada: Number(routeParams.season) || availableSeasons[0] || 2026 },
+  })
+  const selectedSeason = parseSeasonParam(queryState.temporada, availableSeasons)
+  const mode = queryState.lado
+  const metric = queryState.metrica
   const seasonTeams = useMemo(() => teams.filter(t => t.season === selectedSeason).sort((a, b) => a.team.localeCompare(b.team)), [teams, selectedSeason])
+  const resolvedUrlTeamA = resolveTeamId(teamIdentityIndex, urlTeamA, selectedSeason)
+  const resolvedUrlTeamB = resolveTeamId(teamIdentityIndex, urlTeamB, selectedSeason)
 
-  const defaultPair = useMemo(() => {
-    const ranked = [...seasonTeams].sort((a, b) => {
-      const aNet = num(a.netRtg)
-      const bNet = num(b.netRtg)
-      if (aNet == null && bNet != null) return 1
-      if (aNet != null && bNet == null) return -1
-      if (aNet != null && bNet != null && aNet !== bNet) return bNet - aNet
-      return a.team.localeCompare(b.team, 'es')
-    })
-    return [ranked[0]?.team || '', ranked[1]?.team || ranked[0]?.team || '']
+  const recordA = useMemo(() => seasonTeams.find(row => (
+    resolveTeamId(teamIdentityIndex, row.teamId || row.team, selectedSeason) === resolvedUrlTeamA
+  )) || null, [resolvedUrlTeamA, seasonTeams, selectedSeason, teamIdentityIndex])
+  const recordB = useMemo(() => seasonTeams.find(row => (
+    resolveTeamId(teamIdentityIndex, row.teamId || row.team, selectedSeason) === resolvedUrlTeamB
+  )) || null, [resolvedUrlTeamB, seasonTeams, selectedSeason, teamIdentityIndex])
+
+  const [draftTeamA, setDraftTeamA] = useState('')
+  const [draftTeamB, setDraftTeamB] = useState('')
+  const hasExplicitPair = Boolean(urlTeamA || urlTeamB)
+  const previousExplicitPairRef = useRef(hasExplicitPair)
+  const teamA = recordA?.team || draftTeamA
+  const teamB = recordB?.team || draftTeamB
+
+  useEffect(() => {
+    if (previousExplicitPairRef.current && !hasExplicitPair) {
+      setDraftTeamA('')
+      setDraftTeamB('')
+    }
+    previousExplicitPairRef.current = hasExplicitPair
+  }, [hasExplicitPair])
+
+  useEffect(() => {
+    if (!availableSeasons.length) return
+    const canonical = buildTeamComparisonSearch({ season: selectedSeason, mode, metric })
+    if (canonical.toString() !== searchParams.toString()) {
+      setSearchParams(canonical, { replace: true })
+    }
+  }, [availableSeasons.length, metric, mode, searchParams, selectedSeason, setSearchParams])
+
+  useEffect(() => {
+    const names = new Set(seasonTeams.map(t => t.team))
+    setDraftTeamA(current => names.has(current) ? current : '')
+    setDraftTeamB(current => names.has(current) ? current : '')
   }, [seasonTeams])
 
-  const [teamA, setTeamA] = useState(urlTeamA ? decodeURIComponent(urlTeamA) : defaultPair[0])
-  const [teamB, setTeamB] = useState(urlTeamB ? decodeURIComponent(urlTeamB) : defaultPair[1])
-
   useEffect(() => {
-    if (availableSeasons.length && !availableSeasons.includes(selectedSeason)) {
-      setSelectedSeason(availableSeasons[0])
-    }
-  }, [availableSeasons, selectedSeason])
-
-  useEffect(() => {
-    if (!seasonTeams.length) return
-    const names = new Set(seasonTeams.map(t => t.team))
-    if (!teamA || !names.has(teamA)) setTeamA(defaultPair[0])
-    if (!teamB || !names.has(teamB) || teamB === teamA) {
-      setTeamB(defaultPair.find(t => t && t !== teamA) || seasonTeams.find(t => t.team !== teamA)?.team || teamA)
-    }
-  }, [seasonTeams, defaultPair, teamA, teamB])
+    if (!urlTeamA || !urlTeamB || !resolvedUrlTeamA || !resolvedUrlTeamB) return
+    if (urlTeamA === resolvedUrlTeamA && urlTeamB === resolvedUrlTeamB && !routeParams.season) return
+    const search = buildTeamComparisonSearch({ season: selectedSeason, mode, metric }).toString()
+    navigate({
+      pathname: buildTeamComparisonPath(resolvedUrlTeamA, resolvedUrlTeamB),
+      search: `?${search}`,
+    }, { replace: true })
+  }, [metric, mode, navigate, resolvedUrlTeamA, resolvedUrlTeamB, routeParams.season, selectedSeason, urlTeamA, urlTeamB])
 
   useEffect(() => {
     if (!selectedSeason) return
@@ -771,13 +804,50 @@ export default function TeamMatchup({
     if (selectedSeason >= 2021) loadShotsForSeason(selectedSeason)
   }, [selectedSeason, loadTeamPaceForSeason, loadClutchForSeason, loadShotsForSeason])
 
-  useEffect(() => {
-    if (!teamA || !teamB || !selectedSeason) return
-    navigate(`/matchup-equipos/${selectedSeason}/${encodeURIComponent(teamA)}/${encodeURIComponent(teamB)}`, { replace: true })
-  }, [navigate, selectedSeason, teamA, teamB])
+  const updateUrlState = (changes) => {
+    setSearchParams(buildTeamComparisonSearch({
+      season: selectedSeason,
+      mode,
+      metric,
+      ...changes,
+    }))
+  }
 
-  const recordA = useMemo(() => seasonTeams.find(t => t.team === teamA), [seasonTeams, teamA])
-  const recordB = useMemo(() => seasonTeams.find(t => t.team === teamB), [seasonTeams, teamB])
+  const teamIdFromName = (name) => {
+    const row = seasonTeams.find(team => team.team === name)
+    return row ? resolveTeamId(teamIdentityIndex, row.teamId || row.team, selectedSeason) : null
+  }
+
+  const navigateToComparison = (teamAId, teamBId) => {
+    if (!teamAId || !teamBId || teamAId === teamBId) return false
+    const search = buildTeamComparisonSearch({ season: selectedSeason, mode, metric }).toString()
+    navigate({ pathname: buildTeamComparisonPath(teamAId, teamBId), search: `?${search}` })
+    return true
+  }
+
+  const handleTeamAChange = (name) => {
+    const nextTeamAId = teamIdFromName(name)
+    const currentTeamBId = recordB ? resolvedUrlTeamB : teamIdFromName(draftTeamB)
+    setDraftTeamA(name)
+    navigateToComparison(nextTeamAId, currentTeamBId)
+  }
+
+  const handleTeamBChange = (name) => {
+    const currentTeamAId = recordA ? resolvedUrlTeamA : teamIdFromName(draftTeamA)
+    const nextTeamBId = teamIdFromName(name)
+    setDraftTeamB(name)
+    navigateToComparison(currentTeamAId, nextTeamBId)
+  }
+
+  const handleSwapTeams = () => {
+    const currentTeamAId = recordA ? resolvedUrlTeamA : teamIdFromName(draftTeamA)
+    const currentTeamBId = recordB ? resolvedUrlTeamB : teamIdFromName(draftTeamB)
+    if (!navigateToComparison(currentTeamBId, currentTeamAId)) {
+      setDraftTeamA(draftTeamB)
+      setDraftTeamB(draftTeamA)
+    }
+  }
+
   const paceRows = teamPaceCache[selectedSeason] || []
   const clutchRows = clutchCache[selectedSeason]?.teams || []
   const shotRows = shotsCache[selectedSeason] || []
@@ -797,7 +867,7 @@ export default function TeamMatchup({
         subtitle="Compara dos equipos por estilo, eficiencia, zonas, rebote, presión y clutch"
         scope="Temporada completa · Liga regular y playoffs"
         actions={(
-          <Link to="/equipos" className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-acb-200 bg-white text-sm text-acb-600 hover:bg-acb-50">
+          <Link to={buildTeamStatsPath()} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-acb-200 bg-white text-sm text-acb-600 hover:bg-acb-50">
             Estadísticas de equipo
           </Link>
         )}
@@ -809,7 +879,7 @@ export default function TeamMatchup({
           <select
             id="matchup-season"
             value={selectedSeason}
-            onChange={e => setSelectedSeason(Number(e.target.value))}
+            onChange={e => updateUrlState({ season: Number(e.target.value) })}
             className="w-full mt-1 px-3 py-2.5 border border-acb-200 rounded-lg text-sm bg-white"
           >
             {availableSeasons.map(s => <option key={s} value={s}>{seasonLabel(s)}</option>)}
@@ -819,13 +889,13 @@ export default function TeamMatchup({
           label="Equipo A"
           teams={seasonTeams.filter(t => t.team !== teamB)}
           selected={teamA}
-          onChange={setTeamA}
+          onChange={handleTeamAChange}
           teamLogos={teamLogos}
-          profileUrl={teamA ? `/perfil-equipo/${selectedSeason}/${toSlug(teamA)}` : null}
+          profileUrl={recordA ? `${buildTeamProfilePath(resolvedUrlTeamA)}?temporada=${selectedSeason}` : null}
         />
         <button
           type="button"
-          onClick={() => { const tmp = teamA; setTeamA(teamB); setTeamB(tmp) }}
+          onClick={handleSwapTeams}
           aria-label="Intercambiar equipos"
           className="flex h-10 w-10 items-center justify-center justify-self-center self-center rounded-md border border-acb-200 bg-white text-xl leading-none text-acb-500 transition-colors hover:bg-acb-50 hover:text-acb-900"
           title="Intercambiar equipos"
@@ -836,12 +906,20 @@ export default function TeamMatchup({
           label="Equipo B"
           teams={seasonTeams.filter(t => t.team !== teamA)}
           selected={teamB}
-          onChange={setTeamB}
+          onChange={handleTeamBChange}
           teamLogos={teamLogos}
-          profileUrl={teamB ? `/perfil-equipo/${selectedSeason}/${toSlug(teamB)}` : null}
+          profileUrl={recordB ? `${buildTeamProfilePath(resolvedUrlTeamB)}?temporada=${selectedSeason}` : null}
         />
       </div>
 
+      {!recordA || !recordB ? (
+        <div className="bg-white rounded-lg border border-acb-200 p-12 text-center text-acb-400">
+          {urlTeamA || urlTeamB
+            ? 'Selecciona dos equipos disponibles en esta temporada para compararlos.'
+            : 'Selecciona dos equipos para empezar la comparación.'}
+        </div>
+      ) : (
+        <>
       <div className="grid lg:grid-cols-2 gap-5">
         <SummaryCard team={recordA} league={seasonTeams} pace={paceA} clutch={clutchA} teamLogos={teamLogos} accent="bg-accent-500" />
         <SummaryCard team={recordB} league={seasonTeams} pace={paceB} clutch={clutchB} teamLogos={teamLogos} accent="bg-info-500" />
@@ -863,7 +941,18 @@ export default function TeamMatchup({
         <PaceFlow a={paceA} b={paceB} />
       )}
 
-      <ShotProfile teamA={recordA} teamB={recordB} shots={shotRows} isLoading={isShotsLoading} />
+      <ShotProfile
+        teamA={recordA}
+        teamB={recordB}
+        shots={shotRows}
+        isLoading={isShotsLoading}
+        mode={mode}
+        metric={metric}
+        onModeChange={(value) => updateUrlState({ mode: value })}
+        onMetricChange={(value) => updateUrlState({ metric: value })}
+      />
+        </>
+      )}
     </div>
   )
 }

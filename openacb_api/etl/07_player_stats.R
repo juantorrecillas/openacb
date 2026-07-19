@@ -1029,7 +1029,7 @@ calculate_player_stats <- function(season_id,
   pct_stats <- c("ppg", "rpg", "orebpg", "drebpg", "apg", "spg", "bpg", "fpg", "mpg",
                  "fg_pct", "fg3_pct", "ft_pct", "efg", "ts", "ortg",
                  "three_rate", "poss_pg", "usg",
-                 "orb_pct", "drb_pct", "trb_pct", "ast_pct", "stl_pct", "blk_pct")
+                 "orb_pct", "drb_pct", "trb_pct", "ast_pct", "ast_to_ratio", "stl_pct", "blk_pct")
 
   # Calculate percentiles
   for (stat in pct_stats) {
@@ -1195,14 +1195,14 @@ calculate_player_stats <- function(season_id,
       ppg_pct, rpg_pct, orebpg_pct, drebpg_pct, apg_pct, spg_pct, bpg_pct, fpg_pct, mpg_pct,
       fg_pct_pct, fg3_pct_pct, ft_pct_pct, efg_pct, ts_pct, ortg_pct,
       three_rate_pct, poss_pg_pct, usg_pct,
-      orb_pct_pct, drb_pct_pct, trb_pct_pct, ast_pct_pct, stl_pct_pct, blk_pct_pct,
+      orb_pct_pct, drb_pct_pct, trb_pct_pct, ast_pct_pct, ast_to_ratio_pct, stl_pct_pct, blk_pct_pct,
       topg_pct, tov_pct_pctile,
       # Position-based percentiles
       any_of(c(
         paste0(c("ppg", "rpg", "orebpg", "drebpg", "apg", "spg", "bpg", "fpg", "mpg",
                  "fg_pct", "fg3_pct", "ft_pct", "efg", "ts", "ortg",
                  "three_rate", "poss_pg", "usg",
-                 "orb_pct", "drb_pct", "trb_pct", "ast_pct", "stl_pct", "blk_pct"), "_pos_pct"),
+                 "orb_pct", "drb_pct", "trb_pct", "ast_pct", "ast_to_ratio", "stl_pct", "blk_pct"), "_pos_pct"),
         "topg_pos_pct", "tov_pct_pos_pctile"
       ))
     ) %>%

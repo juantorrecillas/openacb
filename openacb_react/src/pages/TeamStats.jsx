@@ -1,10 +1,12 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, LabelList } from 'recharts'
 import { ArrowUpDown, ArrowUp, ArrowDown, Download } from 'lucide-react'
 import { downloadTableAsCsv } from '../utils/csvDownload'
 import { statTitle } from '../utils/statLabels'
 import PageHeader from '../components/PageHeader'
 import { getPercentileBadgeClass } from '../utils/percentileColors'
+import { readRouteQuery, serializeRouteQuery } from '../routing/query'
 
 
 // Add a color palette for teams (or generate colors dynamically)
@@ -18,6 +20,22 @@ const TEAM_COLORS = [
   '#6366f1',
   '#ec4899',
 ]
+
+function parseSeasonParam(value, availableSeasons) {
+  if (value === 'all') return 'all'
+  const season = Number(value)
+  return availableSeasons.includes(season) ? season : (availableSeasons[0] || 2025)
+}
+
+function buildTeamStatsSearch({ season, stage, view, xAxis, yAxis }) {
+  return new URLSearchParams(serializeRouteQuery('teamStats', {
+    temporada: season,
+    fase: stage,
+    vista: view,
+    x: xAxis,
+    y: yAxis,
+  }))
+}
 
 const statOptions = [
   // Team boxscore stats
@@ -240,21 +258,55 @@ function buildNiceScatterAxis(rows, statKey) {
 }
 
 export default function TeamStats({ teams, teamLogos = {} }) {
-  // Get available seasons and default to most recent
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  // get available seasons and default to most recent
   const availableSeasons = useMemo(() => {
     const seasons = [...new Set(teams.map(t => t.season))].sort((a, b) => b - a)
     return seasons
   }, [teams])
 
-  const [selectedSeason, setSelectedSeason] = useState(availableSeasons[0] || 2025)
-  const [selectedStage, setSelectedStage] = useState('regular')
-  const [viewMode, setViewMode] = useState('basic') // 'basic', 'advanced', 'oppBasic', 'oppAdvanced'
-  const [xAxis, setXAxis] = useState('ortg')
-  const [yAxis, setYAxis] = useState('drtg')
+  const queryState = readRouteQuery('teamStats', searchParams, {
+    defaults: { temporada: availableSeasons[0] || 2025 },
+  })
+  const selectedSeason = parseSeasonParam(queryState.temporada, availableSeasons)
+  const selectedStage = queryState.fase
+  const viewMode = queryState.vista
+  const xAxis = statOptions.some(option => option.value === queryState.x)
+    ? queryState.x
+    : 'ortg'
+  const yAxis = statOptions.some(option => option.value === queryState.y)
+    ? queryState.y
+    : 'drtg'
   const [sortKey, setSortKey] = useState('team')
   const [sortDir, setSortDir] = useState('asc')
   const [highlightTeam, setHighlightTeam] = useState(null)
   const [showLabels, setShowLabels] = useState(false) // State for toggling labels
+
+  const updateUrlState = (changes) => {
+    setSearchParams(buildTeamStatsSearch({
+      season: selectedSeason,
+      stage: selectedStage,
+      view: viewMode,
+      xAxis,
+      yAxis,
+      ...changes,
+    }))
+  }
+
+  useEffect(() => {
+    if (!availableSeasons.length) return
+    const canonical = buildTeamStatsSearch({
+      season: selectedSeason,
+      stage: selectedStage,
+      view: viewMode,
+      xAxis,
+      yAxis,
+    })
+    if (canonical.toString() !== searchParams.toString()) {
+      setSearchParams(canonical, { replace: true })
+    }
+  }, [availableSeasons.length, searchParams, selectedSeason, selectedStage, setSearchParams, viewMode, xAxis, yAxis])
 
   // Select columns based on viewMode
   const tableColumns = viewMode === 'basic' ? basicColumns
@@ -483,7 +535,7 @@ export default function TeamStats({ teams, teamLogos = {} }) {
             <select
               id="team-stats-season"
               value={selectedSeason}
-              onChange={(e) => setSelectedSeason(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
+              onChange={(e) => updateUrlState({ season: e.target.value === 'all' ? 'all' : parseInt(e.target.value) })}
               className="form-control h-8 w-auto min-w-[7rem] px-2 text-xs"
             >
               {availableSeasons.map(season => (
@@ -494,14 +546,14 @@ export default function TeamStats({ teams, teamLogos = {} }) {
           </div>
           <div className="segmented-control h-8" role="group" aria-label="Fase de la competición">
             <button
-              onClick={() => setSelectedStage('regular')}
+              onClick={() => updateUrlState({ stage: 'regular' })}
               aria-pressed={selectedStage === 'regular'}
               className="segmented-option px-2 py-1 text-xs"
             >
               Temporada regular
             </button>
             <button
-              onClick={() => setSelectedStage('playoffs')}
+              onClick={() => updateUrlState({ stage: 'playoffs' })}
               aria-pressed={selectedStage === 'playoffs'}
               className="segmented-option px-2 py-1 text-xs"
             >
@@ -513,7 +565,7 @@ export default function TeamStats({ teams, teamLogos = {} }) {
             <select
               id="team-stats-x-axis"
               value={xAxis}
-              onChange={(e) => setXAxis(e.target.value)}
+              onChange={(e) => updateUrlState({ xAxis: e.target.value })}
               className="form-control h-8 w-auto min-w-[9rem] max-w-[12rem] px-2 text-xs"
             >
               {statOptions.map(opt => (
@@ -526,7 +578,7 @@ export default function TeamStats({ teams, teamLogos = {} }) {
             <select
               id="team-stats-y-axis"
               value={yAxis}
-              onChange={(e) => setYAxis(e.target.value)}
+              onChange={(e) => updateUrlState({ yAxis: e.target.value })}
               className="form-control h-8 w-auto min-w-[9rem] max-w-[12rem] px-2 text-xs"
             >
               {statOptions.map(opt => (
@@ -638,7 +690,7 @@ export default function TeamStats({ teams, teamLogos = {} }) {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-1 bg-acb-100 rounded-md p-1 w-fit">
           <button
-            onClick={() => setViewMode('basic')}
+            onClick={() => updateUrlState({ view: 'basic' })}
             className={`px-3 py-1.5 text-sm font-medium rounded transition-colors
               ${viewMode === 'basic'
                 ? 'bg-white text-acb-900 shadow-sm'
@@ -647,7 +699,7 @@ export default function TeamStats({ teams, teamLogos = {} }) {
             Básico
           </button>
           <button
-            onClick={() => setViewMode('advanced')}
+            onClick={() => updateUrlState({ view: 'advanced' })}
             className={`px-3 py-1.5 text-sm font-medium rounded transition-colors
               ${viewMode === 'advanced'
                 ? 'bg-white text-acb-900 shadow-sm'
@@ -656,7 +708,7 @@ export default function TeamStats({ teams, teamLogos = {} }) {
             Avanzado
           </button>
           <button
-            onClick={() => setViewMode('oppBasic')}
+            onClick={() => updateUrlState({ view: 'oppBasic' })}
             className={`px-3 py-1.5 text-sm font-medium rounded transition-colors
               ${viewMode === 'oppBasic'
                 ? 'bg-white text-acb-900 shadow-sm'
@@ -665,7 +717,7 @@ export default function TeamStats({ teams, teamLogos = {} }) {
             Riv. Básico
           </button>
           <button
-            onClick={() => setViewMode('oppAdvanced')}
+            onClick={() => updateUrlState({ view: 'oppAdvanced' })}
             className={`px-3 py-1.5 text-sm font-medium rounded transition-colors
               ${viewMode === 'oppAdvanced'
                 ? 'bg-white text-acb-900 shadow-sm'

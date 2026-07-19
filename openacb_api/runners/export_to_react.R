@@ -16,6 +16,13 @@ if (!require(jsonlite)) {
   library(jsonlite)
 }
 
+# load the stable team identity registry
+team_identity_config <- "./config/team_identities.R"
+if (!file.exists(team_identity_config)) {
+  team_identity_config <- "../openacb_api/config/team_identities.R"
+}
+source(team_identity_config, encoding = "UTF-8")
+
 # ============================================================================
 # CONFIGURATION - Update these paths to match YOUR setup!
 # ============================================================================
@@ -38,6 +45,21 @@ SEASONS <- c(2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026)
 # EXPORT FUNCTIONS
 # ============================================================================
 
+export_team_identities <- function() {
+  cat("Exporting stable team identities...\n")
+
+  output_file <- file.path(REACT_APP_DIR, "public/data", "team-identities.json")
+  dir.create(dirname(output_file), showWarnings = FALSE, recursive = TRUE)
+  write_json(
+    team_identities_for_json(),
+    output_file,
+    pretty = TRUE,
+    auto_unbox = TRUE
+  )
+
+  cat(sprintf("  - Exported %d stable club identities\n\n", length(TEAM_IDENTITIES)))
+}
+
 export_shot_data <- function() {
   cat("Exporting shot chart data (per-season files for lazy loading)...\n")
 
@@ -54,6 +76,18 @@ export_shot_data <- function() {
       file_path <- file.path(SHINY_DATA_DIR, pattern)
       if (file.exists(file_path)) {
         shots <- read.csv(file_path, encoding = "UTF-8", stringsAsFactors = FALSE)
+
+        # validate aliases without duplicating ids into every large shot row
+        resolve_team_ids(
+          shots$team.team_actual_name,
+          rep(year, nrow(shots)),
+          context = sprintf("shot teams for season %d", year)
+        )
+        resolve_team_ids(
+          shots$opponent,
+          rep(year, nrow(shots)),
+          context = sprintf("shot opponents for season %d", year)
+        )
 
         # Select and rename columns for the React app
         shots_export <- data.frame(
@@ -168,6 +202,13 @@ export_team_data <- function(competition_stages = NULL, output_name = "teams.jso
   }
   
   if (nrow(all_teams) > 0) {
+    all_teams$team_id <- validate_unique_team_seasons(
+      all_teams$team.team_actual_name,
+      all_teams$season,
+      partitions = all_teams$competition_stage,
+      context = sprintf("%s export", output_name)
+    )
+
     # Helper function for safe value extraction
     safe_val <- function(x, digits = 1, default = 0) {
       if (is.null(x) || is.na(x)) return(default)
@@ -178,6 +219,7 @@ export_team_data <- function(competition_stages = NULL, output_name = "teams.jso
       t <- all_teams[i, ]
       list(
         team = t$team.team_actual_name,
+        teamId = t$team_id,
         season = t$season,
         competitionStage = t$competition_stage,
         games = t$ngames,
@@ -328,6 +370,12 @@ export_player_data <- function(all_players, output_name = "players.json") {
   cat("Exporting player statistics...\n")
 
   if (nrow(all_players) > 0) {
+    all_players$team_id <- resolve_team_ids(
+      all_players$team,
+      all_players$season,
+      context = sprintf("%s export", output_name)
+    )
+
     players_export <- lapply(seq_len(nrow(all_players)), function(i) {
       p <- all_players[i, ]
 
@@ -354,6 +402,7 @@ export_player_data <- function(all_players, output_name = "players.json") {
         season = p$season,
         competitionStage = p$competition_stage,
         team = p$team,
+        teamId = p$team_id,
         games = safe_val(p$games, 0),
 
         # Minutes
@@ -458,6 +507,7 @@ export_player_data <- function(all_players, output_name = "players.json") {
         drbPctPct = pct_val(p$drb_pct_pct, 1),
         trbPctPct = pct_val(p$trb_pct_pct, 1),
         astPctPct = pct_val(p$ast_pct_pct, 1),
+        astToRatioPct = pct_val(p$ast_to_ratio_pct, 1),
         stlPctPct = pct_val(p$stl_pct_pct, 1),
         blkPctPct = pct_val(p$blk_pct_pct, 1),
         tovPctPct = pct_val(p$tov_pct_pctile, 1),
@@ -488,6 +538,7 @@ export_player_data <- function(all_players, output_name = "players.json") {
         drbPctPosPct = pct_val(p$drb_pct_pos_pct, 1),
         trbPctPosPct = pct_val(p$trb_pct_pos_pct, 1),
         astPctPosPct = pct_val(p$ast_pct_pos_pct, 1),
+        astToRatioPosPct = pct_val(p$ast_to_ratio_pos_pct, 1),
         stlPctPosPct = pct_val(p$stl_pct_pos_pct, 1),
         blkPctPosPct = pct_val(p$blk_pct_pos_pct, 1),
         tovPctPosPct = pct_val(p$tov_pct_pos_pctile, 1),
@@ -572,6 +623,11 @@ export_similarity_data <- function(all_players) {
   # Filter: minimum 10 games AND 10+ mpg
   qualified <- all_players[!is.na(all_players$games) & all_players$games >= 10 &
                            !is.na(all_players$mpg) & all_players$mpg >= 10, ]
+  qualified$team_id <- resolve_team_ids(
+    qualified$team,
+    qualified$season,
+    context = "player similarity export"
+  )
   cat(sprintf("  - %d player-seasons after filtering (games>=10, mpg>=10)\n", nrow(qualified)))
 
   if (nrow(qualified) < 2) {
@@ -613,6 +669,24 @@ export_similarity_data <- function(all_players) {
   sim_matrix <- tcrossprod(mat_norm)
 
   n <- nrow(qualified)
+  similarity_ids <- paste(
+    qualified$license_id,
+    qualified$season,
+    qualified$team_id,
+    sep = "_"
+  )
+  if (anyDuplicated(similarity_ids)) {
+    duplicate_ids <- unique(similarity_ids[
+      duplicated(similarity_ids) | duplicated(similarity_ids, fromLast = TRUE)
+    ])
+    stop(
+      sprintf(
+        "Player similarity identities are not unique: %s",
+        paste(duplicate_ids, collapse = ", ")
+      ),
+      call. = FALSE
+    )
+  }
   cat(sprintf("  - Computing similarity for %d player-seasons...\n", n))
 
   # Build output: top 20 similar for each player-season
@@ -632,14 +706,16 @@ export_similarity_data <- function(all_players) {
       list(
         licenseId = qualified$license_id[j],
         season = qualified$season[j],
+        teamId = qualified$team_id[j],
         score = scaled
       )
     })
 
     similarity_export[[i]] <- list(
-      id = paste0(qualified$license_id[i], "_", qualified$season[i]),
+      id = similarity_ids[i],
       licenseId = qualified$license_id[i],
       season = qualified$season[i],
+      teamId = qualified$team_id[i],
       similar = similar
     )
   }
@@ -650,6 +726,82 @@ export_similarity_data <- function(all_players) {
   cat(sprintf("  ✓ Exported similarity data for %d player-seasons\n\n", n))
 }
 
+export_clutch_data <- function() {
+  cat("Exporting clutch data with stable team identities...\n")
+
+  for (year in SEASONS) {
+    rds_path <- file.path(SHINY_DATA_DIR, paste0("Clutch_", year, ".Rds"))
+    if (!file.exists(rds_path)) {
+      cat(sprintf("  ! No pre-computed clutch data for season %d\n", year))
+      next
+    }
+
+    clutch_output <- readRDS(rds_path)
+    has_player_team <- vapply(
+      clutch_output$players,
+      function(record) {
+        !is.null(record$team) && !is.na(record$team) && nzchar(record$team)
+      },
+      logical(1)
+    )
+    if (any(!has_player_team)) {
+      cat(sprintf(
+        "  - Removed %d player rows without a team in season %d\n",
+        sum(!has_player_team),
+        year
+      ))
+      clutch_output$players <- clutch_output$players[has_player_team]
+    }
+
+    team_names <- vapply(
+      clutch_output$teams,
+      function(record) record$team,
+      character(1)
+    )
+    team_ids <- validate_unique_team_seasons(
+      team_names,
+      rep(year, length(team_names)),
+      context = sprintf("clutch teams for season %d", year)
+    )
+    clutch_output$teams <- Map(function(record, team_id) {
+      record$teamId <- team_id
+      record
+    }, clutch_output$teams, team_ids)
+
+    player_team_names <- vapply(
+      clutch_output$players,
+      function(record) record$team,
+      character(1)
+    )
+    player_team_ids <- resolve_team_ids(
+      player_team_names,
+      rep(year, length(player_team_names)),
+      context = sprintf("clutch players for season %d", year)
+    )
+    clutch_output$players <- Map(function(record, team_id) {
+      record$teamId <- team_id
+      record
+    }, clutch_output$players, player_team_ids)
+
+    output_file <- file.path(
+      REACT_APP_DIR,
+      "public/data",
+      paste0("clutch-", year, ".json")
+    )
+    dir.create(dirname(output_file), showWarnings = FALSE, recursive = TRUE)
+    write_json(
+      clutch_output,
+      output_file,
+      auto_unbox = TRUE,
+      null = "null",
+      na = "null"
+    )
+    cat(sprintf("  - Exported clutch identities for season %d\n", year))
+  }
+
+  cat("  Done.\n\n")
+}
+
 export_teampace_data <- function() {
   cat("Exporting team pace data (per-season files for lazy loading)...\n")
 
@@ -657,6 +809,16 @@ export_teampace_data <- function() {
     rds_path <- file.path(SHINY_DATA_DIR, paste0("TeamPace_", year, ".Rds"))
     if (file.exists(rds_path)) {
       teams_output <- readRDS(rds_path)
+      team_names <- vapply(teams_output, function(record) record$team, character(1))
+      team_ids <- validate_unique_team_seasons(
+        team_names,
+        rep(year, length(team_names)),
+        context = sprintf("team pace for season %d", year)
+      )
+      teams_output <- Map(function(record, team_id) {
+        record$teamId <- team_id
+        record
+      }, teams_output, team_ids)
       output_file <- file.path(REACT_APP_DIR, "public/data", paste0("teampace-", year, ".json"))
       dir.create(dirname(output_file), showWarnings = FALSE, recursive = TRUE)
       write_json(teams_output, output_file, auto_unbox = TRUE, null = "null")
@@ -676,6 +838,23 @@ export_gameflow_data <- function() {
     rds_path <- file.path(SHINY_DATA_DIR, paste0("GameFlow_", year, ".Rds"))
     if (file.exists(rds_path)) {
       games_list <- readRDS(rds_path)
+      local_names <- vapply(games_list, function(game) game$local, character(1))
+      visitor_names <- vapply(games_list, function(game) game$visitor, character(1))
+      local_ids <- resolve_team_ids(
+        local_names,
+        rep(year, length(local_names)),
+        context = sprintf("game flow local teams for season %d", year)
+      )
+      visitor_ids <- resolve_team_ids(
+        visitor_names,
+        rep(year, length(visitor_names)),
+        context = sprintf("game flow visitor teams for season %d", year)
+      )
+      games_list <- Map(function(game, local_id, visitor_id) {
+        game$localTeamId <- local_id
+        game$visitorTeamId <- visitor_id
+        game
+      }, games_list, local_ids, visitor_ids)
       output_file <- file.path(REACT_APP_DIR, "public/data", paste0("gameflow-", year, ".json"))
       dir.create(dirname(output_file), showWarnings = FALSE, recursive = TRUE)
       write_json(games_list, output_file, auto_unbox = TRUE, null = "null")
@@ -692,30 +871,34 @@ export_gameflow_data <- function() {
 # MAIN
 # ============================================================================
 
-cat("\n========================================\n")
-cat("OpenACB Data Export\n")
-cat("========================================\n\n")
+if (!isTRUE(getOption("openacb.skip_auto_export"))) {
+  cat("\n========================================\n")
+  cat("OpenACB Data Export\n")
+  cat("========================================\n\n")
 
-export_shot_data()
-export_player_names()
-export_team_data()
-export_team_data(c("regular", "playoffs"), "teams-by-stage.json")
-all_players <- load_all_player_data()
-export_player_data(all_players)
-stage_players <- load_all_player_data(c("regular", "playoffs"))
-export_player_data(stage_players, "players-by-stage.json")
-export_similarity_data(all_players)
-export_gameflow_data()
-export_teampace_data()
+  export_team_identities()
+  export_shot_data()
+  export_player_names()
+  export_team_data()
+  export_team_data(c("regular", "playoffs"), "teams-by-stage.json")
+  all_players <- load_all_player_data()
+  export_player_data(all_players)
+  stage_players <- load_all_player_data(c("regular", "playoffs"))
+  export_player_data(stage_players, "players-by-stage.json")
+  export_similarity_data(all_players)
+  export_clutch_data()
+  export_gameflow_data()
+  export_teampace_data()
 
-# player bio: position, height, birth date
-source("etl/12_player_positions.R")
-generate_player_bio(
-  data_dir   = SHINY_DATA_DIR,
-  output_dir = file.path(REACT_APP_DIR, "public/data")
-)
+  # player bio: position, height, birth date
+  source("etl/12_player_positions.R")
+  generate_player_bio(
+    data_dir   = SHINY_DATA_DIR,
+    output_dir = file.path(REACT_APP_DIR, "public/data")
+  )
 
-cat("\n========================================\n")
-cat("Export complete!\n")
-cat("Open the React app to see your data.\n")
-cat("========================================\n")
+  cat("\n========================================\n")
+  cat("Export complete!\n")
+  cat("Open the React app to see your data.\n")
+  cat("========================================\n")
+}

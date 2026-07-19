@@ -93,6 +93,53 @@
     left: 2.5rem;
   }
 
+  .data-table-sticky-after-season {
+    @apply sticky z-10;
+    left: 4.5rem;
+    background-color: inherit;
+    box-shadow: 1px 0 0 #d9e2ec;
+  }
+
+  .team-roster-sticky-player,
+  .team-roster-sticky-position,
+  .team-roster-sticky-archetype {
+    @apply sticky z-10;
+    background-color: inherit;
+  }
+
+  .team-roster-sticky-player {
+    left: 0;
+  }
+
+  .team-roster-sticky-position {
+    left: 12rem;
+  }
+
+  .team-roster-sticky-archetype {
+    left: 17rem;
+    box-shadow: 1px 0 0 #d9e2ec;
+  }
+
+  .career-sticky-season,
+  .career-sticky-team,
+  .career-sticky-role {
+    @apply sticky z-10;
+    background-color: inherit;
+  }
+
+  .career-sticky-season {
+    left: 0;
+  }
+
+  .career-sticky-team {
+    left: 4.5rem;
+  }
+
+  .career-sticky-role {
+    left: 14.5rem;
+    box-shadow: 1px 0 0 #d9e2ec;
+  }
+
   .data-table-sticky-head {
     @apply z-20;
   }
@@ -100,6 +147,11 @@
   .data-col-rank {
     width: 2.5rem;
     min-width: 2.5rem;
+  }
+
+  .data-col-season {
+    width: 4.5rem;
+    min-width: 4.5rem;
   }
 
   .data-col-player {
@@ -115,6 +167,30 @@
   .data-col-position {
     width: 5rem;
     min-width: 5rem;
+  }
+
+  .team-roster-col-player {
+    width: 12rem;
+    min-width: 12rem;
+    max-width: 12rem;
+  }
+
+  .team-roster-col-position {
+    width: 5rem;
+    min-width: 5rem;
+    max-width: 5rem;
+  }
+
+  .team-roster-col-archetype {
+    width: 12rem;
+    min-width: 12rem;
+    max-width: 12rem;
+  }
+
+  .career-col-role {
+    width: 14rem;
+    min-width: 14rem;
+    max-width: 14rem;
   }
 
   .data-col-games {
@@ -172,6 +248,11 @@ body {
 }
 
 @media (max-width: 639px) {
+  .team-roster-sticky-position { left: 8.5rem; }
+  .team-roster-sticky-archetype { left: 13rem; }
+  .team-roster-col-player { width: 8.5rem; min-width: 8.5rem; max-width: 8.5rem; }
+  .team-roster-col-position { width: 4.5rem; min-width: 4.5rem; max-width: 4.5rem; }
+  .team-roster-col-archetype { width: 9rem; min-width: 9rem; max-width: 9rem; }
   .app-page .data-table th { font-size: 0.6875rem; line-height: 0.9375rem; }
   .app-page .data-table td { font-size: 0.75rem; line-height: 1.125rem; }
   .app-page :where(input, select, textarea),

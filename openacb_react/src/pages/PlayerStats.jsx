@@ -1,14 +1,26 @@
-import { useState, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useMemo, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Search, ArrowUp, ArrowDown, Filter, Download } from 'lucide-react'
 import { downloadTableAsCsv } from '../utils/csvDownload'
 import { statTitle } from '../utils/statLabels'
 import { getPlayerDisplayName, getPlayerSearchText } from '../utils/playerNames'
 import PageHeader from '../components/PageHeader'
 import { getPercentileBadgeClass } from '../utils/percentileColors'
+import { buildPlayerProfilePath } from '../routing/paths'
+import { parseRouteQuery, serializeRouteQuery, withQuery } from '../routing/query'
 
 const positionCol = { key: 'position', label: 'Pos', align: 'left', sortable: true }
 const POSITION_ORDER = ['Base', 'Escolta', 'Alero', 'Ala-pívot', 'Pívot']
+
+function playerProfileUrl(player) {
+  const pathname = buildPlayerProfilePath(player, getPlayerDisplayName(player))
+  const search = serializeRouteQuery('playerProfile', {
+    temporada: player.season,
+    equipo: player.teamId,
+    fase: player.competitionStage || 'regular',
+  }, { strict: false })
+  return withQuery(pathname, search)
+}
 
 // Basic boxscore stats columns - with percentile key for inline display
 const basicColumns = [
@@ -139,6 +151,7 @@ const defenseColumns = [
 
 export default function PlayerStats({ players, playerBio = {} }) {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   // Enrich players with position from playerBio lookup and derived per-game shooting fields
   const enrichedPlayers = useMemo(() => {
     return players.map(p => {
@@ -162,17 +175,21 @@ export default function PlayerStats({ players, playerBio = {} }) {
     return seasons
   }, [enrichedPlayers])
 
-  const [selectedSeason, setSelectedSeason] = useState(availableSeasons[0] || 2025)
-  const [selectedStage, setSelectedStage] = useState('regular')
-  const [viewMode, setViewMode] = useState('basic') // 'basic', 'advanced', 'misc', 'frequency', 'accuracy', 'defense'
   const [search, setSearch] = useState('')
   const [sortKey, setSortKey] = useState('playerFull')
   const [sortDir, setSortDir] = useState('asc')
-  const [teamFilter, setTeamFilter] = useState('')
-  const [positionFilter, setPositionFilter] = useState('')
-  const [showFilteredPlayers, setShowFilteredPlayers] = useState(false)
-  const [pctMode, setPctMode] = useState('league') // 'league' or 'position'
   const [showAll, setShowAll] = useState(false)
+
+  const parsedQuery = parseRouteQuery('playerStats', searchParams)
+  const requestedSeason = parsedQuery.values.temporada
+  const selectedSeason = requestedSeason === 'all' || availableSeasons.includes(requestedSeason)
+    ? requestedSeason
+    : (availableSeasons[0] || 2025)
+  const selectedStage = parsedQuery.values.fase || 'regular'
+  const routeViewMode = parsedQuery.values.vista || 'basic'
+  const viewMode = routeViewMode === 'absolutes' ? 'absolutos' : routeViewMode
+  const pctMode = parsedQuery.values.referencia || 'league'
+  const showFilteredPlayers = parsedQuery.values.minimos === false
 
   // Use the 'qualified' field from R data (pre-calculated with correct thresholds)
   // Falls back to local calculation if field not present
@@ -200,15 +217,47 @@ export default function PlayerStats({ players, playerBio = {} }) {
     return stageFilteredPlayers.filter(p => p.season === selectedSeason)
   }, [stageFilteredPlayers, selectedSeason])
 
-  const teams = useMemo(() =>
-    [...new Set(seasonFilteredPlayers.map(p => p.team))].sort(),
-    [seasonFilteredPlayers]
-  )
+  const teamOptions = useMemo(() => {
+    const byId = new Map()
+    seasonFilteredPlayers.forEach(player => {
+      if (!player.teamId || !player.team) return
+      const previous = byId.get(player.teamId)
+      if (!previous || Number(player.season) > Number(previous.season)) {
+        byId.set(player.teamId, { teamId: player.teamId, name: player.team, season: player.season })
+      }
+    })
+    return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name, 'es'))
+  }, [seasonFilteredPlayers])
 
   const positions = useMemo(() => {
     const present = new Set(seasonFilteredPlayers.map(p => p.position).filter(v => typeof v === 'string' && v.trim()))
     return POSITION_ORDER.filter(pos => present.has(pos))
   }, [seasonFilteredPlayers])
+
+  const requestedTeamFilter = parsedQuery.values.equipo || ''
+  const teamFilter = teamOptions.some(option => option.teamId === requestedTeamFilter) ? requestedTeamFilter : ''
+  const requestedPositionFilter = parsedQuery.values.posicion || ''
+  const positionFilter = positions.includes(requestedPositionFilter) ? requestedPositionFilter : ''
+  const canonicalQuery = {
+    temporada: selectedSeason,
+    fase: selectedStage,
+    vista: routeViewMode,
+    equipo: teamFilter || undefined,
+    posicion: positionFilter || undefined,
+    referencia: pctMode,
+    minimos: !showFilteredPlayers,
+  }
+  const canonicalSearch = serializeRouteQuery('playerStats', canonicalQuery)
+  const currentSearch = searchParams.toString()
+
+  useEffect(() => {
+    if (currentSearch !== canonicalSearch) setSearchParams(canonicalSearch, { replace: true })
+  }, [canonicalSearch, currentSearch, setSearchParams])
+
+  const updateQuery = updates => {
+    const nextSearch = serializeRouteQuery('playerStats', { ...canonicalQuery, ...updates })
+    if (nextSearch !== currentSearch) setSearchParams(nextSearch)
+  }
 
   // Players that meet the minimum threshold (for percentile calculation)
   const qualifiedPlayers = useMemo(() => {
@@ -256,7 +305,7 @@ export default function PlayerStats({ players, playerBio = {} }) {
         if (search && !getPlayerSearchText(p).includes(search.toLocaleLowerCase('es'))) {
           return false
         }
-        if (teamFilter && p.team !== teamFilter && teamFilter !== '') return false
+        if (teamFilter && p.teamId !== teamFilter) return false
         if (positionFilter && (typeof p.position !== 'string' || p.position !== positionFilter)) return false
         return true
       })
@@ -432,7 +481,10 @@ export default function PlayerStats({ players, playerBio = {} }) {
             <select
               id="player-stats-season"
               value={selectedSeason}
-              onChange={(e) => { setSelectedSeason(e.target.value === 'all' ? 'all' : parseInt(e.target.value)); setShowAll(false) }}
+              onChange={(e) => {
+                updateQuery({ temporada: e.target.value === 'all' ? 'all' : Number(e.target.value) })
+                setShowAll(false)
+              }}
               className="form-control"
             >
               {availableSeasons.map(season => (
@@ -444,14 +496,14 @@ export default function PlayerStats({ players, playerBio = {} }) {
 
           <div className="segmented-control" role="group" aria-label="Fase de la competición">
             <button
-              onClick={() => { setSelectedStage('regular'); setTeamFilter('') }}
+              onClick={() => updateQuery({ fase: 'regular', equipo: undefined })}
               aria-pressed={selectedStage === 'regular'}
               className="segmented-option"
             >
               Temporada regular
             </button>
             <button
-              onClick={() => { setSelectedStage('playoffs'); setTeamFilter('') }}
+              onClick={() => updateQuery({ fase: 'playoffs', equipo: undefined })}
               aria-pressed={selectedStage === 'playoffs'}
               className="segmented-option"
             >
@@ -463,49 +515,49 @@ export default function PlayerStats({ players, playerBio = {} }) {
           <div className="w-full overflow-x-auto pb-1">
             <div className="segmented-control w-max" role="group" aria-label="Vista estadística">
               <button
-                onClick={() => setViewMode('basic')}
+                onClick={() => updateQuery({ vista: 'basic' })}
                 aria-pressed={viewMode === 'basic'}
                 className="segmented-option"
               >
                 Básico
               </button>
             <button
-              onClick={() => setViewMode('advanced')}
+              onClick={() => updateQuery({ vista: 'advanced' })}
               aria-pressed={viewMode === 'advanced'}
               className="segmented-option"
             >
               Avanzado
             </button>
             <button
-              onClick={() => { setViewMode('absolutos'); setSortKey('points'); setSortDir('desc') }}
+              onClick={() => { updateQuery({ vista: 'absolutes' }); setSortKey('points'); setSortDir('desc') }}
               aria-pressed={viewMode === 'absolutos'}
               className="segmented-option"
             >
               Absolutos
             </button>
             <button
-              onClick={() => setViewMode('misc')}
+              onClick={() => updateQuery({ vista: 'misc' })}
               aria-pressed={viewMode === 'misc'}
               className="segmented-option"
             >
               Otros
             </button>
             <button
-              onClick={() => setViewMode('frequency')}
+              onClick={() => updateQuery({ vista: 'frequency' })}
               aria-pressed={viewMode === 'frequency'}
               className="segmented-option"
             >
               Tiro: Frecuencia
             </button>
             <button
-              onClick={() => setViewMode('accuracy')}
+              onClick={() => updateQuery({ vista: 'accuracy' })}
               aria-pressed={viewMode === 'accuracy'}
               className="segmented-option"
             >
               Tiro: Precisión
             </button>
             <button
-              onClick={() => setViewMode('defense')}
+              onClick={() => updateQuery({ vista: 'defense' })}
               aria-pressed={viewMode === 'defense'}
               className="segmented-option"
             >
@@ -520,11 +572,11 @@ export default function PlayerStats({ players, playerBio = {} }) {
               <span className="text-xs text-acb-500">Percentil:</span>
               <div className="flex rounded-md border border-acb-200 text-xs overflow-hidden">
                 <button
-                  onClick={() => setPctMode('league')}
+                  onClick={() => updateQuery({ referencia: 'league' })}
                   className={`px-2.5 py-1 font-medium transition-colors ${pctMode === 'league' ? 'bg-acb-800 text-white' : 'bg-white text-acb-600 hover:bg-acb-50'}`}
                 >Liga</button>
                 <button
-                  onClick={() => setPctMode('position')}
+                  onClick={() => updateQuery({ referencia: 'position' })}
                   className={`px-2.5 py-1 font-medium transition-colors ${pctMode === 'position' ? 'bg-acb-800 text-white' : 'bg-white text-acb-600 hover:bg-acb-50'}`}
                 >Posición</button>
               </div>
@@ -552,12 +604,12 @@ export default function PlayerStats({ players, playerBio = {} }) {
             <select
               id="player-stats-team"
               value={teamFilter}
-              onChange={(e) => setTeamFilter(e.target.value)}
+              onChange={(e) => updateQuery({ equipo: e.target.value || undefined })}
               className="form-control"
             >
               <option value="">Todos los equipos</option>
-              {teams.map(team => (
-                <option key={team} value={team}>{team}</option>
+              {teamOptions.map(team => (
+                <option key={team.teamId} value={team.teamId}>{team.name}</option>
               ))}
             </select>
           </div>
@@ -569,7 +621,7 @@ export default function PlayerStats({ players, playerBio = {} }) {
               <select
                 id="player-stats-position"
                 value={positionFilter}
-                onChange={(e) => setPositionFilter(e.target.value)}
+                onChange={(e) => updateQuery({ posicion: e.target.value || undefined })}
                 className="form-control"
               >
                 <option value="">Todas las posiciones</option>
@@ -583,7 +635,7 @@ export default function PlayerStats({ players, playerBio = {} }) {
           {/* Show Filtered Players Toggle */}
           {filteredOutCount > 0 && (
             <button
-              onClick={() => setShowFilteredPlayers(!showFilteredPlayers)}
+              onClick={() => updateQuery({ minimos: showFilteredPlayers })}
               className={`px-3 py-2 text-sm border rounded-md transition-colors
                 ${showFilteredPlayers
                   ? 'bg-acb-100 border-acb-300 text-acb-700'
@@ -663,11 +715,11 @@ export default function PlayerStats({ players, playerBio = {} }) {
               {displayedPlayers.map((player, i) => (
                 <tr
                   key={`${player.licenseId}-${player.season}-${player.competitionStage || selectedStage}-${player.team}`}
-                  onClick={() => navigate(`/jugador/${player.licenseId}`)}
+                  onClick={() => navigate(playerProfileUrl(player))}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault()
-                      navigate(`/jugador/${player.licenseId}`)
+                      navigate(playerProfileUrl(player))
                     }
                   }}
                   tabIndex={0}

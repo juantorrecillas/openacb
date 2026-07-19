@@ -1,4 +1,5 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useMemo, useEffect } from 'react'
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { getPlayerPhoto } from '../utils/playerPhotos'
 import { getPlayerDisplayName } from '../utils/playerNames'
 import Court, { ShotMarker } from '../components/Court'
@@ -7,15 +8,24 @@ import DensityHeatmap from '../components/DensityHeatmap'
 import PageHeader from '../components/PageHeader'
 import PlayerCombobox from '../components/PlayerCombobox'
 import { Filter, Circle, X } from 'lucide-react'
+import {
+  buildPlayerShotChartPath,
+  buildShotChartsPath,
+  buildTeamShotChartPath,
+  isTeamId,
+  parseRouteQuery,
+  parsePlayerSegment,
+  serializeRouteQuery,
+  withQuery,
+} from '../routing'
 
 
 // Note: Zone calculation functions removed since we now use pre-calculated
 // zone and zoned fields from the CSV data
 
-const getPlayerRecord = (players, playerId, season) => {
-  return players.find(p => String(p.licenseId) === String(playerId) && Number(p.season) === Number(season))
-    || players.find(p => String(p.licenseId) === String(playerId))
-}
+const getPlayerRecord = (players, playerId, season) => players.find(
+  player => String(player.licenseId) === String(playerId) && Number(player.season) === Number(season)
+)
 
 const normalizeSearch = (value) => String(value || '')
   .normalize('NFD')
@@ -25,34 +35,99 @@ const normalizeSearch = (value) => String(value || '')
 const isMadeShot = (shot) => shot.made === true || shot.made === 'true' || shot.made === 1 || shot.made === '1'
 
 export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShots, teams, players, playerPhotos = {} }) {
-  // Get available seasons from teams data (since we don't load all shots upfront)
+  const location = useLocation()
+  const navigate = useNavigate()
+  const { teamId: urlTeamId, player: urlPlayer } = useParams()
+  const [searchParams] = useSearchParams()
+
+  // get available seasons from teams data since shots load per season
   const availableSeasons = useMemo(() => {
     const seasons = [...new Set(teams.map(t => t.season))].filter(s => s >= 2021).sort((a, b) => b - a)
     return seasons
   }, [teams])
 
-  const [selectedSeason, setSelectedSeason] = useState(availableSeasons[0] || 2025)
-  const [filterType, setFilterType] = useState('team') // 'team', 'player' - default to 'team' to start empty
-  const [selectedTeam, setSelectedTeam] = useState('')
-  const [selectedPlayer, setSelectedPlayer] = useState('')
-  const [shotFilter, setShotFilter] = useState('all') // 'all', 'made', 'missed'
-  const [displayMode, setDisplayMode] = useState('shots') // 'shots', 'zones', 'heatmap'
-  const [heatmapMode, setHeatmapMode] = useState('frequency') // 'frequency', 'density'
-  const [zoneMode, setZoneMode] = useState('efficiency') // 'efficiency', 'frequency'
+  const search = searchParams.toString()
+  const query = useMemo(() => parseRouteQuery('shotCharts', search), [search])
+  const requestedSeason = Number(query.values.temporada)
+  const selectedSeason = availableSeasons.includes(requestedSeason)
+    ? requestedSeason
+    : (availableSeasons[0] || 2025)
+  const parsedPlayer = parsePlayerSegment(urlPlayer)
+  const filterType = urlTeamId ? 'team' : parsedPlayer ? 'player' : (query.values.tipo || 'team')
+  const selectedPlayer = parsedPlayer?.id || ''
+  const shotFilter = query.values.resultado || 'all'
+  const displayMode = query.values.vista || 'shots'
+  const heatmapMode = query.values.mapa || 'frequency'
+  const zoneMode = query.values.zonas || 'efficiency'
 
-  // Load shots when season changes
+  const seasonTeams = useMemo(
+    () => teams.filter(team => Number(team.season) === Number(selectedSeason)),
+    [selectedSeason, teams]
+  )
+  const teamById = useMemo(
+    () => new Map(seasonTeams.map(team => [team.teamId, team.team])),
+    [seasonTeams]
+  )
+  const teamIdByName = useMemo(
+    () => new Map(seasonTeams.map(team => [team.team, team.teamId])),
+    [seasonTeams]
+  )
+  const selectedTeamId = urlTeamId || (filterType === 'player' ? query.values.equipo : null)
+  const selectedTeam = selectedTeamId ? (teamById.get(selectedTeamId) || '') : ''
+  const playerRecord = selectedPlayer ? getPlayerRecord(players, selectedPlayer, selectedSeason) : null
+  const efficiencyMap = displayMode === 'zones' && zoneMode === 'efficiency'
+  const effectiveShotFilter = efficiencyMap ? 'all' : shotFilter
+
+  const canonicalValues = useMemo(() => ({
+    ...query.values,
+    temporada: selectedSeason,
+    resultado: effectiveShotFilter,
+    vista: displayMode,
+    mapa: heatmapMode,
+    zonas: zoneMode,
+    equipo: filterType === 'player' ? selectedTeamId : undefined,
+    tipo: urlTeamId || urlPlayer ? undefined : filterType,
+  }), [displayMode, effectiveShotFilter, filterType, heatmapMode, query.values, selectedSeason, selectedTeamId, urlPlayer, urlTeamId, zoneMode])
+
+  useEffect(() => {
+    let canonicalPath = buildShotChartsPath()
+    if (urlTeamId) {
+      if (!isTeamId(urlTeamId)) return
+      canonicalPath = buildTeamShotChartPath(urlTeamId)
+    } else if (urlPlayer) {
+      if (!parsedPlayer || !playerRecord) return
+      canonicalPath = buildPlayerShotChartPath(playerRecord)
+    }
+
+    const canonicalSearch = serializeRouteQuery('shotCharts', canonicalValues, { strict: false })
+    const target = withQuery(canonicalPath, canonicalSearch)
+    const current = withQuery(location.pathname, search)
+    if (target !== current) navigate(target, { replace: true })
+  }, [canonicalValues, location.pathname, navigate, parsedPlayer, playerRecord, search, urlPlayer, urlTeamId])
+
+  const updateRoute = (updates, pathname = location.pathname) => {
+    const nextValues = { ...canonicalValues, ...updates }
+    if (pathname !== buildShotChartsPath()) nextValues.tipo = undefined
+
+    navigate(withQuery(
+      pathname,
+      serializeRouteQuery('shotCharts', nextValues, { strict: false })
+    ))
+  }
+
+  // load shots when season changes
   useEffect(() => {
     if (selectedSeason) {
       loadShotsForSeason(selectedSeason)
     }
   }, [selectedSeason, loadShotsForSeason])
 
-  // Get shots for current season from cache
+  // get shots for current season from cache
   const seasonFilteredShots = useMemo(() => {
     return shotsCache[selectedSeason] || []
   }, [shotsCache, selectedSeason])
 
-  // Check if shots are currently loading
+  // check if shots are currently loading
   const isLoadingSeasonShots = loadingShots[selectedSeason] || false
 
   const teamList = useMemo(() =>
@@ -60,19 +135,6 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
     [seasonFilteredShots]
   )
 
-  useEffect(() => {
-    if (filterType === 'team') {
-      const nextTeam = selectedTeam && teamList.includes(selectedTeam) ? selectedTeam : teamList[0] || ''
-      if (nextTeam !== selectedTeam) {
-        setSelectedTeam(nextTeam)
-        setSelectedPlayer('')
-      }
-      return
-    }
-
-    if (selectedTeam && !teamList.includes(selectedTeam)) setSelectedTeam('')
-  }, [filterType, selectedTeam, teamList])
-  
   const playerList = useMemo(() => {
     // Build list of unique players using playerId as the unique key
     const shots = (filterType === 'team' || filterType === 'player') && selectedTeam
@@ -124,10 +186,6 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
       })
   }, [seasonFilteredShots, filterType, selectedTeam, players, selectedSeason])
 
-  useEffect(() => {
-    if (selectedPlayer && !playerList.some(player => player.id === selectedPlayer)) setSelectedPlayer('')
-  }, [playerList, selectedPlayer])
-
   const playerOptions = useMemo(() => playerList.map(player => ({
     value: player.id,
     label: player.displayName,
@@ -157,16 +215,16 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
 
   // el resultado del tiro solo filtra capas visuales compatibles
   const filteredShots = useMemo(() => {
-    if (shotFilter === 'all') return analysisShots
-    return analysisShots.filter(shot => shotFilter === 'made' ? isMadeShot(shot) : !isMadeShot(shot))
-  }, [analysisShots, shotFilter])
+    if (effectiveShotFilter === 'all') return analysisShots
+    return analysisShots.filter(shot => effectiveShotFilter === 'made' ? isMadeShot(shot) : !isMadeShot(shot))
+  }, [analysisShots, effectiveShotFilter])
 
   const heatmapReferenceShots = useMemo(() => {
     if (!seasonFilteredShots || !Array.isArray(seasonFilteredShots)) return []
-    if (shotFilter === 'all') return seasonFilteredShots
+    if (effectiveShotFilter === 'all') return seasonFilteredShots
 
-    return seasonFilteredShots.filter(shot => shotFilter === 'made' ? isMadeShot(shot) : !isMadeShot(shot))
-  }, [seasonFilteredShots, shotFilter])
+    return seasonFilteredShots.filter(shot => effectiveShotFilter === 'made' ? isMadeShot(shot) : !isMadeShot(shot))
+  }, [effectiveShotFilter, seasonFilteredShots])
   
   const stats = useMemo(() => {
     const total = analysisShots.length
@@ -213,8 +271,11 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
     })).sort((a, b) => b.attempts - a.attempts)
   }, [analysisShots])
 
-  const hasSelection = filterType === 'team' ? Boolean(selectedTeam) : Boolean(selectedPlayer)
-  const efficiencyMap = displayMode === 'zones' && zoneMode === 'efficiency'
+  const invalidTeam = Boolean(urlTeamId && (!isTeamId(urlTeamId) || !selectedTeam))
+  const invalidPlayer = Boolean(urlPlayer && (!parsedPlayer || !playerRecord))
+  const invalidPlayerTeam = Boolean(filterType === 'player' && selectedTeamId && !selectedTeam)
+  const hasInvalidEntity = invalidTeam || invalidPlayer || invalidPlayerTeam
+  const hasSelection = !hasInvalidEntity && (filterType === 'team' ? Boolean(selectedTeam) : Boolean(selectedPlayer))
 
   return (
     <div className="app-page space-y-6">
@@ -238,11 +299,7 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
             <select
               aria-label="Temporada"
               value={selectedSeason}
-              onChange={(e) => {
-                setSelectedSeason(parseInt(e.target.value))
-                setSelectedTeam('')
-                setSelectedPlayer('')
-              }}
+              onChange={(e) => updateRoute({ temporada: Number(e.target.value) })}
               className="form-control"
             >
               {availableSeasons.map(season => (
@@ -259,8 +316,10 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
               value={displayMode}
               onChange={(e) => {
                 const mode = e.target.value
-                setDisplayMode(mode)
-                if (mode === 'zones' && zoneMode === 'efficiency') setShotFilter('all')
+                updateRoute({
+                  vista: mode,
+                  resultado: mode === 'zones' && zoneMode === 'efficiency' ? 'all' : effectiveShotFilter,
+                })
               }}
               className="form-control"
             >
@@ -276,7 +335,7 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
               <select
                 aria-label="Tipo de mapa de calor"
                 value={heatmapMode}
-                onChange={(e) => setHeatmapMode(e.target.value)}
+                onChange={(e) => updateRoute({ mapa: e.target.value })}
                 className="form-control"
               >
                 <option value="frequency">Frecuencia</option>
@@ -293,8 +352,7 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
                 value={zoneMode}
                 onChange={(e) => {
                   const mode = e.target.value
-                  setZoneMode(mode)
-                  if (mode === 'efficiency') setShotFilter('all')
+                  updateRoute({ zonas: mode, resultado: mode === 'efficiency' ? 'all' : effectiveShotFilter })
                 }}
                 className="form-control"
               >
@@ -311,9 +369,7 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
               aria-label="Vista por equipo o jugador"
               value={filterType}
               onChange={(e) => {
-                setFilterType(e.target.value)
-                setSelectedTeam('')
-                setSelectedPlayer('')
+                updateRoute({ tipo: e.target.value, equipo: undefined }, buildShotChartsPath())
               }}
               className="form-control"
             >
@@ -330,19 +386,23 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
               </label>
               <select
                 aria-label="Equipo"
-                value={selectedTeam}
+                value={selectedTeamId || ''}
                 onChange={(e) => {
-                  setSelectedTeam(e.target.value)
-                  setSelectedPlayer('')
+                  const nextTeamId = e.target.value || undefined
+                  const pathname = filterType === 'team'
+                    ? (nextTeamId ? buildTeamShotChartPath(nextTeamId) : buildShotChartsPath())
+                    : (playerRecord ? buildPlayerShotChartPath(playerRecord) : buildShotChartsPath())
+                  updateRoute({ equipo: filterType === 'player' ? nextTeamId : undefined }, pathname)
                 }}
                 className="form-control"
               >
                 <option value="" disabled={filterType === 'team'}>
                   {filterType === 'player' ? 'Todos los equipos' : 'Selecciona equipo…'}
                 </option>
-                {teamList.map(team => (
-                  <option key={team} value={team}>{team}</option>
-                ))}
+                {teamList.map(team => {
+                  const teamId = teamIdByName.get(team)
+                  return teamId ? <option key={teamId} value={teamId}>{team}</option> : null
+                })}
               </select>
             </div>
           )}
@@ -355,7 +415,13 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
                 label={`Jugador (${playerOptions.length})`}
                 options={playerOptions}
                 value={selectedPlayer}
-                onChange={(option) => setSelectedPlayer(String(option?.value || ''))}
+                onChange={(option) => {
+                  const record = option ? getPlayerRecord(players, option.value, selectedSeason) : null
+                  updateRoute(
+                    { equipo: selectedTeamId || undefined },
+                    record ? buildPlayerShotChartPath(record) : buildShotChartsPath()
+                  )
+                }}
                 placeholder="Buscar jugador…"
               />
             </div>
@@ -366,8 +432,8 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
             <label className="block text-xs font-medium text-acb-600 mb-1">Resultado</label>
             <select
               aria-label="Resultado del tiro"
-              value={shotFilter}
-              onChange={(e) => setShotFilter(e.target.value)}
+              value={effectiveShotFilter}
+              onChange={(e) => updateRoute({ resultado: e.target.value })}
               disabled={efficiencyMap}
               className="w-full px-3 py-2 border border-acb-200 rounded-md text-sm bg-white disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -382,7 +448,11 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
         </div>
       </div>
       
-      {!hasSelection ? (
+      {hasInvalidEntity ? (
+        <div className="bg-white rounded-lg border border-acb-200 p-12 text-center text-acb-500" role="alert">
+          El equipo o jugador indicado en el enlace no está disponible para esta temporada.
+        </div>
+      ) : !hasSelection ? (
         <div className="bg-white rounded-lg border border-acb-200 p-12 text-center text-acb-500">
           Selecciona {filterType === 'team' ? 'un equipo' : 'un jugador'} para mostrar su carta de tiro
         </div>
@@ -467,15 +537,6 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
               width={750}
               height={705}
             />
-          )}
-
-          <p className="text-xs text-acb-400 text-center mt-2">
-            Visualizando {filteredShots.length} de {analysisShots.length} tiros
-          </p>
-          {shotFilter !== 'all' && (
-            <p className="text-xs text-acb-400 text-center mt-1">
-              Los porcentajes y el desglose se calculan con todos los intentos de la selección.
-            </p>
           )}
         </div>
         

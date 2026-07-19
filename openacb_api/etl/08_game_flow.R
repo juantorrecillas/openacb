@@ -21,6 +21,11 @@ generate_game_flow <- function(
     output_dir = "../openacb_react/public/data"
 ) {
   source(config_path, local = TRUE)
+  source(
+    file.path(dirname(config_path), "team_identities.R"),
+    local = TRUE,
+    encoding = "UTF-8"
+  )
 
   cat(sprintf("\n--- Game Flow: season %d ---\n", season_id))
 
@@ -254,6 +259,25 @@ generate_game_flow <- function(
 
     games_list <- append(games_list, list(game))
   }
+
+  # add stable club ids once per game
+  local_names <- vapply(games_list, function(game) game$local, character(1))
+  visitor_names <- vapply(games_list, function(game) game$visitor, character(1))
+  local_ids <- resolve_team_ids(
+    local_names,
+    rep(season_id, length(local_names)),
+    context = sprintf("game flow local teams for season %d", season_id)
+  )
+  visitor_ids <- resolve_team_ids(
+    visitor_names,
+    rep(season_id, length(visitor_names)),
+    context = sprintf("game flow visitor teams for season %d", season_id)
+  )
+  games_list <- Map(function(game, local_id, visitor_id) {
+    game$localTeamId <- local_id
+    game$visitorTeamId <- visitor_id
+    game
+  }, games_list, local_ids, visitor_ids)
 
   # Sort by jornada
   games_list <- games_list[order(sapply(games_list, function(g) g$jornada))]

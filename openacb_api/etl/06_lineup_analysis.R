@@ -770,10 +770,23 @@ calculate_lineup_stats_optimized <- function(team_data, team_name, player_cols, 
 #'
 export_lineup_json <- function(lineup_data, output_file, pretty = TRUE) {
   cat("\nExporting lineup data to JSON...\n")
+  source("./config/team_identities.R", local = TRUE, encoding = "UTF-8")
 
   # Convert to JSON-friendly format expected by React component
   # Format: { data: { "SEASON_TEAMNAME": { team, season, players, pairs, trios, lineups } } }
   json_data_inner <- list()
+  team_names <- names(lineup_data)
+  season_ids <- vapply(
+    lineup_data,
+    function(team_data) as.integer(team_data$season),
+    integer(1)
+  )
+  team_ids <- validate_unique_team_seasons(
+    team_names,
+    season_ids,
+    context = "lineup analysis export"
+  )
+  names(team_ids) <- team_names
 
   for (team_name in names(lineup_data)) {
     team_data <- lineup_data[[team_name]]
@@ -782,6 +795,7 @@ export_lineup_json <- function(lineup_data, output_file, pretty = TRUE) {
 
     json_data_inner[[key]] <- list(
       team = team_data$team,
+      teamId = unname(team_ids[[team_name]]),
       season = team_data$season,
       # React expects "players" not "individual"
       players = if (length(team_data$individual) > 0) team_data$individual else list(),

@@ -1,9 +1,12 @@
 import React, { useState, useMemo, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { getPlayerPhoto } from '../utils/playerPhotos'
 import { getPlayerDisplayName as getCanonicalPlayerName } from '../utils/playerNames'
 import { Users, Info, X, Search, ChevronDown, ChevronUp } from 'lucide-react'
 import PageHeader from '../components/PageHeader'
+import { normalizeNumericId } from '../routing/identifiers'
+import { buildLineupAnalysisPath } from '../routing/paths'
+import { parseRouteQuery, serializeRouteQuery, withQuery } from '../routing/query'
 
 /**
  * Lineup Analysis Page - Cleaning the Glass Style
@@ -15,6 +18,7 @@ import PageHeader from '../components/PageHeader'
 // Extract licenseId from player key format "Name_12345"
 const getIdFromKey = (key) => key?.split('_').pop() || ''
 const MIN_ON_OFF_MINUTES = 50
+const EMPTY_PLAYER_IDS = Object.freeze([])
 const hasNumber = (value) => value != null && !Number.isNaN(Number(value))
 
 const normalizeSearch = (value) => String(value || '')
@@ -22,102 +26,103 @@ const normalizeSearch = (value) => String(value || '')
   .replace(/[\u0300-\u036f]/g, '')
   .toLocaleLowerCase('es')
 
-// Convert team name to URL-friendly slug
-function toSlug(name) {
-  return name
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/\s+/g, '-')
-    .replace(/[^a-z0-9-]/g, '')
-}
-
 export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCache, loadingLineups, playerPhotos = {}, playerRecords = [] }) {
-  const { season: urlSeason, team: urlTeamSlug } = useParams()
+  const { teamId: urlTeamId } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
+  const [searchParams] = useSearchParams()
 
   // State for UI
   const [showAllPlayers, setShowAllPlayers] = useState(false)
   const [sortConfig, setSortConfig] = useState({ key: 'netDiff', direction: 'desc' })
 
-  // Available seasons and teams
   const availableSeasons = useMemo(() => {
     const seasons = [...new Set(teams.map(t => t.season))].sort((a, b) => b - a)
     return seasons
   }, [teams])
 
-  const [selectedSeason, setSelectedSeason] = useState(availableSeasons[0] || 2025)
-  const [selectedTeam, setSelectedTeam] = useState('')
-
-  // Sync season from URL
-  useEffect(() => {
-    if (urlSeason) setSelectedSeason(Number(urlSeason))
-  }, [urlSeason])
-
-  // Resolve team slug to real name once season teams are known
-  const seasonTeamsForSlug = useMemo(() => {
-    const s = urlSeason ? Number(urlSeason) : selectedSeason
-    return teams.filter(t => t.season === s)
-  }, [teams, urlSeason, selectedSeason])
-
-  useEffect(() => {
-    if (seasonTeamsForSlug.length === 0) return
-    const teamNames = [...new Set(seasonTeamsForSlug.map(t => t.team))].sort((a, b) => a.localeCompare(b, 'es'))
-    const urlMatch = urlTeamSlug ? teamNames.find(team => toSlug(team) === urlTeamSlug) : null
-    const nextTeam = urlTeamSlug
-      ? (urlMatch || teamNames[0])
-      : (teamNames.includes(selectedTeam) ? selectedTeam : teamNames[0])
-    if (nextTeam !== selectedTeam) setSelectedTeam(nextTeam)
-    const canonicalPath = `/alineaciones/${selectedSeason}/${toSlug(nextTeam)}`
-    if (Number(urlSeason) !== selectedSeason || urlTeamSlug !== toSlug(nextTeam)) {
-      navigate(canonicalPath, { replace: true })
-    }
-  }, [navigate, selectedSeason, selectedTeam, seasonTeamsForSlug, urlSeason, urlTeamSlug])
-
-  // Load lineups when season changes
-  useEffect(() => {
-    if (selectedSeason) {
-      loadLineupsForSeason(selectedSeason)
-    }
-  }, [selectedSeason, loadLineupsForSeason])
-
-  // Get lineups for current season from cache
-  const lineupData = useMemo(() => {
-    return lineupsCache[selectedSeason] || null
-  }, [lineupsCache, selectedSeason])
-
-  // Check if lineups are currently loading
-  const loading = loadingLineups[selectedSeason] || false
-
-  // Player selection state
-  const [selectedPlayers, setSelectedPlayers] = useState([])
-  const [excludedPlayer, setExcludedPlayer] = useState('')
+  const routeSearch = searchParams.toString()
+  const parsedQuery = useMemo(
+    () => parseRouteQuery('lineupAnalysis', routeSearch),
+    [routeSearch],
+  )
+  const requestedSeason = parsedQuery.values.temporada
+  const selectedSeason = availableSeasons.includes(requestedSeason)
+    ? requestedSeason
+    : (availableSeasons[0] || 2025)
+  const requestedSelectedIds = parsedQuery.values.con || EMPTY_PLAYER_IDS
+  const requestedExcludedId = parsedQuery.values.sin?.[0] || ''
   const [searchQuery, setSearchQuery] = useState('')
 
-  // clear exclusions whenever the analysis context changes
-  useEffect(() => {
-    setExcludedPlayer('')
-  }, [selectedSeason, selectedTeam, selectedPlayers])
-
-  // Filter teams by season
   const seasonFilteredTeams = useMemo(() => {
-    if (selectedSeason === 'all') return teams
     return teams.filter(t => t.season === selectedSeason)
   }, [teams, selectedSeason])
 
-  const teamList = useMemo(() => seasonFilteredTeams.map(t => t.team).sort((a, b) => a.localeCompare(b, 'es')), [seasonFilteredTeams])
+  const teamOptions = useMemo(() => {
+    const byId = new Map()
+    seasonFilteredTeams.forEach(team => {
+      if (team.teamId && team.team) byId.set(team.teamId, team.team)
+    })
+    return [...byId.entries()]
+      .map(([teamId, name]) => ({ teamId, name }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'es'))
+  }, [seasonFilteredTeams])
 
-  // Get current team data (per-season format: data is keyed by team name directly)
+  const selectedTeamOption = teamOptions.find(team => team.teamId === urlTeamId) || null
+  const selectedTeam = selectedTeamOption?.name || ''
+  const invalidTeam = Boolean(urlTeamId && !selectedTeamOption)
+
+  useEffect(() => {
+    if (selectedTeamOption) loadLineupsForSeason(selectedSeason)
+  }, [loadLineupsForSeason, selectedSeason, selectedTeamOption])
+
+  const lineupData = useMemo(() => lineupsCache[selectedSeason] || null, [lineupsCache, selectedSeason])
+  const loading = Boolean(selectedTeamOption && loadingLineups[selectedSeason])
+
   const currentTeamData = useMemo(() => {
     if (!lineupData?.data) return null
-    // In per-season files, data is keyed by team name
     return lineupData.data[selectedTeam] || null
   }, [lineupData, selectedTeam])
 
-  // Get available players for current team (keys are now nick_id format for uniqueness)
   const availablePlayers = useMemo(() => {
     if (!currentTeamData?.players) return []
     return Object.keys(currentTeamData.players).sort()
   }, [currentTeamData])
+
+  const playerIdentityMaps = useMemo(() => {
+    const keyById = new Map()
+    const idByKey = new Map()
+    const ambiguousIds = new Set()
+
+    Object.entries(currentTeamData?.players || {}).forEach(([key, player]) => {
+      const licenseId = normalizeNumericId(player.id || player.licenseId || getIdFromKey(key))
+      if (!licenseId) return
+      idByKey.set(key, licenseId)
+      if (keyById.has(licenseId) && keyById.get(licenseId) !== key) ambiguousIds.add(licenseId)
+      else keyById.set(licenseId, key)
+    })
+    ambiguousIds.forEach(id => keyById.delete(id))
+
+    return { keyById, idByKey, ambiguousIds }
+  }, [currentTeamData])
+
+  const hasLoadedLineupData = Object.prototype.hasOwnProperty.call(lineupsCache, selectedSeason)
+  const invalidSelectedIds = useMemo(
+    () => hasLoadedLineupData && selectedTeamOption
+      ? requestedSelectedIds.filter(id => !playerIdentityMaps.keyById.has(id))
+      : [],
+    [hasLoadedLineupData, playerIdentityMaps, requestedSelectedIds, selectedTeamOption],
+  )
+  const hasTooManyPlayers = requestedSelectedIds.length > 5
+  const selectedPlayers = useMemo(
+    () => invalidSelectedIds.length === 0 && !hasTooManyPlayers
+      ? requestedSelectedIds.map(id => playerIdentityMaps.keyById.get(id)).filter(Boolean)
+      : [],
+    [hasTooManyPlayers, invalidSelectedIds, playerIdentityMaps, requestedSelectedIds],
+  )
+  const requestedExcludedKey = requestedExcludedId
+    ? playerIdentityMaps.keyById.get(requestedExcludedId) || ''
+    : ''
 
   const playerNameById = useMemo(() => {
     const names = new Map()
@@ -170,6 +175,51 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
       return nameA.localeCompare(nameB, 'es')
     })
   }, [currentTeamData, selectedPlayers, playerDisplayMap])
+
+  const invalidExcludedPlayer = Boolean(
+    requestedExcludedId
+    && hasLoadedLineupData
+    && selectedTeamOption
+    && (
+      !requestedExcludedKey
+      || selectedPlayers.length !== 1
+      || !availableExclusions.includes(requestedExcludedKey)
+    )
+  )
+  const excludedPlayer = requestedExcludedId && !invalidExcludedPlayer
+    ? requestedExcludedKey
+    : ''
+  const playerSelectionError = hasTooManyPlayers
+    ? 'Solo puedes analizar hasta cinco jugadores a la vez.'
+    : invalidSelectedIds.length > 0
+      ? `No se ${invalidSelectedIds.length === 1 ? 'encuentra el jugador indicado' : 'encuentran los jugadores indicados'} en este equipo y temporada.`
+      : invalidExcludedPlayer
+        ? 'La selección «sin» no corresponde a un compañero con un desglose disponible.'
+        : ''
+
+  const canonicalQuery = {
+    temporada: selectedSeason,
+    con: requestedSelectedIds.length > 0 ? requestedSelectedIds : undefined,
+    sin: requestedExcludedId ? [requestedExcludedId] : undefined,
+  }
+  const canonicalSearch = serializeRouteQuery('lineupAnalysis', canonicalQuery)
+  const canonicalPath = selectedTeamOption
+    ? buildLineupAnalysisPath(selectedTeamOption.teamId)
+    : urlTeamId
+      ? location.pathname
+      : buildLineupAnalysisPath()
+  const canonicalLocation = withQuery(canonicalPath, canonicalSearch)
+  const currentLocation = `${location.pathname}${location.search}`
+
+  useEffect(() => {
+    if (canonicalLocation !== currentLocation) navigate(canonicalLocation, { replace: true })
+  }, [canonicalLocation, currentLocation, navigate])
+
+  const navigateState = ({ teamId = selectedTeamOption?.teamId || null, query = {} } = {}) => {
+    const pathname = teamId ? buildLineupAnalysisPath(teamId) : buildLineupAnalysisPath()
+    const target = withQuery(pathname, serializeRouteQuery('lineupAnalysis', { ...canonicalQuery, ...query }))
+    if (target !== currentLocation) navigate(target)
+  }
 
   // Get all players data for the table
   const allPlayersData = useMemo(() => {
@@ -307,26 +357,37 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
   // Player selection handlers
   const addPlayer = (player) => {
     if (excludedPlayer || selectedPlayers.includes(player) || selectedPlayers.length >= 5) return
-    setSelectedPlayers([...selectedPlayers, player])
+    const licenseId = playerIdentityMaps.idByKey.get(player)
+    if (!licenseId) return
+    navigateState({ query: { con: [...requestedSelectedIds, licenseId], sin: undefined } })
   }
 
   const excludePlayer = (player) => {
     if (selectedPlayers.length !== 1 || !availableExclusions.includes(player)) return
-    setExcludedPlayer(player)
+    const licenseId = playerIdentityMaps.idByKey.get(player)
+    if (licenseId) navigateState({ query: { sin: [licenseId] } })
   }
 
   const removePlayer = (player) => {
-    setSelectedPlayers(selectedPlayers.filter(p => p !== player))
+    const licenseId = playerIdentityMaps.idByKey.get(player)
+    navigateState({
+      query: {
+        con: requestedSelectedIds.filter(id => id !== licenseId),
+        sin: undefined,
+      },
+    })
   }
 
   const toggleSinglePlayer = (player) => {
     if (selectedPlayers.includes(player)) removePlayer(player)
-    else setSelectedPlayers([player])
+    else {
+      const licenseId = playerIdentityMaps.idByKey.get(player)
+      if (licenseId) navigateState({ query: { con: [licenseId], sin: undefined } })
+    }
   }
 
   const clearPlayers = () => {
-    setSelectedPlayers([])
-    setExcludedPlayer('')
+    navigateState({ query: { con: undefined, sin: undefined } })
   }
 
   // Sort handler
@@ -393,10 +454,12 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
               aria-label="Temporada"
               value={selectedSeason}
               onChange={(e) => {
-                const s = e.target.value === 'all' ? 'all' : parseInt(e.target.value)
-                setSelectedSeason(s)
-                clearPlayers()
-                navigate('/alineaciones', { replace: true })
+                const season = Number(e.target.value)
+                const keepTeam = teams.some(team => team.season === season && team.teamId === urlTeamId)
+                navigateState({
+                  teamId: keepTeam ? urlTeamId : null,
+                  query: { temporada: season, con: undefined, sin: undefined },
+                })
               }}
               className="form-control"
             >
@@ -411,25 +474,52 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
             <Users className="w-4 h-4 text-acb-400" />
             <select
               aria-label="Equipo"
-              value={selectedTeam}
+              value={selectedTeamOption?.teamId || ''}
               onChange={(e) => {
-                const team = e.target.value
-                setSelectedTeam(team)
-                clearPlayers()
-                if (team) {
-                  navigate(`/alineaciones/${selectedSeason}/${toSlug(team)}`, { replace: true })
-                }
+                navigateState({
+                  teamId: e.target.value || null,
+                  query: { con: undefined, sin: undefined },
+                })
               }}
               className="form-control min-w-[200px]"
             >
-              {teamList.map(team => (
-                <option key={team} value={team}>{team}</option>
+              <option value="">Selecciona un equipo</option>
+              {teamOptions.map(team => (
+                <option key={team.teamId} value={team.teamId}>{team.name}</option>
               ))}
             </select>
           </div>
         </div>
 
+        {!urlTeamId && (
+          <div className="rounded-md border border-acb-200 bg-acb-50 px-4 py-3 text-sm text-acb-600" role="status">
+            Selecciona un equipo para empezar el análisis de alineaciones.
+          </div>
+        )}
+
+        {invalidTeam && (
+          <div className="rounded-md border border-negative-200 bg-negative-50 px-4 py-3 text-sm text-negative-700" role="alert">
+            Ese equipo no está disponible en la temporada seleccionada. Elige un equipo válido de la lista.
+          </div>
+        )}
+
+        {selectedTeamOption && hasLoadedLineupData && !currentTeamData && (
+          <div className="rounded-md border border-negative-200 bg-negative-50 px-4 py-3 text-sm text-negative-700" role="alert">
+            No hay datos de alineaciones disponibles para este equipo y temporada.
+          </div>
+        )}
+
+        {playerSelectionError && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-negative-200 bg-negative-50 px-4 py-3 text-sm text-negative-700" role="alert">
+            <span>{playerSelectionError}</span>
+            <button type="button" onClick={clearPlayers} className="font-medium underline hover:no-underline">
+              Limpiar selección
+            </button>
+          </div>
+        )}
+
         {/* Player Selection */}
+        {selectedTeamOption && currentTeamData && !playerSelectionError && (
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <Search className="w-4 h-4 text-acb-400" />
@@ -450,8 +540,8 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
               <span className="text-sm text-acb-600 font-medium">Analizando:</span>
               {selectedPlayers.map(playerKey => (
                 <div key={playerKey} className="flex items-center gap-1 bg-accent-100 text-accent-800 rounded-full px-3 py-1">
-                  {getPlayerPhoto(playerPhotos, getIdFromKey(playerKey), selectedSeason) && (
-                    <img src={getPlayerPhoto(playerPhotos, getIdFromKey(playerKey), selectedSeason)} alt="" className="w-5 h-5 rounded-full object-cover object-top" />
+                  {getPlayerPhoto(playerPhotos, playerIdentityMaps.idByKey.get(playerKey), selectedSeason) && (
+                    <img src={getPlayerPhoto(playerPhotos, playerIdentityMaps.idByKey.get(playerKey), selectedSeason)} alt="" className="w-5 h-5 rounded-full object-cover object-top" />
                   )}
                   <span className="text-sm font-medium">{getPlayerDisplayName(playerKey)}</span>
                   <button
@@ -467,7 +557,7 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
               {excludedPlayer && (
                 <button
                   type="button"
-                  onClick={() => setExcludedPlayer('')}
+                  onClick={() => navigateState({ query: { sin: undefined } })}
                   className="inline-flex items-center gap-1.5 rounded-full border border-acb-300 bg-acb-100 px-3 py-1 text-sm font-medium text-acb-800 hover:bg-acb-200"
                   aria-label={`Quitar comparación sin ${getPlayerDisplayName(excludedPlayer)}`}
                 >
@@ -493,7 +583,7 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 items-start gap-1 p-2">
                 {filteredPlayers.map(playerKey => {
                   const displayName = getPlayerDisplayName(playerKey)
-                  const photo = getPlayerPhoto(playerPhotos, getIdFromKey(playerKey), selectedSeason)
+                  const photo = getPlayerPhoto(playerPhotos, playerIdentityMaps.idByKey.get(playerKey), selectedSeason)
                   const isSelected = selectedPlayers.includes(playerKey)
                   const isExcluded = excludedPlayer === playerKey
                   const selectionClosed = Boolean(excludedPlayer) || selectedPlayers.length >= 5
@@ -574,6 +664,7 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
             )}
           </div>
         </div>
+        )}
       </div>
 
       {/* Individual Player Analysis Results */}
@@ -730,7 +821,7 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
               data={exclusionAnalysisData}
               focalName={getPlayerDisplayName(selectedPlayers[0])}
               excludedName={getPlayerDisplayName(excludedPlayer)}
-              onClear={() => setExcludedPlayer('')}
+              onClear={() => navigateState({ query: { sin: undefined } })}
             />
           )
         }

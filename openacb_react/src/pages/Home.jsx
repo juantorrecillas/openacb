@@ -1,23 +1,38 @@
 import { Link } from 'react-router-dom'
 import { Target, BarChart3, Users, TrendingUp, Trophy, Percent, UserCircle, ArrowRight, GitCompareArrows, Fingerprint, Activity, Crown, Sparkles, Scale, Flame } from 'lucide-react'
+import {
+  buildAboutPath,
+  buildFourFactorsPath,
+  buildGamesPath,
+  buildLineupAnalysisPath,
+  buildLineupRankingsPath,
+  buildPlayerClutchPath,
+  buildPlayerComparisonPath,
+  buildPlayerProfilePath,
+  buildPlayerSimilarityPath,
+  buildPlayerStatsPath,
+  buildShotChartsPath,
+  buildTeamComparisonPath,
+  buildTeamProfilePath,
+  buildTeamStatsPath,
+  buildZoneLeadersPath,
+} from '../routing'
 
-// tab id → url path mapping (must match app.jsx)
 const TAB_PATHS = {
-  teams: '/equipos',
-  fingerprint: '/perfil-equipo',
-  matchup: '/matchup-equipos',
-  gameflow: '/flujo-partido',
-  factors: '/cuatro-factores',
-  players: '/jugadores',
-  profile: '/jugador',
-  clutch: '/estadisticas-clutch',
-  similarity: '/similitud',
-  comparison: '/comparar',
-  lineups: '/alineaciones',
-  rankings: '/mejores-alineaciones',
-  shots: '/cartas-tiro',
-  zoneleaders: '/lideres-zona',
-  about: '/info',
+  teams: buildTeamStatsPath(),
+  fingerprint: buildTeamProfilePath(),
+  matchup: buildTeamComparisonPath(),
+  gameflow: buildGamesPath(),
+  factors: buildFourFactorsPath(),
+  players: buildPlayerStatsPath(),
+  profile: buildPlayerProfilePath(),
+  clutch: buildPlayerClutchPath(),
+  similarity: buildPlayerSimilarityPath(),
+  comparison: buildPlayerComparisonPath(),
+  lineups: buildLineupAnalysisPath(),
+  rankings: buildLineupRankingsPath(),
+  shots: buildShotChartsPath(),
+  zoneleaders: buildZoneLeadersPath(),
 }
 
 const categories = [
@@ -151,7 +166,7 @@ function Home() {
       {/* cta */}
       <div className="mt-8 text-center">
         <Link
-          to="/info"
+          to={buildAboutPath()}
           className="inline-flex items-center gap-2 px-6 py-3 bg-acb-900 text-white rounded-lg hover:bg-acb-800 transition-colors"
         >
           Más información sobre el proyecto

@@ -1,5 +1,8 @@
 import { useState, useMemo, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import PageHeader from '../components/PageHeader'
+import GameAnalysisNav from '../components/GameAnalysisNav'
+import { parseRouteQuery, serializeRouteQuery } from '../routing/query'
 
 function seasonLabel(s) {
   return `${s - 1}-${String(s).slice(-2)}`
@@ -49,19 +52,59 @@ function HeatCell({ value, colorValue, max, isDiff }) {
 // ─── Main Component ─────────────────────────────────────────────
 
 export default function TeamPace({ teams, loadTeamPaceForSeason, teamPaceCache, loadingTeamPace }) {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const parsedQuery = parseRouteQuery('teamQuarters', searchParams)
   const availableSeasons = useMemo(() => {
     return [...new Set(teams.map(t => t.season))].sort((a, b) => b - a)
   }, [teams])
 
-  const [selectedSeason, setSelectedSeason] = useState(availableSeasons[0] || 2025)
-  const [selectedTeam, setSelectedTeam] = useState(null)
+  const requestedSeason = parsedQuery.values.temporada
+  const selectedSeason = availableSeasons.includes(requestedSeason)
+    ? requestedSeason
+    : (availableSeasons[0] || 2026)
   const [sortCol, setSortCol] = useState('total')
   const [sortDir, setSortDir] = useState('desc')
-  const [viewMode, setViewMode] = useState('diff') // 'diff', 'scored', 'allowed'
+  const viewMode = parsedQuery.values.vista || 'diff'
+
+  const seasonTeams = useMemo(
+    () => teams.filter(team => Number(team.season) === Number(selectedSeason)),
+    [selectedSeason, teams]
+  )
+  const teamById = useMemo(
+    () => new Map(seasonTeams.map(team => [team.teamId, team.team])),
+    [seasonTeams]
+  )
+  const teamIdByName = useMemo(
+    () => new Map(seasonTeams.map(team => [team.team, team.teamId])),
+    [seasonTeams]
+  )
+  const selectedTeamId = parsedQuery.values.equipo || ''
+  const selectedTeam = teamById.get(selectedTeamId) || null
 
   useEffect(() => {
     if (selectedSeason) loadTeamPaceForSeason(selectedSeason)
   }, [selectedSeason, loadTeamPaceForSeason])
+
+  const canonicalSearch = serializeRouteQuery('teamQuarters', {
+    temporada: selectedSeason,
+    equipo: selectedTeam ? selectedTeamId : undefined,
+    vista: viewMode,
+  })
+  const currentSearch = searchParams.toString()
+
+  useEffect(() => {
+    if (canonicalSearch !== currentSearch) {
+      setSearchParams(canonicalSearch, { replace: true })
+    }
+  }, [canonicalSearch, currentSearch, setSearchParams])
+
+  const updateState = ({ season = selectedSeason, teamId = selectedTeamId, view = viewMode }) => {
+    setSearchParams(serializeRouteQuery('teamQuarters', {
+      temporada: season,
+      equipo: teamId || undefined,
+      vista: view,
+    }))
+  }
 
   const paceData = useMemo(() => {
     return teamPaceCache[selectedSeason] || []
@@ -156,6 +199,7 @@ export default function TeamPace({ teams, loadTeamPaceForSeason, teamPaceCache, 
 
   return (
     <div className="app-page space-y-6">
+      <GameAnalysisNav season={selectedSeason} />
       <PageHeader title="Ritmo y parciales" subtitle="Rendimiento por cuarto, parciales por segmento y anotación tras tiempo muerto" />
 
       {/* controls */}
@@ -165,10 +209,7 @@ export default function TeamPace({ teams, loadTeamPaceForSeason, teamPaceCache, 
           <select
             id="team-pace-season"
             value={selectedSeason}
-            onChange={e => {
-              setSelectedSeason(Number(e.target.value))
-              setSelectedTeam(null)
-            }}
+            onChange={e => updateState({ season: Number(e.target.value), teamId: null })}
             className="form-control"
           >
             {availableSeasons.map(s => (
@@ -187,7 +228,7 @@ export default function TeamPace({ teams, loadTeamPaceForSeason, teamPaceCache, 
             ].map(opt => (
               <button
                 key={opt.key}
-                onClick={() => setViewMode(opt.key)}
+                onClick={() => updateState({ view: opt.key })}
                 aria-pressed={viewMode === opt.key}
                 className="segmented-option"
               >
@@ -261,7 +302,7 @@ export default function TeamPace({ teams, loadTeamPaceForSeason, teamPaceCache, 
                   return (
                     <tr
                       key={t.team}
-                      onClick={() => setSelectedTeam(isSelected ? null : t.team)}
+                      onClick={() => updateState({ teamId: isSelected ? null : teamIdByName.get(t.team) })}
                       className={`data-table-row cursor-pointer ${
                         isSelected ? 'bg-accent-50' : 'hover:bg-acb-50'
                       }`}

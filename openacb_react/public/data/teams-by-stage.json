@@ -1,6 +1,7 @@
 [
   {
     "team": "Barcelona Lassa",
+    "teamId": "barcelona",
     "season": 2017,
     "competitionStage": "regular",
     "games": 32,
@@ -83,6 +84,7 @@
   },
   {
     "team": "Baskonia",
+    "teamId": "baskonia",
     "season": 2017,
     "competitionStage": "regular",
     "games": 32,
@@ -165,6 +167,7 @@
   },
   {
     "team": "Divina Seguros Joventut",
+    "teamId": "joventut",
     "season": 2017,
     "competitionStage": "regular",
     "games": 32,
@@ -247,6 +250,7 @@
   },
   {
     "team": "Herbalife Gran Canaria",
+    "teamId": "gran-canaria",
     "season": 2017,
     "competitionStage": "regular",
     "games": 32,
@@ -329,6 +333,7 @@
   },
   {
     "team": "Iberostar Tenerife",
+    "teamId": "tenerife",
     "season": 2017,
     "competitionStage": "regular",
     "games": 31,
@@ -411,6 +416,7 @@
   },
   {
     "team": "ICL Manresa",
+    "teamId": "manresa",
     "season": 2017,
     "competitionStage": "regular",
     "games": 31,
@@ -493,6 +499,7 @@
   },
   {
     "team": "Montakit Fuenlabrada",
+    "teamId": "fuenlabrada",
     "season": 2017,
     "competitionStage": "regular",
     "games": 31,
@@ -575,6 +582,7 @@
   },
   {
     "team": "MoraBanc Andorra",
+    "teamId": "andorra",
     "season": 2017,
     "competitionStage": "regular",
     "games": 32,
@@ -657,6 +665,7 @@
   },
   {
     "team": "Movistar Estudiantes",
+    "teamId": "estudiantes",
     "season": 2017,
     "competitionStage": "regular",
     "games": 31,
@@ -739,6 +748,7 @@
   },
   {
     "team": "Real Betis Energía Plus",
+    "teamId": "real-betis",
     "season": 2017,
     "competitionStage": "regular",
     "games": 32,
@@ -821,6 +831,7 @@
   },
   {
     "team": "Real Madrid",
+    "teamId": "real-madrid",
     "season": 2017,
     "competitionStage": "regular",
     "games": 31,
@@ -903,6 +914,7 @@
   },
   {
     "team": "RETAbet Bilbao Basket",
+    "teamId": "bilbao-basket",
     "season": 2017,
     "competitionStage": "regular",
     "games": 31,
@@ -985,6 +997,7 @@
   },
   {
     "team": "Rio Natura Monbus Obradoiro",
+    "teamId": "obradoiro",
     "season": 2017,
     "competitionStage": "regular",
     "games": 32,
@@ -1067,6 +1080,7 @@
   },
   {
     "team": "Tecnyconta Zaragoza",
+    "teamId": "zaragoza",
     "season": 2017,
     "competitionStage": "regular",
     "games": 32,
@@ -1149,6 +1163,7 @@
   },
   {
     "team": "UCAM Murcia",
+    "teamId": "murcia",
     "season": 2017,
     "competitionStage": "regular",
     "games": 32,
@@ -1231,6 +1246,7 @@
   },
   {
     "team": "Unicaja",
+    "teamId": "unicaja",
     "season": 2017,
     "competitionStage": "regular",
     "games": 32,
@@ -1313,6 +1329,7 @@
   },
   {
     "team": "Valencia Basket",
+    "teamId": "valencia-basket",
     "season": 2017,
     "competitionStage": "regular",
     "games": 32,
@@ -1395,6 +1412,7 @@
   },
   {
     "team": "Barcelona Lassa",
+    "teamId": "barcelona",
     "season": 2017,
     "competitionStage": "playoffs",
     "games": 3,
@@ -1477,6 +1495,7 @@
   },
   {
     "team": "Baskonia",
+    "teamId": "baskonia",
     "season": 2017,
     "competitionStage": "playoffs",
     "games": 7,
@@ -1559,6 +1578,7 @@
   },
   {
     "team": "Herbalife Gran Canaria",
+    "teamId": "gran-canaria",
     "season": 2017,
     "competitionStage": "playoffs",
     "games": 3,
@@ -1641,6 +1661,7 @@
   },
   {
     "team": "Iberostar Tenerife",
+    "teamId": "tenerife",
     "season": 2017,
     "competitionStage": "playoffs",
     "games": 3,
@@ -1723,6 +1744,7 @@
   },
   {
     "team": "MoraBanc Andorra",
+    "teamId": "andorra",
     "season": 2017,
     "competitionStage": "playoffs",
     "games": 3,
@@ -1805,6 +1827,7 @@
   },
   {
     "team": "Real Madrid",
+    "teamId": "real-madrid",
     "season": 2017,
     "competitionStage": "playoffs",
     "games": 10,
@@ -1887,6 +1910,7 @@
   },
   {
     "team": "Unicaja",
+    "teamId": "unicaja",
     "season": 2017,
     "competitionStage": "playoffs",
     "games": 6,
@@ -1969,6 +1993,7 @@
   },
   {
     "team": "Valencia Basket",
+    "teamId": "valencia-basket",
     "season": 2017,
     "competitionStage": "playoffs",
     "games": 11,
@@ -2051,6 +2076,7 @@
   },
   {
     "team": "Barcelona Lassa",
+    "teamId": "barcelona",
     "season": 2018,
     "competitionStage": "regular",
     "games": 29,
@@ -2133,6 +2159,7 @@
   },
   {
     "team": "Delteco GBC",
+    "teamId": "gipuzkoa",
     "season": 2018,
     "competitionStage": "regular",
     "games": 33,
@@ -2215,6 +2242,7 @@
   },
   {
     "team": "Divina Seguros Joventut",
+    "teamId": "joventut",
     "season": 2018,
     "competitionStage": "regular",
     "games": 25,
@@ -2297,6 +2325,7 @@
   },
   {
     "team": "Herbalife Gran Canaria",
+    "teamId": "gran-canaria",
     "season": 2018,
     "competitionStage": "regular",
     "games": 30,
@@ -2379,6 +2408,7 @@
   },
   {
     "team": "Iberostar Tenerife",
+    "teamId": "tenerife",
     "season": 2018,
     "competitionStage": "regular",
     "games": 33,
@@ -2461,6 +2491,7 @@
   },
   {
     "team": "Kirolbet Baskonia",
+    "teamId": "baskonia",
     "season": 2018,
     "competitionStage": "regular",
     "games": 29,
@@ -2543,6 +2574,7 @@
   },
   {
     "team": "Monbus Obradoiro",
+    "teamId": "obradoiro",
     "season": 2018,
     "competitionStage": "regular",
     "games": 30,
@@ -2625,6 +2657,7 @@
   },
   {
     "team": "Montakit Fuenlabrada",
+    "teamId": "fuenlabrada",
     "season": 2018,
     "competitionStage": "regular",
     "games": 28,
@@ -2707,6 +2740,7 @@
   },
   {
     "team": "MoraBanc Andorra",
+    "teamId": "andorra",
     "season": 2018,
     "competitionStage": "regular",
     "games": 31,
@@ -2789,6 +2823,7 @@
   },
   {
     "team": "Movistar Estudiantes",
+    "teamId": "estudiantes",
     "season": 2018,
     "competitionStage": "regular",
     "games": 29,
@@ -2871,6 +2906,7 @@
   },
   {
     "team": "Real Betis Energia Plus",
+    "teamId": "real-betis",
     "season": 2018,
     "competitionStage": "regular",
     "games": 23,
@@ -2953,6 +2989,7 @@
   },
   {
     "team": "Real Madrid",
+    "teamId": "real-madrid",
     "season": 2018,
     "competitionStage": "regular",
     "games": 25,
@@ -3035,6 +3072,7 @@
   },
   {
     "team": "RETAbet Bilbao Basket",
+    "teamId": "bilbao-basket",
     "season": 2018,
     "competitionStage": "regular",
     "games": 32,
@@ -3117,6 +3155,7 @@
   },
   {
     "team": "San Pablo Burgos",
+    "teamId": "burgos",
     "season": 2018,
     "competitionStage": "regular",
     "games": 29,
@@ -3199,6 +3238,7 @@
   },
   {
     "team": "Tecnyconta Zaragoza",
+    "teamId": "zaragoza",
     "season": 2018,
     "competitionStage": "regular",
     "games": 32,
@@ -3281,6 +3321,7 @@
   },
   {
     "team": "UCAM Murcia",
+    "teamId": "murcia",
     "season": 2018,
     "competitionStage": "regular",
     "games": 28,
@@ -3363,6 +3404,7 @@
   },
   {
     "team": "Unicaja",
+    "teamId": "unicaja",
     "season": 2018,
     "competitionStage": "regular",
     "games": 31,
@@ -3445,6 +3487,7 @@
   },
   {
     "team": "Valencia Basket",
+    "teamId": "valencia-basket",
     "season": 2018,
     "competitionStage": "regular",
     "games": 31,
@@ -3527,6 +3570,7 @@
   },
   {
     "team": "Barcelona Lassa",
+    "teamId": "barcelona",
     "season": 2018,
     "competitionStage": "playoffs",
     "games": 7,
@@ -3609,6 +3653,7 @@
   },
   {
     "team": "Herbalife Gran Canaria",
+    "teamId": "gran-canaria",
     "season": 2018,
     "competitionStage": "playoffs",
     "games": 5,
@@ -3691,6 +3736,7 @@
   },
   {
     "team": "Iberostar Tenerife",
+    "teamId": "tenerife",
     "season": 2018,
     "competitionStage": "playoffs",
     "games": 2,
@@ -3773,6 +3819,7 @@
   },
   {
     "team": "Kirolbet Baskonia",
+    "teamId": "baskonia",
     "season": 2018,
     "competitionStage": "playoffs",
     "games": 10,
@@ -3855,6 +3902,7 @@
   },
   {
     "team": "MoraBanc Andorra",
+    "teamId": "andorra",
     "season": 2018,
     "competitionStage": "playoffs",
     "games": 3,
@@ -3937,6 +3985,7 @@
   },
   {
     "team": "Real Madrid",
+    "teamId": "real-madrid",
     "season": 2018,
     "competitionStage": "playoffs",
     "games": 9,
@@ -4019,6 +4068,7 @@
   },
   {
     "team": "Unicaja",
+    "teamId": "unicaja",
     "season": 2018,
     "competitionStage": "playoffs",
     "games": 2,
@@ -4101,6 +4151,7 @@
   },
   {
     "team": "Valencia Basket",
+    "teamId": "valencia-basket",
     "season": 2018,
     "competitionStage": "playoffs",
     "games": 2,
@@ -4183,6 +4234,7 @@
   },
   {
     "team": "Barça Lassa",
+    "teamId": "barcelona",
     "season": 2019,
     "competitionStage": "regular",
     "games": 34,
@@ -4265,6 +4317,7 @@
   },
   {
     "team": "BAXI Manresa",
+    "teamId": "manresa",
     "season": 2019,
     "competitionStage": "regular",
     "games": 33,
@@ -4347,6 +4400,7 @@
   },
   {
     "team": "Cafés Candelas Breogán",
+    "teamId": "breogan",
     "season": 2019,
     "competitionStage": "regular",
     "games": 34,
@@ -4429,6 +4483,7 @@
   },
   {
     "team": "Delteco GBC",
+    "teamId": "gipuzkoa",
     "season": 2019,
     "competitionStage": "regular",
     "games": 34,
@@ -4511,6 +4566,7 @@
   },
   {
     "team": "Divina Seguros Joventut",
+    "teamId": "joventut",
     "season": 2019,
     "competitionStage": "regular",
     "games": 34,
@@ -4593,6 +4649,7 @@
   },
   {
     "team": "Herbalife Gran Canaria",
+    "teamId": "gran-canaria",
     "season": 2019,
     "competitionStage": "regular",
     "games": 34,
@@ -4675,6 +4732,7 @@
   },
   {
     "team": "Iberostar Tenerife",
+    "teamId": "tenerife",
     "season": 2019,
     "competitionStage": "regular",
     "games": 34,
@@ -4757,6 +4815,7 @@
   },
   {
     "team": "Kirolbet Baskonia",
+    "teamId": "baskonia",
     "season": 2019,
     "competitionStage": "regular",
     "games": 34,
@@ -4839,6 +4898,7 @@
   },
   {
     "team": "Monbus Obradoiro",
+    "teamId": "obradoiro",
     "season": 2019,
     "competitionStage": "regular",
     "games": 34,
@@ -4921,6 +4981,7 @@
   },
   {
     "team": "Montakit Fuenlabrada",
+    "teamId": "fuenlabrada",
     "season": 2019,
     "competitionStage": "regular",
     "games": 34,
@@ -5003,6 +5064,7 @@
   },
   {
     "team": "MoraBanc Andorra",
+    "teamId": "andorra",
     "season": 2019,
     "competitionStage": "regular",
     "games": 34,
@@ -5085,6 +5147,7 @@
   },
   {
     "team": "Movistar Estudiantes",
+    "teamId": "estudiantes",
     "season": 2019,
     "competitionStage": "regular",
     "games": 34,
@@ -5167,6 +5230,7 @@
   },
   {
     "team": "Real Madrid",
+    "teamId": "real-madrid",
     "season": 2019,
     "competitionStage": "regular",
     "games": 34,
@@ -5249,6 +5313,7 @@
   },
   {
     "team": "San Pablo Burgos",
+    "teamId": "burgos",
     "season": 2019,
     "competitionStage": "regular",
     "games": 34,
@@ -5331,6 +5396,7 @@
   },
   {
     "team": "Tecnyconta Zaragoza",
+    "teamId": "zaragoza",
     "season": 2019,
     "competitionStage": "regular",
     "games": 34,
@@ -5413,6 +5479,7 @@
   },
   {
     "team": "UCAM Murcia",
+    "teamId": "murcia",
     "season": 2019,
     "competitionStage": "regular",
     "games": 34,
@@ -5495,6 +5562,7 @@
   },
   {
     "team": "Unicaja",
+    "teamId": "unicaja",
     "season": 2019,
     "competitionStage": "regular",
     "games": 33,
@@ -5577,6 +5645,7 @@
   },
   {
     "team": "Valencia Basket",
+    "teamId": "valencia-basket",
     "season": 2019,
     "competitionStage": "regular",
     "games": 34,
@@ -5659,6 +5728,7 @@
   },
   {
     "team": "Barça Lassa",
+    "teamId": "barcelona",
     "season": 2019,
     "competitionStage": "playoffs",
     "games": 9,
@@ -5741,6 +5811,7 @@
   },
   {
     "team": "BAXI Manresa",
+    "teamId": "manresa",
     "season": 2019,
     "competitionStage": "playoffs",
     "games": 2,
@@ -5823,6 +5894,7 @@
   },
   {
     "team": "Divina Seguros Joventut",
+    "teamId": "joventut",
     "season": 2019,
     "competitionStage": "playoffs",
     "games": 2,
@@ -5905,6 +5977,7 @@
   },
   {
     "team": "Kirolbet Baskonia",
+    "teamId": "baskonia",
     "season": 2019,
     "competitionStage": "playoffs",
     "games": 2,
@@ -5987,6 +6060,7 @@
   },
   {
     "team": "Real Madrid",
+    "teamId": "real-madrid",
     "season": 2019,
     "competitionStage": "playoffs",
     "games": 9,
@@ -6069,6 +6143,7 @@
   },
   {
     "team": "Tecnyconta Zaragoza",
+    "teamId": "zaragoza",
     "season": 2019,
     "competitionStage": "playoffs",
     "games": 5,
@@ -6151,6 +6226,7 @@
   },
   {
     "team": "Unicaja",
+    "teamId": "unicaja",
     "season": 2019,
     "competitionStage": "playoffs",
     "games": 3,
@@ -6233,6 +6309,7 @@
   },
   {
     "team": "Valencia Basket",
+    "teamId": "valencia-basket",
     "season": 2019,
     "competitionStage": "playoffs",
     "games": 6,
@@ -6315,6 +6392,7 @@
   },
   {
     "team": "Barça",
+    "teamId": "barcelona",
     "season": 2020,
     "competitionStage": "regular",
     "games": 23,
@@ -6397,6 +6475,7 @@
   },
   {
     "team": "BAXI Manresa",
+    "teamId": "manresa",
     "season": 2020,
     "competitionStage": "regular",
     "games": 23,
@@ -6479,6 +6558,7 @@
   },
   {
     "team": "Casademont Zaragoza",
+    "teamId": "zaragoza",
     "season": 2020,
     "competitionStage": "regular",
     "games": 23,
@@ -6561,6 +6641,7 @@
   },
   {
     "team": "Coosur Real Betis",
+    "teamId": "real-betis",
     "season": 2020,
     "competitionStage": "regular",
     "games": 23,
@@ -6643,6 +6724,7 @@
   },
   {
     "team": "Herbalife Gran Canaria",
+    "teamId": "gran-canaria",
     "season": 2020,
     "competitionStage": "regular",
     "games": 22,
@@ -6725,6 +6807,7 @@
   },
   {
     "team": "Iberostar Tenerife",
+    "teamId": "tenerife",
     "season": 2020,
     "competitionStage": "regular",
     "games": 22,
@@ -6807,6 +6890,7 @@
   },
   {
     "team": "Joventut Badalona",
+    "teamId": "joventut",
     "season": 2020,
     "competitionStage": "regular",
     "games": 23,
@@ -6889,6 +6973,7 @@
   },
   {
     "team": "Kirolbet Baskonia",
+    "teamId": "baskonia",
     "season": 2020,
     "competitionStage": "regular",
     "games": 23,
@@ -6971,6 +7056,7 @@
   },
   {
     "team": "Monbus Obradoiro",
+    "teamId": "obradoiro",
     "season": 2020,
     "competitionStage": "regular",
     "games": 23,
@@ -7053,6 +7139,7 @@
   },
   {
     "team": "Montakit Fuenlabrada",
+    "teamId": "fuenlabrada",
     "season": 2020,
     "competitionStage": "regular",
     "games": 22,
@@ -7135,6 +7222,7 @@
   },
   {
     "team": "Morabanc Andorra",
+    "teamId": "andorra",
     "season": 2020,
     "competitionStage": "regular",
     "games": 23,
@@ -7217,6 +7305,7 @@
   },
   {
     "team": "Movistar Estudiantes",
+    "teamId": "estudiantes",
     "season": 2020,
     "competitionStage": "regular",
     "games": 23,
@@ -7299,6 +7388,7 @@
   },
   {
     "team": "Real Madrid",
+    "teamId": "real-madrid",
     "season": 2020,
     "competitionStage": "regular",
     "games": 23,
@@ -7381,6 +7471,7 @@
   },
   {
     "team": "RETAbet Bilbao Basket",
+    "teamId": "bilbao-basket",
     "season": 2020,
     "competitionStage": "regular",
     "games": 23,
@@ -7463,6 +7554,7 @@
   },
   {
     "team": "San Pablo Burgos",
+    "teamId": "burgos",
     "season": 2020,
     "competitionStage": "regular",
     "games": 23,
@@ -7545,6 +7637,7 @@
   },
   {
     "team": "UCAM Murcia",
+    "teamId": "murcia",
     "season": 2020,
     "competitionStage": "regular",
     "games": 22,
@@ -7627,6 +7720,7 @@
   },
   {
     "team": "Unicaja",
+    "teamId": "unicaja",
     "season": 2020,
     "competitionStage": "regular",
     "games": 23,
@@ -7709,6 +7803,7 @@
   },
   {
     "team": "Valencia Basket",
+    "teamId": "valencia-basket",
     "season": 2020,
     "competitionStage": "regular",
     "games": 23,
@@ -7791,6 +7886,7 @@
   },
   {
     "team": "Barça",
+    "teamId": "barcelona",
     "season": 2020,
     "competitionStage": "playoffs",
     "games": 7,
@@ -7873,6 +7969,7 @@
   },
   {
     "team": "Casademont Zaragoza",
+    "teamId": "zaragoza",
     "season": 2020,
     "competitionStage": "playoffs",
     "games": 5,
@@ -7955,6 +8052,7 @@
   },
   {
     "team": "Herbalife Gran Canaria",
+    "teamId": "gran-canaria",
     "season": 2020,
     "competitionStage": "playoffs",
     "games": 5,
@@ -8037,6 +8135,7 @@
   },
   {
     "team": "Iberostar Tenerife",
+    "teamId": "tenerife",
     "season": 2020,
     "competitionStage": "playoffs",
     "games": 5,
@@ -8119,6 +8218,7 @@
   },
   {
     "team": "Joventut Badalona",
+    "teamId": "joventut",
     "season": 2020,
     "competitionStage": "playoffs",
     "games": 5,
@@ -8201,6 +8301,7 @@
   },
   {
     "team": "Kirolbet Baskonia",
+    "teamId": "baskonia",
     "season": 2020,
     "competitionStage": "playoffs",
     "games": 7,
@@ -8283,6 +8384,7 @@
   },
   {
     "team": "Morabanc Andorra",
+    "teamId": "andorra",
     "season": 2020,
     "competitionStage": "playoffs",
     "games": 5,
@@ -8365,6 +8467,7 @@
   },
   {
     "team": "Real Madrid",
+    "teamId": "real-madrid",
     "season": 2020,
     "competitionStage": "playoffs",
     "games": 5,
@@ -8447,6 +8550,7 @@
   },
   {
     "team": "RETAbet Bilbao Basket",
+    "teamId": "bilbao-basket",
     "season": 2020,
     "competitionStage": "playoffs",
     "games": 5,
@@ -8529,6 +8633,7 @@
   },
   {
     "team": "San Pablo Burgos",
+    "teamId": "burgos",
     "season": 2020,
     "competitionStage": "playoffs",
     "games": 6,
@@ -8611,6 +8716,7 @@
   },
   {
     "team": "Unicaja",
+    "teamId": "unicaja",
     "season": 2020,
     "competitionStage": "playoffs",
     "games": 5,
@@ -8693,6 +8799,7 @@
   },
   {
     "team": "Valencia Basket",
+    "teamId": "valencia-basket",
     "season": 2020,
     "competitionStage": "playoffs",
     "games": 6,
@@ -8775,6 +8882,7 @@
   },
   {
     "team": "Acunsa GBC",
+    "teamId": "gipuzkoa",
     "season": 2021,
     "competitionStage": "regular",
     "games": 36,
@@ -8857,6 +8965,7 @@
   },
   {
     "team": "Barça",
+    "teamId": "barcelona",
     "season": 2021,
     "competitionStage": "regular",
     "games": 36,
@@ -8939,6 +9048,7 @@
   },
   {
     "team": "BAXI Manresa",
+    "teamId": "manresa",
     "season": 2021,
     "competitionStage": "regular",
     "games": 36,
@@ -9021,6 +9131,7 @@
   },
   {
     "team": "Casademont Zaragoza",
+    "teamId": "zaragoza",
     "season": 2021,
     "competitionStage": "regular",
     "games": 36,
@@ -9103,6 +9214,7 @@
   },
   {
     "team": "Coosur Real Betis",
+    "teamId": "real-betis",
     "season": 2021,
     "competitionStage": "regular",
     "games": 36,
@@ -9185,6 +9297,7 @@
   },
   {
     "team": "Herbalife Gran Canaria",
+    "teamId": "gran-canaria",
     "season": 2021,
     "competitionStage": "regular",
     "games": 36,
@@ -9267,6 +9380,7 @@
   },
   {
     "team": "Hereda San Pablo Burgos",
+    "teamId": "burgos",
     "season": 2021,
     "competitionStage": "regular",
     "games": 36,
@@ -9349,6 +9463,7 @@
   },
   {
     "team": "Joventut Badalona",
+    "teamId": "joventut",
     "season": 2021,
     "competitionStage": "regular",
     "games": 36,
@@ -9431,6 +9546,7 @@
   },
   {
     "team": "Lenovo Tenerife",
+    "teamId": "tenerife",
     "season": 2021,
     "competitionStage": "regular",
     "games": 36,
@@ -9513,6 +9629,7 @@
   },
   {
     "team": "Monbus Obradoiro",
+    "teamId": "obradoiro",
     "season": 2021,
     "competitionStage": "regular",
     "games": 36,
@@ -9595,6 +9712,7 @@
   },
   {
     "team": "MoraBanc Andorra",
+    "teamId": "andorra",
     "season": 2021,
     "competitionStage": "regular",
     "games": 36,
@@ -9677,6 +9795,7 @@
   },
   {
     "team": "Movistar Estudiantes",
+    "teamId": "estudiantes",
     "season": 2021,
     "competitionStage": "regular",
     "games": 36,
@@ -9759,6 +9878,7 @@
   },
   {
     "team": "Real Madrid",
+    "teamId": "real-madrid",
     "season": 2021,
     "competitionStage": "regular",
     "games": 36,
@@ -9841,6 +9961,7 @@
   },
   {
     "team": "RETAbet Bilbao Basket",
+    "teamId": "bilbao-basket",
     "season": 2021,
     "competitionStage": "regular",
     "games": 36,
@@ -9923,6 +10044,7 @@
   },
   {
     "team": "TD Systems Baskonia",
+    "teamId": "baskonia",
     "season": 2021,
     "competitionStage": "regular",
     "games": 36,
@@ -10005,6 +10127,7 @@
   },
   {
     "team": "UCAM Murcia",
+    "teamId": "murcia",
     "season": 2021,
     "competitionStage": "regular",
     "games": 36,
@@ -10087,6 +10210,7 @@
   },
   {
     "team": "Unicaja",
+    "teamId": "unicaja",
     "season": 2021,
     "competitionStage": "regular",
     "games": 36,
@@ -10169,6 +10293,7 @@
   },
   {
     "team": "Urbas Fuenlabrada",
+    "teamId": "fuenlabrada",
     "season": 2021,
     "competitionStage": "regular",
     "games": 36,
@@ -10251,6 +10376,7 @@
   },
   {
     "team": "Valencia Basket",
+    "teamId": "valencia-basket",
     "season": 2021,
     "competitionStage": "regular",
     "games": 36,
@@ -10333,6 +10459,7 @@
   },
   {
     "team": "Barça",
+    "teamId": "barcelona",
     "season": 2021,
     "competitionStage": "playoffs",
     "games": 8,
@@ -10415,6 +10542,7 @@
   },
   {
     "team": "Herbalife Gran Canaria",
+    "teamId": "gran-canaria",
     "season": 2021,
     "competitionStage": "playoffs",
     "games": 2,
@@ -10497,6 +10625,7 @@
   },
   {
     "team": "Hereda San Pablo Burgos",
+    "teamId": "burgos",
     "season": 2021,
     "competitionStage": "playoffs",
     "games": 2,
@@ -10579,6 +10708,7 @@
   },
   {
     "team": "Joventut Badalona",
+    "teamId": "joventut",
     "season": 2021,
     "competitionStage": "playoffs",
     "games": 3,
@@ -10661,6 +10791,7 @@
   },
   {
     "team": "Lenovo Tenerife",
+    "teamId": "tenerife",
     "season": 2021,
     "competitionStage": "playoffs",
     "games": 5,
@@ -10743,6 +10874,7 @@
   },
   {
     "team": "Real Madrid",
+    "teamId": "real-madrid",
     "season": 2021,
     "competitionStage": "playoffs",
     "games": 7,
@@ -10825,6 +10957,7 @@
   },
   {
     "team": "TD Systems Baskonia",
+    "teamId": "baskonia",
     "season": 2021,
     "competitionStage": "playoffs",
     "games": 3,
@@ -10907,6 +11040,7 @@
   },
   {
     "team": "Valencia Basket",
+    "teamId": "valencia-basket",
     "season": 2021,
     "competitionStage": "playoffs",
     "games": 6,
@@ -10989,6 +11123,7 @@
   },
   {
     "team": "Barça",
+    "teamId": "barcelona",
     "season": 2022,
     "competitionStage": "regular",
     "games": 34,
@@ -11071,6 +11206,7 @@
   },
   {
     "team": "BAXI Manresa",
+    "teamId": "manresa",
     "season": 2022,
     "competitionStage": "regular",
     "games": 34,
@@ -11153,6 +11289,7 @@
   },
   {
     "team": "Bitci Baskonia",
+    "teamId": "baskonia",
     "season": 2022,
     "competitionStage": "regular",
     "games": 34,
@@ -11235,6 +11372,7 @@
   },
   {
     "team": "Casademont Zaragoza",
+    "teamId": "zaragoza",
     "season": 2022,
     "competitionStage": "regular",
     "games": 34,
@@ -11317,6 +11455,7 @@
   },
   {
     "team": "Coosur Real Betis",
+    "teamId": "real-betis",
     "season": 2022,
     "competitionStage": "regular",
     "games": 34,
@@ -11399,6 +11538,7 @@
   },
   {
     "team": "Gran Canaria",
+    "teamId": "gran-canaria",
     "season": 2022,
     "competitionStage": "regular",
     "games": 34,
@@ -11481,6 +11621,7 @@
   },
   {
     "team": "Hereda San Pablo Burgos",
+    "teamId": "burgos",
     "season": 2022,
     "competitionStage": "regular",
     "games": 34,
@@ -11563,6 +11704,7 @@
   },
   {
     "team": "Joventut Badalona",
+    "teamId": "joventut",
     "season": 2022,
     "competitionStage": "regular",
     "games": 34,
@@ -11645,6 +11787,7 @@
   },
   {
     "team": "Lenovo Tenerife",
+    "teamId": "tenerife",
     "season": 2022,
     "competitionStage": "regular",
     "games": 34,
@@ -11727,6 +11870,7 @@
   },
   {
     "team": "Monbus Obradoiro",
+    "teamId": "obradoiro",
     "season": 2022,
     "competitionStage": "regular",
     "games": 34,
@@ -11809,6 +11953,7 @@
   },
   {
     "team": "MoraBanc Andorra",
+    "teamId": "andorra",
     "season": 2022,
     "competitionStage": "regular",
     "games": 34,
@@ -11891,6 +12036,7 @@
   },
   {
     "team": "Real Madrid",
+    "teamId": "real-madrid",
     "season": 2022,
     "competitionStage": "regular",
     "games": 34,
@@ -11973,6 +12119,7 @@
   },
   {
     "team": "Río Breogán",
+    "teamId": "breogan",
     "season": 2022,
     "competitionStage": "regular",
     "games": 34,
@@ -12055,6 +12202,7 @@
   },
   {
     "team": "Surne Bilbao Basket",
+    "teamId": "bilbao-basket",
     "season": 2022,
     "competitionStage": "regular",
     "games": 34,
@@ -12137,6 +12285,7 @@
   },
   {
     "team": "UCAM Murcia",
+    "teamId": "murcia",
     "season": 2022,
     "competitionStage": "regular",
     "games": 34,
@@ -12219,6 +12368,7 @@
   },
   {
     "team": "Unicaja",
+    "teamId": "unicaja",
     "season": 2022,
     "competitionStage": "regular",
     "games": 34,
@@ -12301,6 +12451,7 @@
   },
   {
     "team": "Urbas Fuenlabrada",
+    "teamId": "fuenlabrada",
     "season": 2022,
     "competitionStage": "regular",
     "games": 34,
@@ -12383,6 +12534,7 @@
   },
   {
     "team": "Valencia Basket",
+    "teamId": "valencia-basket",
     "season": 2022,
     "competitionStage": "regular",
     "games": 34,
@@ -12465,6 +12617,7 @@
   },
   {
     "team": "Barça",
+    "teamId": "barcelona",
     "season": 2022,
     "competitionStage": "playoffs",
     "games": 10,
@@ -12547,6 +12700,7 @@
   },
   {
     "team": "BAXI Manresa",
+    "teamId": "manresa",
     "season": 2022,
     "competitionStage": "playoffs",
     "games": 2,
@@ -12629,6 +12783,7 @@
   },
   {
     "team": "Bitci Baskonia",
+    "teamId": "baskonia",
     "season": 2022,
     "competitionStage": "playoffs",
     "games": 6,
@@ -12711,6 +12866,7 @@
   },
   {
     "team": "Gran Canaria",
+    "teamId": "gran-canaria",
     "season": 2022,
     "competitionStage": "playoffs",
     "games": 2,
@@ -12793,6 +12949,7 @@
   },
   {
     "team": "Joventut Badalona",
+    "teamId": "joventut",
     "season": 2022,
     "competitionStage": "playoffs",
     "games": 7,
@@ -12875,6 +13032,7 @@
   },
   {
     "team": "Lenovo Tenerife",
+    "teamId": "tenerife",
     "season": 2022,
     "competitionStage": "playoffs",
     "games": 3,
@@ -12957,6 +13115,7 @@
   },
   {
     "team": "Real Madrid",
+    "teamId": "real-madrid",
     "season": 2022,
     "competitionStage": "playoffs",
     "games": 9,
@@ -13039,6 +13198,7 @@
   },
   {
     "team": "Valencia Basket",
+    "teamId": "valencia-basket",
     "season": 2022,
     "competitionStage": "playoffs",
     "games": 3,
@@ -13121,6 +13281,7 @@
   },
   {
     "team": "Barça",
+    "teamId": "barcelona",
     "season": 2023,
     "competitionStage": "regular",
     "games": 34,
@@ -13203,6 +13364,7 @@
   },
   {
     "team": "Bàsquet Girona",
+    "teamId": "girona",
     "season": 2023,
     "competitionStage": "regular",
     "games": 34,
@@ -13285,6 +13447,7 @@
   },
   {
     "team": "BAXI Manresa",
+    "teamId": "manresa",
     "season": 2023,
     "competitionStage": "regular",
     "games": 34,
@@ -13367,6 +13530,7 @@
   },
   {
     "team": "Carplus Fuenlabrada",
+    "teamId": "fuenlabrada",
     "season": 2023,
     "competitionStage": "regular",
     "games": 34,
@@ -13449,6 +13613,7 @@
   },
   {
     "team": "Casademont Zaragoza",
+    "teamId": "zaragoza",
     "season": 2023,
     "competitionStage": "regular",
     "games": 34,
@@ -13531,6 +13696,7 @@
   },
   {
     "team": "Cazoo Baskonia",
+    "teamId": "baskonia",
     "season": 2023,
     "competitionStage": "regular",
     "games": 34,
@@ -13613,6 +13779,7 @@
   },
   {
     "team": "Coviran Granada",
+    "teamId": "granada",
     "season": 2023,
     "competitionStage": "regular",
     "games": 34,
@@ -13695,6 +13862,7 @@
   },
   {
     "team": "Gran Canaria",
+    "teamId": "gran-canaria",
     "season": 2023,
     "competitionStage": "regular",
     "games": 34,
@@ -13777,6 +13945,7 @@
   },
   {
     "team": "Joventut Badalona",
+    "teamId": "joventut",
     "season": 2023,
     "competitionStage": "regular",
     "games": 34,
@@ -13859,6 +14028,7 @@
   },
   {
     "team": "Lenovo Tenerife",
+    "teamId": "tenerife",
     "season": 2023,
     "competitionStage": "regular",
     "games": 34,
@@ -13941,6 +14111,7 @@
   },
   {
     "team": "Monbus Obradoiro",
+    "teamId": "obradoiro",
     "season": 2023,
     "competitionStage": "regular",
     "games": 34,
@@ -14023,6 +14194,7 @@
   },
   {
     "team": "Real Betis Baloncesto",
+    "teamId": "real-betis",
     "season": 2023,
     "competitionStage": "regular",
     "games": 34,
@@ -14105,6 +14277,7 @@
   },
   {
     "team": "Real Madrid",
+    "teamId": "real-madrid",
     "season": 2023,
     "competitionStage": "regular",
     "games": 34,
@@ -14187,6 +14360,7 @@
   },
   {
     "team": "Río Breogán",
+    "teamId": "breogan",
     "season": 2023,
     "competitionStage": "regular",
     "games": 34,
@@ -14269,6 +14443,7 @@
   },
   {
     "team": "Surne Bilbao Basket",
+    "teamId": "bilbao-basket",
     "season": 2023,
     "competitionStage": "regular",
     "games": 34,
@@ -14351,6 +14526,7 @@
   },
   {
     "team": "UCAM Murcia",
+    "teamId": "murcia",
     "season": 2023,
     "competitionStage": "regular",
     "games": 34,
@@ -14433,6 +14609,7 @@
   },
   {
     "team": "Unicaja",
+    "teamId": "unicaja",
     "season": 2023,
     "competitionStage": "regular",
     "games": 34,
@@ -14515,6 +14692,7 @@
   },
   {
     "team": "Valencia Basket",
+    "teamId": "valencia-basket",
     "season": 2023,
     "competitionStage": "regular",
     "games": 34,
@@ -14597,6 +14775,7 @@
   },
   {
     "team": "Barça",
+    "teamId": "barcelona",
     "season": 2023,
     "competitionStage": "playoffs",
     "games": 9,
@@ -14679,6 +14858,7 @@
   },
   {
     "team": "Cazoo Baskonia",
+    "teamId": "baskonia",
     "season": 2023,
     "competitionStage": "playoffs",
     "games": 2,
@@ -14761,6 +14941,7 @@
   },
   {
     "team": "Gran Canaria",
+    "teamId": "gran-canaria",
     "season": 2023,
     "competitionStage": "playoffs",
     "games": 2,
@@ -14843,6 +15024,7 @@
   },
   {
     "team": "Joventut Badalona",
+    "teamId": "joventut",
     "season": 2023,
     "competitionStage": "playoffs",
     "games": 6,
@@ -14925,6 +15107,7 @@
   },
   {
     "team": "Lenovo Tenerife",
+    "teamId": "tenerife",
     "season": 2023,
     "competitionStage": "playoffs",
     "games": 2,
@@ -15007,6 +15190,7 @@
   },
   {
     "team": "Real Madrid",
+    "teamId": "real-madrid",
     "season": 2023,
     "competitionStage": "playoffs",
     "games": 9,
@@ -15089,6 +15273,7 @@
   },
   {
     "team": "Unicaja",
+    "teamId": "unicaja",
     "season": 2023,
     "competitionStage": "playoffs",
     "games": 6,
@@ -15171,6 +15356,7 @@
   },
   {
     "team": "Valencia Basket",
+    "teamId": "valencia-basket",
     "season": 2023,
     "competitionStage": "playoffs",
     "games": 2,
@@ -15253,6 +15439,7 @@
   },
   {
     "team": "Barça",
+    "teamId": "barcelona",
     "season": 2024,
     "competitionStage": "regular",
     "games": 34,
@@ -15335,6 +15522,7 @@
   },
   {
     "team": "Baskonia",
+    "teamId": "baskonia",
     "season": 2024,
     "competitionStage": "regular",
     "games": 34,
@@ -15417,6 +15605,7 @@
   },
   {
     "team": "Bàsquet Girona",
+    "teamId": "girona",
     "season": 2024,
     "competitionStage": "regular",
     "games": 34,
@@ -15499,6 +15688,7 @@
   },
   {
     "team": "BAXI Manresa",
+    "teamId": "manresa",
     "season": 2024,
     "competitionStage": "regular",
     "games": 34,
@@ -15581,6 +15771,7 @@
   },
   {
     "team": "Casademont Zaragoza",
+    "teamId": "zaragoza",
     "season": 2024,
     "competitionStage": "regular",
     "games": 34,
@@ -15663,6 +15854,7 @@
   },
   {
     "team": "Coviran Granada",
+    "teamId": "granada",
     "season": 2024,
     "competitionStage": "regular",
     "games": 34,
@@ -15745,6 +15937,7 @@
   },
   {
     "team": "Dreamland Gran Canaria",
+    "teamId": "gran-canaria",
     "season": 2024,
     "competitionStage": "regular",
     "games": 34,
@@ -15827,6 +16020,7 @@
   },
   {
     "team": "Joventut Badalona",
+    "teamId": "joventut",
     "season": 2024,
     "competitionStage": "regular",
     "games": 34,
@@ -15909,6 +16103,7 @@
   },
   {
     "team": "Lenovo Tenerife",
+    "teamId": "tenerife",
     "season": 2024,
     "competitionStage": "regular",
     "games": 34,
@@ -15991,6 +16186,7 @@
   },
   {
     "team": "Monbus Obradoiro",
+    "teamId": "obradoiro",
     "season": 2024,
     "competitionStage": "regular",
     "games": 34,
@@ -16073,6 +16269,7 @@
   },
   {
     "team": "MoraBanc Andorra",
+    "teamId": "andorra",
     "season": 2024,
     "competitionStage": "regular",
     "games": 34,
@@ -16155,6 +16352,7 @@
   },
   {
     "team": "Real Madrid",
+    "teamId": "real-madrid",
     "season": 2024,
     "competitionStage": "regular",
     "games": 34,
@@ -16237,6 +16435,7 @@
   },
   {
     "team": "Río Breogán",
+    "teamId": "breogan",
     "season": 2024,
     "competitionStage": "regular",
     "games": 34,
@@ -16319,6 +16518,7 @@
   },
   {
     "team": "Surne Bilbao Basket",
+    "teamId": "bilbao-basket",
     "season": 2024,
     "competitionStage": "regular",
     "games": 34,
@@ -16401,6 +16601,7 @@
   },
   {
     "team": "UCAM Murcia",
+    "teamId": "murcia",
     "season": 2024,
     "competitionStage": "regular",
     "games": 34,
@@ -16483,6 +16684,7 @@
   },
   {
     "team": "Unicaja",
+    "teamId": "unicaja",
     "season": 2024,
     "competitionStage": "regular",
     "games": 34,
@@ -16565,6 +16767,7 @@
   },
   {
     "team": "Valencia Basket",
+    "teamId": "valencia-basket",
     "season": 2024,
     "competitionStage": "regular",
     "games": 34,
@@ -16647,6 +16850,7 @@
   },
   {
     "team": "Zunder Palencia",
+    "teamId": "palencia",
     "season": 2024,
     "competitionStage": "regular",
     "games": 34,
@@ -16729,6 +16933,7 @@
   },
   {
     "team": "Barça",
+    "teamId": "barcelona",
     "season": 2024,
     "competitionStage": "playoffs",
     "games": 5,
@@ -16811,6 +17016,7 @@
   },
   {
     "team": "BAXI Manresa",
+    "teamId": "manresa",
     "season": 2024,
     "competitionStage": "playoffs",
     "games": 2,
@@ -16893,6 +17099,7 @@
   },
   {
     "team": "Dreamland Gran Canaria",
+    "teamId": "gran-canaria",
     "season": 2024,
     "competitionStage": "playoffs",
     "games": 2,
@@ -16975,6 +17182,7 @@
   },
   {
     "team": "Lenovo Tenerife",
+    "teamId": "tenerife",
     "season": 2024,
     "competitionStage": "playoffs",
     "games": 2,
@@ -17057,6 +17265,7 @@
   },
   {
     "team": "Real Madrid",
+    "teamId": "real-madrid",
     "season": 2024,
     "competitionStage": "playoffs",
     "games": 8,
@@ -17139,6 +17348,7 @@
   },
   {
     "team": "UCAM Murcia",
+    "teamId": "murcia",
     "season": 2024,
     "competitionStage": "playoffs",
     "games": 11,
@@ -17221,6 +17431,7 @@
   },
   {
     "team": "Unicaja",
+    "teamId": "unicaja",
     "season": 2024,
     "competitionStage": "playoffs",
     "games": 7,
@@ -17303,6 +17514,7 @@
   },
   {
     "team": "Valencia Basket",
+    "teamId": "valencia-basket",
     "season": 2024,
     "competitionStage": "playoffs",
     "games": 3,
@@ -17385,6 +17597,7 @@
   },
   {
     "team": "Barça",
+    "teamId": "barcelona",
     "season": 2025,
     "competitionStage": "regular",
     "games": 34,
@@ -17467,6 +17680,7 @@
   },
   {
     "team": "Baskonia",
+    "teamId": "baskonia",
     "season": 2025,
     "competitionStage": "regular",
     "games": 34,
@@ -17549,6 +17763,7 @@
   },
   {
     "team": "Bàsquet Girona",
+    "teamId": "girona",
     "season": 2025,
     "competitionStage": "regular",
     "games": 34,
@@ -17631,6 +17846,7 @@
   },
   {
     "team": "BAXI Manresa",
+    "teamId": "manresa",
     "season": 2025,
     "competitionStage": "regular",
     "games": 34,
@@ -17713,6 +17929,7 @@
   },
   {
     "team": "Casademont Zaragoza",
+    "teamId": "zaragoza",
     "season": 2025,
     "competitionStage": "regular",
     "games": 34,
@@ -17795,6 +18012,7 @@
   },
   {
     "team": "Coviran Granada",
+    "teamId": "granada",
     "season": 2025,
     "competitionStage": "regular",
     "games": 34,
@@ -17877,6 +18095,7 @@
   },
   {
     "team": "Dreamland Gran Canaria",
+    "teamId": "gran-canaria",
     "season": 2025,
     "competitionStage": "regular",
     "games": 34,
@@ -17959,6 +18178,7 @@
   },
   {
     "team": "Hiopos Lleida",
+    "teamId": "lleida",
     "season": 2025,
     "competitionStage": "regular",
     "games": 34,
@@ -18041,6 +18261,7 @@
   },
   {
     "team": "Joventut Badalona",
+    "teamId": "joventut",
     "season": 2025,
     "competitionStage": "regular",
     "games": 34,
@@ -18123,6 +18344,7 @@
   },
   {
     "team": "La Laguna Tenerife",
+    "teamId": "tenerife",
     "season": 2025,
     "competitionStage": "regular",
     "games": 34,
@@ -18205,6 +18427,7 @@
   },
   {
     "team": "Leyma Coruña",
+    "teamId": "coruna",
     "season": 2025,
     "competitionStage": "regular",
     "games": 34,
@@ -18287,6 +18510,7 @@
   },
   {
     "team": "MoraBanc Andorra",
+    "teamId": "andorra",
     "season": 2025,
     "competitionStage": "regular",
     "games": 34,
@@ -18369,6 +18593,7 @@
   },
   {
     "team": "Real Madrid",
+    "teamId": "real-madrid",
     "season": 2025,
     "competitionStage": "regular",
     "games": 34,
@@ -18451,6 +18676,7 @@
   },
   {
     "team": "Río Breogán",
+    "teamId": "breogan",
     "season": 2025,
     "competitionStage": "regular",
     "games": 34,
@@ -18533,6 +18759,7 @@
   },
   {
     "team": "Surne Bilbao Basket",
+    "teamId": "bilbao-basket",
     "season": 2025,
     "competitionStage": "regular",
     "games": 34,
@@ -18615,6 +18842,7 @@
   },
   {
     "team": "UCAM Murcia",
+    "teamId": "murcia",
     "season": 2025,
     "competitionStage": "regular",
     "games": 34,
@@ -18697,6 +18925,7 @@
   },
   {
     "team": "Unicaja",
+    "teamId": "unicaja",
     "season": 2025,
     "competitionStage": "regular",
     "games": 34,
@@ -18779,6 +19008,7 @@
   },
   {
     "team": "Valencia Basket",
+    "teamId": "valencia-basket",
     "season": 2025,
     "competitionStage": "regular",
     "games": 34,
@@ -18861,6 +19091,7 @@
   },
   {
     "team": "Barça",
+    "teamId": "barcelona",
     "season": 2025,
     "competitionStage": "playoffs",
     "games": 3,
@@ -18943,6 +19174,7 @@
   },
   {
     "team": "Baskonia",
+    "teamId": "baskonia",
     "season": 2025,
     "competitionStage": "playoffs",
     "games": 2,
@@ -19025,6 +19257,7 @@
   },
   {
     "team": "Dreamland Gran Canaria",
+    "teamId": "gran-canaria",
     "season": 2025,
     "competitionStage": "playoffs",
     "games": 2,
@@ -19107,6 +19340,7 @@
   },
   {
     "team": "Joventut Badalona",
+    "teamId": "joventut",
     "season": 2025,
     "competitionStage": "playoffs",
     "games": 2,
@@ -19189,6 +19423,7 @@
   },
   {
     "team": "La Laguna Tenerife",
+    "teamId": "tenerife",
     "season": 2025,
     "competitionStage": "playoffs",
     "games": 5,
@@ -19271,6 +19506,7 @@
   },
   {
     "team": "Real Madrid",
+    "teamId": "real-madrid",
     "season": 2025,
     "competitionStage": "playoffs",
     "games": 9,
@@ -19353,6 +19589,7 @@
   },
   {
     "team": "Unicaja",
+    "teamId": "unicaja",
     "season": 2025,
     "competitionStage": "playoffs",
     "games": 7,
@@ -19435,6 +19672,7 @@
   },
   {
     "team": "Valencia Basket",
+    "teamId": "valencia-basket",
     "season": 2025,
     "competitionStage": "playoffs",
     "games": 8,
@@ -19517,6 +19755,7 @@
   },
   {
     "team": "Barça",
+    "teamId": "barcelona",
     "season": 2026,
     "competitionStage": "regular",
     "games": 34,
@@ -19599,6 +19838,7 @@
   },
   {
     "team": "Bàsquet Girona",
+    "teamId": "girona",
     "season": 2026,
     "competitionStage": "regular",
     "games": 34,
@@ -19681,6 +19921,7 @@
   },
   {
     "team": "BAXI Manresa",
+    "teamId": "manresa",
     "season": 2026,
     "competitionStage": "regular",
     "games": 34,
@@ -19763,6 +20004,7 @@
   },
   {
     "team": "Casademont Zaragoza",
+    "teamId": "zaragoza",
     "season": 2026,
     "competitionStage": "regular",
     "games": 34,
@@ -19845,6 +20087,7 @@
   },
   {
     "team": "Coviran Granada",
+    "teamId": "granada",
     "season": 2026,
     "competitionStage": "regular",
     "games": 34,
@@ -19927,6 +20170,7 @@
   },
   {
     "team": "Dreamland Gran Canaria",
+    "teamId": "gran-canaria",
     "season": 2026,
     "competitionStage": "regular",
     "games": 34,
@@ -20009,6 +20253,7 @@
   },
   {
     "team": "Hiopos Lleida",
+    "teamId": "lleida",
     "season": 2026,
     "competitionStage": "regular",
     "games": 34,
@@ -20091,6 +20336,7 @@
   },
   {
     "team": "Joventut Badalona",
+    "teamId": "joventut",
     "season": 2026,
     "competitionStage": "regular",
     "games": 34,
@@ -20173,6 +20419,7 @@
   },
   {
     "team": "Kosner Baskonia",
+    "teamId": "baskonia",
     "season": 2026,
     "competitionStage": "regular",
     "games": 34,
@@ -20255,6 +20502,7 @@
   },
   {
     "team": "La Laguna Tenerife",
+    "teamId": "tenerife",
     "season": 2026,
     "competitionStage": "regular",
     "games": 34,
@@ -20337,6 +20585,7 @@
   },
   {
     "team": "MoraBanc Andorra",
+    "teamId": "andorra",
     "season": 2026,
     "competitionStage": "regular",
     "games": 34,
@@ -20419,6 +20668,7 @@
   },
   {
     "team": "Real Madrid",
+    "teamId": "real-madrid",
     "season": 2026,
     "competitionStage": "regular",
     "games": 34,
@@ -20501,6 +20751,7 @@
   },
   {
     "team": "Recoletas Salud San Pablo Burgos",
+    "teamId": "burgos",
     "season": 2026,
     "competitionStage": "regular",
     "games": 34,
@@ -20583,6 +20834,7 @@
   },
   {
     "team": "Río Breogán",
+    "teamId": "breogan",
     "season": 2026,
     "competitionStage": "regular",
     "games": 34,
@@ -20665,6 +20917,7 @@
   },
   {
     "team": "Surne Bilbao Basket",
+    "teamId": "bilbao-basket",
     "season": 2026,
     "competitionStage": "regular",
     "games": 34,
@@ -20747,6 +21000,7 @@
   },
   {
     "team": "UCAM Murcia",
+    "teamId": "murcia",
     "season": 2026,
     "competitionStage": "regular",
     "games": 34,
@@ -20829,6 +21083,7 @@
   },
   {
     "team": "Unicaja",
+    "teamId": "unicaja",
     "season": 2026,
     "competitionStage": "regular",
     "games": 34,
@@ -20911,6 +21166,7 @@
   },
   {
     "team": "Valencia Basket",
+    "teamId": "valencia-basket",
     "season": 2026,
     "competitionStage": "regular",
     "games": 34,
@@ -20993,6 +21249,7 @@
   },
   {
     "team": "Barça",
+    "teamId": "barcelona",
     "season": 2026,
     "competitionStage": "playoffs",
     "games": 5,
@@ -21075,6 +21332,7 @@
   },
   {
     "team": "Joventut Badalona",
+    "teamId": "joventut",
     "season": 2026,
     "competitionStage": "playoffs",
     "games": 5,
@@ -21157,6 +21415,7 @@
   },
   {
     "team": "Kosner Baskonia",
+    "teamId": "baskonia",
     "season": 2026,
     "competitionStage": "playoffs",
     "games": 3,
@@ -21239,6 +21498,7 @@
   },
   {
     "team": "La Laguna Tenerife",
+    "teamId": "tenerife",
     "season": 2026,
     "competitionStage": "playoffs",
     "games": 5,
@@ -21321,6 +21581,7 @@
   },
   {
     "team": "Real Madrid",
+    "teamId": "real-madrid",
     "season": 2026,
     "competitionStage": "playoffs",
     "games": 3,
@@ -21403,6 +21664,7 @@
   },
   {
     "team": "Surne Bilbao Basket",
+    "teamId": "bilbao-basket",
     "season": 2026,
     "competitionStage": "playoffs",
     "games": 2,
@@ -21485,6 +21747,7 @@
   },
   {
     "team": "UCAM Murcia",
+    "teamId": "murcia",
     "season": 2026,
     "competitionStage": "playoffs",
     "games": 3,
@@ -21567,6 +21830,7 @@
   },
   {
     "team": "Valencia Basket",
+    "teamId": "valencia-basket",
     "season": 2026,
     "competitionStage": "playoffs",
     "games": 4,

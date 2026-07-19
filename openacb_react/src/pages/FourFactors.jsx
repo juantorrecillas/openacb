@@ -1,21 +1,45 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Circle, Download } from 'lucide-react'
 import { downloadTableAsCsv } from '../utils/csvDownload'
 import PageHeader from '../components/PageHeader'
 import { getPercentileBadgeClass } from '../utils/percentileColors'
+import { readRouteQuery, serializeRouteQuery } from '../routing/query'
 
+function parseSeasonParam(value, availableSeasons) {
+  if (value === 'all') return 'all'
+  const season = Number(value)
+  return availableSeasons.includes(season) ? season : (availableSeasons[0] || 2025)
+}
+
+function buildFourFactorsSearch(season) {
+  return new URLSearchParams(serializeRouteQuery('fourFactors', { temporada: season }))
+}
 
 export default function FourFactors({ teams }) {
+  const [searchParams, setSearchParams] = useSearchParams()
+
   // get available seasons and default to most recent
   const availableSeasons = useMemo(() => {
     const seasons = [...new Set(teams.map(t => t.season))].sort((a, b) => b - a)
     return seasons
   }, [teams])
 
-  const [selectedSeason, setSelectedSeason] = useState(availableSeasons[0] || 2025)
+  const queryState = readRouteQuery('fourFactors', searchParams, {
+    defaults: { temporada: availableSeasons[0] || 2025 },
+  })
+  const selectedSeason = parseSeasonParam(queryState.temporada, availableSeasons)
   const [sortKey, setSortKey] = useState('netRating')
   const [sortDir, setSortDir] = useState('desc')
   const [highlightTeam, setHighlightTeam] = useState(null)
+
+  useEffect(() => {
+    if (!availableSeasons.length) return
+    const canonical = buildFourFactorsSearch(selectedSeason)
+    if (canonical.toString() !== searchParams.toString()) {
+      setSearchParams(canonical, { replace: true })
+    }
+  }, [availableSeasons.length, searchParams, selectedSeason, setSearchParams])
 
   // filter teams by season
   const seasonFilteredTeams = useMemo(() => {
@@ -183,7 +207,7 @@ export default function FourFactors({ teams }) {
             <select
               id="four-factors-season"
               value={selectedSeason}
-              onChange={(e) => setSelectedSeason(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
+              onChange={(e) => setSearchParams(buildFourFactorsSearch(e.target.value === 'all' ? 'all' : parseInt(e.target.value)))}
               className="form-control font-medium"
             >
               {availableSeasons.map(season => (

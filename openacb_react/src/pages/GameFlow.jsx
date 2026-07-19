@@ -1,8 +1,16 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { ArrowUp, ArrowDown, Loader2 } from 'lucide-react'
-import TeamPace from './TeamPace'
 import { getPlayerDisplayName } from '../utils/playerNames'
 import PageHeader from '../components/PageHeader'
+import GameAnalysisNav from '../components/GameAnalysisNav'
+import {
+  buildGamesPath,
+  parseGameSegment,
+  parseRouteQuery,
+  serializeRouteQuery,
+  withQuery,
+} from '../routing'
 
 // ─── Helpers ──────────────────────────────────────────────────
 
@@ -59,10 +67,9 @@ function getRankColor(rank, total) {
   return 'bg-acb-50 text-acb-600'
 }
 
-function ClutchTeamsView({ tabBar, selectedSeason, setSelectedSeason, availableSeasons, clutchCache, loadingClutch }) {
+function ClutchTeamsView({ selectedSeason, onSeasonChange, viewTab, onViewChange, availableSeasons, clutchCache, loadingClutch }) {
   const [sortCol, setSortCol] = useState('plusMinus')
   const [sortDir, setSortDir] = useState('desc')
-  const [viewTab, setViewTab] = useState('basico')
 
   const clutchData = clutchCache[selectedSeason] || null
   const isLoading  = loadingClutch[selectedSeason] || false
@@ -152,7 +159,7 @@ function ClutchTeamsView({ tabBar, selectedSeason, setSelectedSeason, availableS
 
   return (
     <div className="app-page space-y-6">
-      {tabBar('clutch')}
+      <GameAnalysisNav season={selectedSeason} />
 
       <PageHeader title="Clutch por equipo" subtitle={`Últimos 5 minutos con una diferencia de 5 puntos o menos (Q4 o prórroga) · ${sl(selectedSeason)}`} />
 
@@ -161,7 +168,7 @@ function ClutchTeamsView({ tabBar, selectedSeason, setSelectedSeason, availableS
         <select
           aria-label="Temporada de estadísticas clutch"
           value={selectedSeason}
-          onChange={e => setSelectedSeason(Number(e.target.value))}
+          onChange={e => onSeasonChange(Number(e.target.value))}
           className="form-control"
         >
           {availableSeasons.map(s => <option key={s} value={s}>{sl(s)}</option>)}
@@ -171,7 +178,7 @@ function ClutchTeamsView({ tabBar, selectedSeason, setSelectedSeason, availableS
       <div className="flex items-center gap-1 bg-acb-100 rounded-md p-1 w-fit">
         {[['basico','Básico'],['avanzado','Avanzado'],['rival','Rival'],['rivalAvanzado','Riv. Avanzado']].map(([id, label]) => (
           <button key={id} onClick={() => {
-            setViewTab(id)
+            onViewChange(id)
             setSortCol(id === 'avanzado' ? 'netRtg' : id === 'rival' ? 'opp_efgPct' : id === 'rivalAvanzado' ? 'drtg' : 'plusMinus')
           }}
             className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${viewTab === id ? 'bg-white text-acb-900 shadow-sm' : 'text-acb-600 hover:text-acb-900'}`}>
@@ -392,15 +399,75 @@ function ClutchTeamsView({ tabBar, selectedSeason, setSelectedSeason, availableS
 
 // ─── Main Component ───────────────────────────────────────────
 
-export default function GameFlow({ teams, playerRecords = [], loadGameFlowForSeason, gameFlowCache, loadingGameFlow, loadTeamPaceForSeason, teamPaceCache, loadingTeamPace, loadClutchForSeason, clutchCache, loadingClutch }) {
-  const [view, setView] = useState('gameflow')
+export function TeamClutchPage({ teams, loadClutchForSeason, clutchCache, loadingClutch }) {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const availableSeasons = useMemo(
+    () => [...new Set(teams.map(team => team.season))].sort((a, b) => b - a),
+    [teams]
+  )
+  const parsedQuery = parseRouteQuery('teamClutch', searchParams)
+  const requestedSeason = Number(parsedQuery.values.temporada)
+  const selectedSeason = availableSeasons.includes(requestedSeason)
+    ? requestedSeason
+    : (availableSeasons[0] || 2026)
+  const viewTabs = {
+    basic: 'basico',
+    advanced: 'avanzado',
+    opponent: 'rival',
+    opponentAdvanced: 'rivalAvanzado',
+  }
+  const queryViews = Object.fromEntries(Object.entries(viewTabs).map(([queryView, tab]) => [tab, queryView]))
+  const queryView = parsedQuery.values.vista || 'basic'
+  const viewTab = viewTabs[queryView]
+
+  useEffect(() => {
+    if (selectedSeason) loadClutchForSeason(selectedSeason)
+  }, [loadClutchForSeason, selectedSeason])
+
+  useEffect(() => {
+    const canonical = serializeRouteQuery('teamClutch', {
+      temporada: selectedSeason,
+      vista: queryView,
+    })
+    if (canonical !== searchParams.toString()) {
+      setSearchParams(canonical, { replace: true })
+    }
+  }, [queryView, searchParams, selectedSeason, setSearchParams])
+
+  const updateState = (season, view) => {
+    setSearchParams(serializeRouteQuery('teamClutch', {
+      temporada: season,
+      vista: queryViews[view] || 'basic',
+    }))
+  }
+
+  return (
+    <ClutchTeamsView
+      selectedSeason={selectedSeason}
+      onSeasonChange={season => updateState(season, viewTab)}
+      viewTab={viewTab}
+      onViewChange={view => updateState(selectedSeason, view)}
+      availableSeasons={availableSeasons}
+      clutchCache={clutchCache}
+      loadingClutch={loadingClutch}
+    />
+  )
+}
+
+export default function GameFlow({ teams, playerRecords = [], loadGameFlowForSeason, gameFlowCache, loadingGameFlow }) {
+  const location = useLocation()
+  const navigate = useNavigate()
+  const { game: gameUrlSegment } = useParams()
 
   const availableSeasons = useMemo(() => {
     return [...new Set(teams.map(t => t.season))].sort((a, b) => b - a)
   }, [teams])
 
-  const [selectedSeason, setSelectedSeason] = useState(availableSeasons[0] || 2025)
-  const [selectedGame, setSelectedGame] = useState(null)
+  const parsedQuery = parseRouteQuery('games', location.search)
+  const requestedSeason = Number(parsedQuery.values.temporada)
+  const selectedSeason = availableSeasons.includes(requestedSeason)
+    ? requestedSeason
+    : (availableSeasons[0] || 2026)
   const [hoveredEvent, setHoveredEvent] = useState(null)
   const svgRef = useRef(null)
   const tooltipRef = useRef(null)
@@ -409,14 +476,11 @@ export default function GameFlow({ teams, playerRecords = [], loadGameFlowForSea
     if (selectedSeason) loadGameFlowForSeason(selectedSeason)
   }, [selectedSeason, loadGameFlowForSeason])
 
-  useEffect(() => {
-    if (selectedSeason && view === 'clutch') loadClutchForSeason(selectedSeason)
-  }, [selectedSeason, view, loadClutchForSeason])
-
   const games = useMemo(() => {
     return gameFlowCache[selectedSeason] || []
   }, [gameFlowCache, selectedSeason])
 
+  const hasLoadedSeason = Object.hasOwn(gameFlowCache, selectedSeason)
   const isLoading = loadingGameFlow[selectedSeason] || false
 
   // agrupa la liga regular por jornada y los playoffs por ronda
@@ -432,27 +496,42 @@ export default function GameFlow({ teams, playerRecords = [], loadGameFlowForSea
     return [...map.entries()]
   }, [games])
 
-  const [selectedJornada, setSelectedJornada] = useState(null)
+  const requestedJornada = parsedQuery.values.ronda
+  const requestedGameId = Number(parseGameSegment(gameUrlSegment)?.id) || null
+  const game = requestedGameId == null
+    ? null
+    : games.find(candidate => Number(candidate.id) === requestedGameId) || null
+  const gameJornada = game
+    ? (game.competitionStage === 'playoffs'
+        ? `playoffs:${game.competitionRound || 'Playoffs'}`
+        : `regular:${game.jornada}`)
+    : null
+  const selectedJornada = gameJornada
+    || (requestedJornada && !hasLoadedSeason ? requestedJornada : null)
+    || (jornadas.some(([key]) => key === requestedJornada) ? requestedJornada : null)
+    || jornadas.at(-1)?.[0]
+    || null
 
-  // Auto-select latest jornada when games load
   useEffect(() => {
-    if (jornadas.length > 0) {
-      const latest = jornadas[jornadas.length - 1][0]
-      setSelectedJornada(latest)
-      setSelectedGame(null)
-    }
-  }, [jornadas])
+    const canonicalPath = game
+      ? buildGamesPath(game)
+      : gameUrlSegment
+        ? location.pathname
+        : buildGamesPath()
+    const canonicalSearch = serializeRouteQuery('games', {
+      temporada: selectedSeason,
+      ronda: selectedJornada,
+    }, { strict: false })
+    const target = withQuery(canonicalPath, canonicalSearch)
+    const current = `${location.pathname}${location.search}`
+    if (target !== current) navigate(target, { replace: true })
+  }, [game, gameUrlSegment, location.pathname, location.search, navigate, selectedJornada, selectedSeason])
 
   const jornadaGames = useMemo(() => {
     if (selectedJornada == null) return []
     const entry = jornadas.find(([j]) => j === selectedJornada)
     return entry ? entry[1].games : []
   }, [jornadas, selectedJornada])
-
-  // Current game data
-  const game = selectedGame
-    ? games.find(g => g.id === selectedGame)
-    : null
 
   const playerNameLookup = useMemo(() => {
     const candidates = new Map()
@@ -645,45 +724,10 @@ export default function GameFlow({ teams, playerRecords = [], loadGameFlowForSea
 
   // ─── Render ───────────────────────────────────────────────────
 
-  const tabBar = (active) => (
-    <div className="flex gap-2 flex-wrap">
-      <button onClick={() => setView('gameflow')} className={`px-4 py-1.5 rounded-full text-sm font-medium ${active === 'gameflow' ? 'bg-acb-900 text-white' : 'border border-acb-200 text-acb-500 hover:bg-acb-50'}`}>Flujo de partido</button>
-      <button onClick={() => setView('teampace')} className={`px-4 py-1.5 rounded-full text-sm font-medium ${active === 'teampace' ? 'bg-acb-900 text-white' : 'border border-acb-200 text-acb-500 hover:bg-acb-50'}`}>Rendimiento por Cuarto</button>
-      <button onClick={() => setView('clutch')}   className={`px-4 py-1.5 rounded-full text-sm font-medium ${active === 'clutch'   ? 'bg-acb-900 text-white' : 'border border-acb-200 text-acb-500 hover:bg-acb-50'}`}>Clutch</button>
-    </div>
-  )
-
-  if (view === 'teampace') {
-    return (
-      <div className="app-page space-y-6">
-        {tabBar('teampace')}
-        <TeamPace
-          teams={teams}
-          loadTeamPaceForSeason={loadTeamPaceForSeason}
-          teamPaceCache={teamPaceCache}
-          loadingTeamPace={loadingTeamPace}
-        />
-      </div>
-    )
-  }
-
-  if (view === 'clutch') {
-    return (
-      <ClutchTeamsView
-        tabBar={tabBar}
-        selectedSeason={selectedSeason}
-        setSelectedSeason={setSelectedSeason}
-        availableSeasons={availableSeasons}
-        clutchCache={clutchCache}
-        loadingClutch={loadingClutch}
-      />
-    )
-  }
-
   return (
     <div className="app-page space-y-6">
-      {/* Tab switcher */}
-      {tabBar('gameflow')}
+      {/* tab switcher */}
+      <GameAnalysisNav season={selectedSeason} />
 
       {/* Header */}
       <PageHeader
@@ -699,11 +743,10 @@ export default function GameFlow({ teams, playerRecords = [], loadGameFlowForSea
           <select
             aria-label="Temporada del flujo de partido"
             value={selectedSeason}
-            onChange={e => {
-              setSelectedSeason(Number(e.target.value))
-              setSelectedGame(null)
-              setSelectedJornada(null)
-            }}
+            onChange={e => navigate(withQuery(
+              buildGamesPath(),
+              serializeRouteQuery('games', { temporada: Number(e.target.value) })
+            ))}
             className="form-control"
           >
             {availableSeasons.map(s => (
@@ -718,10 +761,10 @@ export default function GameFlow({ teams, playerRecords = [], loadGameFlowForSea
             <select
               aria-label="Jornada o ronda"
               value={selectedJornada ?? ''}
-              onChange={e => {
-                setSelectedJornada(e.target.value)
-                setSelectedGame(null)
-              }}
+              onChange={e => navigate(withQuery(
+                buildGamesPath(),
+                serializeRouteQuery('games', { temporada: selectedSeason, ronda: e.target.value })
+              ))}
               className="px-3 py-2.5 border border-acb-200 rounded-lg text-sm bg-white"
             >
               {jornadas.map(([j, group]) => (
@@ -741,11 +784,14 @@ export default function GameFlow({ teams, playerRecords = [], loadGameFlowForSea
       {!isLoading && jornadaGames.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
           {jornadaGames.map(g => {
-            const isSelected = selectedGame === g.id
+            const isSelected = Number(game?.id) === Number(g.id)
             return (
               <button
                 key={g.id}
-                onClick={() => setSelectedGame(isSelected ? null : g.id)}
+                onClick={() => navigate(withQuery(
+                  isSelected ? buildGamesPath() : buildGamesPath(g),
+                  serializeRouteQuery('games', { temporada: selectedSeason, ronda: selectedJornada })
+                ))}
                 className={`text-left p-3 rounded-lg border transition-all ${
                   isSelected
                     ? 'border-accent-400 bg-accent-50 ring-1 ring-accent-300'
@@ -975,10 +1021,12 @@ export default function GameFlow({ teams, playerRecords = [], loadGameFlowForSea
         </div>
       )}
 
-      {/* Placeholder when no game selected */}
+      {/* estado sin partido */}
       {!isLoading && games.length > 0 && !game && (
         <div className="bg-white rounded-lg border border-acb-200 p-12 text-center text-acb-400">
-          Selecciona un partido para ver el flujo del marcador
+          {gameUrlSegment
+            ? 'No se ha encontrado ese partido en la temporada seleccionada.'
+            : 'Selecciona un partido para ver el flujo del marcador'}
         </div>
       )}
     </div>

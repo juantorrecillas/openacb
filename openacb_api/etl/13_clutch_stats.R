@@ -17,6 +17,11 @@ generate_clutch_stats <- function(
     output_dir = "../openacb_react/public/data"
 ) {
   source(config_path, local = TRUE)
+  source(
+    file.path(dirname(config_path), "team_identities.R"),
+    local = TRUE,
+    encoding = "UTF-8"
+  )
   cat(sprintf("\n--- Clutch Stats: season %d ---\n", season_id))
 
   # ─── Load PBP data ────────────────────────────────────────────────────────
@@ -305,7 +310,13 @@ generate_clutch_stats <- function(
 
   # ─── Player clutch stats ─────────────────────────────────────────────────
   player_clutch <- clutch %>%
-    filter(!is.na(license.id), !is.na(license.licenseNick), license.licenseNick != "") %>%
+    filter(
+      !is.na(license.id),
+      !is.na(license.licenseNick),
+      license.licenseNick != "",
+      !is.na(team),
+      team != ""
+    ) %>%
     group_by(licenseId = as.character(license.id), nick = license.licenseNick, team) %>%
     summarise(
       games  = n_distinct(id_match),
@@ -422,11 +433,24 @@ generate_clutch_stats <- function(
 
   cat(sprintf("  Teams: %d  Players: %d\n", nrow(team_stats), nrow(player_clutch)))
 
+  # attach stable club identities to compact output records
+  team_stats$teamId <- validate_unique_team_seasons(
+    team_stats$team,
+    rep(season_id, nrow(team_stats)),
+    context = sprintf("clutch teams for season %d", season_id)
+  )
+  player_clutch$teamId <- resolve_team_ids(
+    player_clutch$team,
+    rep(season_id, nrow(player_clutch)),
+    context = sprintf("clutch players for season %d", season_id)
+  )
+
   # ─── Build output ─────────────────────────────────────────────────────────
   teams_out <- lapply(seq_len(nrow(team_stats)), function(i) {
     r <- team_stats[i, ]
     list(
       team          = r$team,
+      teamId        = r$teamId,
       games         = r$clutchGames,
       wins          = r$wins,
       losses        = r$losses,
@@ -492,6 +516,7 @@ generate_clutch_stats <- function(
       nick      = r$nick,
       licenseId = r$licenseId,
       team      = r$team,
+      teamId    = r$teamId,
       games     = r$games,
       wins      = r$wins,
       losses    = r$losses,

@@ -1,8 +1,12 @@
-import { useState, useMemo, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useMemo, useEffect } from 'react'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import PageHeader from '../components/PageHeader'
+import TeamRosterTable from '../components/TeamRosterTable'
 import ZoneHeatmap from '../components/ZoneHeatmap'
+import { buildTeamProfilePath } from '../routing/paths'
+import { readRouteQuery, serializeRouteQuery } from '../routing/query'
+import { createTeamIdentityIndexFromRows, resolveTeamId } from '../routing/teamIdentities'
 
 
 // ─── Axis Definitions ─────────────────────────────────────────
@@ -530,8 +534,7 @@ function TrendTooltip({ active, payload, stat }) {
   )
 }
 
-function TeamTrendChart({ teams, selectedTeam, selectedSeason }) {
-  const [trendStat, setTrendStat] = useState('ortg')
+function TeamTrendChart({ teams, selectedTeam, selectedSeason, trendStat, onTrendStatChange }) {
   const selectedStat = useMemo(
     () => trendStatOptions.find(stat => stat.key === trendStat) || trendStatOptions[0],
     [trendStat],
@@ -569,7 +572,7 @@ function TeamTrendChart({ teams, selectedTeam, selectedSeason }) {
         <select
           id="team-trend-stat"
           value={trendStat}
-          onChange={(e) => setTrendStat(e.target.value)}
+          onChange={(e) => onTrendStatChange(e.target.value)}
           className="px-2.5 py-1.5 border border-acb-200 rounded text-xs bg-white text-acb-700"
         >
           {trendStatOptions.map(stat => (
@@ -638,10 +641,7 @@ function TeamTrendChart({ teams, selectedTeam, selectedSeason }) {
 
 // ─── perfil de tiro por zonas ─────────────────────────────────
 
-function TeamShotProfile({ team, shots, isLoading, isAvailable }) {
-  const [mode, setMode] = useState('attack')
-  const [metric, setMetric] = useState('efficiency')
-
+function TeamShotProfile({ team, shots, isLoading, isAvailable, mode, metric, onModeChange, onMetricChange }) {
   const teamShots = useMemo(() => {
     if (!team) return []
     return mode === 'attack'
@@ -678,12 +678,12 @@ function TeamShotProfile({ team, shots, isLoading, isAvailable }) {
         </div>
         <div className="flex flex-wrap gap-2">
           <div className="flex gap-1">
-            {toggleBtn(mode === 'attack', () => setMode('attack'), 'Ataque')}
-            {toggleBtn(mode === 'defense', () => setMode('defense'), 'Defensa')}
+            {toggleBtn(mode === 'attack', () => onModeChange('attack'), 'Ataque')}
+            {toggleBtn(mode === 'defense', () => onModeChange('defense'), 'Defensa')}
           </div>
           <div className="flex gap-1">
-            {toggleBtn(metric === 'efficiency', () => setMetric('efficiency'), 'Eficiencia')}
-            {toggleBtn(metric === 'frequency', () => setMetric('frequency'), 'Frecuencia')}
+            {toggleBtn(metric === 'efficiency', () => onMetricChange('efficiency'), 'Eficiencia')}
+            {toggleBtn(metric === 'frequency', () => onMetricChange('frequency'), 'Frecuencia')}
           </div>
         </div>
       </div>
@@ -712,47 +712,104 @@ function seasonLabel(s) {
   return `${s - 1}-${String(s).slice(-2)}`
 }
 
-// ─── Main Component ───────────────────────────────────────────
+function parseSeasonParam(value, availableSeasons) {
+  const season = Number(value)
+  return availableSeasons.includes(season) ? season : (availableSeasons[0] || 2025)
+}
 
-// Convert team name to URL-friendly slug: lowercase, spaces→hyphens, strip accents
-function toSlug(name) {
-  return name
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // strip accents
-    .toLowerCase()
-    .replace(/\s+/g, '-')
-    .replace(/[^a-z0-9-]/g, '')
+function buildTeamProfileSearch({ season, trendStat, mode, metric }) {
+  return new URLSearchParams(serializeRouteQuery('teamProfile', {
+    temporada: season,
+    tendencia: trendStat,
+    lado: mode,
+    metrica: metric,
+  }))
 }
 
 export default function TeamFingerprint({
   teams,
+  players = [],
+  playerBio = {},
   teamLogos = {},
   loadShotsForSeason,
   shotsCache = {},
   loadingShots = {},
 }) {
-  const { season: urlSeason, team: urlTeamSlug } = useParams()
+  const routeParams = useParams()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const urlTeamId = routeParams.teamId || routeParams.team || ''
 
   const availableSeasons = useMemo(() => {
     return [...new Set(teams.map(t => t.season))].sort((a, b) => b - a)
   }, [teams])
 
-  const parsedUrlSeason = Number(urlSeason)
-  const initialSeason = availableSeasons.includes(parsedUrlSeason) ? parsedUrlSeason : (availableSeasons[0] || 2025)
-  const [selectedSeason, setSelectedSeason] = useState(initialSeason)
-  const [selectedTeam, setSelectedTeam] = useState('')
-
-  // sync from url params on mount or url change
-  useEffect(() => {
-    const nextSeason = Number(urlSeason)
-    if (availableSeasons.includes(nextSeason)) setSelectedSeason(nextSeason)
-  }, [availableSeasons, urlSeason])
+  const teamIdentityIndex = useMemo(() => createTeamIdentityIndexFromRows(teams), [teams])
+  const queryState = readRouteQuery('teamProfile', searchParams, {
+    defaults: { temporada: Number(routeParams.season) || availableSeasons[0] || 2025 },
+  })
+  const selectedSeason = parseSeasonParam(queryState.temporada, availableSeasons)
+  const trendStat = trendStatOptions.some(stat => stat.key === queryState.tendencia)
+    ? queryState.tendencia
+    : 'ortg'
+  const mode = queryState.lado
+  const metric = queryState.metrica
+  const resolvedUrlTeamId = resolveTeamId(teamIdentityIndex, urlTeamId, selectedSeason)
 
   const seasonTeams = useMemo(() => {
     return teams.filter(t => t.season === selectedSeason).sort((a, b) => a.team.localeCompare(b.team))
   }, [teams, selectedSeason])
 
-  const teamNames = useMemo(() => seasonTeams.map(t => t.team), [seasonTeams])
+  const teamOptions = useMemo(() => {
+    const options = new Map()
+    seasonTeams.forEach(row => {
+      const teamId = resolveTeamId(teamIdentityIndex, row.teamId || row.team, selectedSeason)
+      if (teamId && !options.has(teamId)) options.set(teamId, { teamId, name: row.team })
+    })
+    return [...options.values()]
+  }, [seasonTeams, selectedSeason, teamIdentityIndex])
+
+  const selectedRecord = useMemo(() => {
+    if (!resolvedUrlTeamId) return null
+    return seasonTeams.find(row => (
+      resolveTeamId(teamIdentityIndex, row.teamId || row.team, selectedSeason) === resolvedUrlTeamId
+    )) || null
+  }, [resolvedUrlTeamId, seasonTeams, selectedSeason, teamIdentityIndex])
+
+  const selectedTeam = selectedRecord?.team || ''
+
+  const rosterPlayers = useMemo(() => {
+    if (!resolvedUrlTeamId) return []
+    return players.filter(player => (
+      Number(player.season) === Number(selectedSeason)
+      && resolveTeamId(teamIdentityIndex, player.teamId || player.team, selectedSeason) === resolvedUrlTeamId
+    ))
+  }, [players, resolvedUrlTeamId, selectedSeason, teamIdentityIndex])
+
+  const updateUrlState = (changes) => {
+    setSearchParams(buildTeamProfileSearch({
+      season: selectedSeason,
+      trendStat,
+      mode,
+      metric,
+      ...changes,
+    }))
+  }
+
+  useEffect(() => {
+    if (!availableSeasons.length) return
+    const canonical = buildTeamProfileSearch({ season: selectedSeason, trendStat, mode, metric })
+    if (canonical.toString() !== searchParams.toString()) {
+      setSearchParams(canonical, { replace: true })
+    }
+  }, [availableSeasons.length, metric, mode, searchParams, selectedSeason, setSearchParams, trendStat])
+
+  useEffect(() => {
+    if (!urlTeamId || !resolvedUrlTeamId) return
+    if (urlTeamId === resolvedUrlTeamId && !routeParams.season) return
+    const search = buildTeamProfileSearch({ season: selectedSeason, trendStat, mode, metric }).toString()
+    navigate({ pathname: buildTeamProfilePath(resolvedUrlTeamId), search: `?${search}` }, { replace: true })
+  }, [metric, mode, navigate, resolvedUrlTeamId, routeParams.season, selectedSeason, trendStat, urlTeamId])
 
   useEffect(() => {
     if (selectedSeason >= 2021) loadShotsForSeason?.(selectedSeason)
@@ -761,19 +818,6 @@ export default function TeamFingerprint({
   const shotRows = shotsCache[selectedSeason] || []
   const hasLoadedShots = Object.prototype.hasOwnProperty.call(shotsCache, selectedSeason)
   const isShotsLoading = selectedSeason >= 2021 && (!hasLoadedShots || Boolean(loadingShots[selectedSeason]))
-
-  useEffect(() => {
-    if (teamNames.length === 0) return
-    const urlMatch = urlTeamSlug ? teamNames.find(name => toSlug(name) === urlTeamSlug) : null
-    const nextTeam = urlTeamSlug
-      ? (urlMatch || teamNames[0])
-      : (teamNames.includes(selectedTeam) ? selectedTeam : teamNames[0])
-    if (nextTeam !== selectedTeam) setSelectedTeam(nextTeam)
-    const canonicalPath = `/perfil-equipo/${selectedSeason}/${toSlug(nextTeam)}`
-    if (Number(urlSeason) !== selectedSeason || urlTeamSlug !== toSlug(nextTeam)) {
-      navigate(canonicalPath, { replace: true })
-    }
-  }, [navigate, selectedSeason, selectedTeam, teamNames, urlSeason, urlTeamSlug])
 
   // compute league stats for all 14 axes
   const leagueStats = useMemo(() => {
@@ -873,14 +917,7 @@ export default function TeamFingerprint({
           <select
             id="fingerprint-season"
             value={selectedSeason}
-            onChange={(e) => {
-              const newSeason = Number(e.target.value)
-              const newTeams = teams.filter(t => t.season === newSeason).map(t => t.team).sort((a, b) => a.localeCompare(b))
-              const nextTeam = newTeams.includes(selectedTeam) ? selectedTeam : newTeams[0]
-              setSelectedSeason(newSeason)
-              setSelectedTeam(nextTeam || '')
-              if (nextTeam) navigate(`/perfil-equipo/${newSeason}/${toSlug(nextTeam)}`, { replace: true })
-            }}
+            onChange={(e) => updateUrlState({ season: Number(e.target.value) })}
             className="form-control"
           >
             {availableSeasons.map(s => (
@@ -893,16 +930,16 @@ export default function TeamFingerprint({
           <label htmlFor="fingerprint-team" className="field-label">Equipo</label>
           <select
             id="fingerprint-team"
-            value={selectedTeam}
+            value={selectedRecord ? resolvedUrlTeamId : ''}
             onChange={(e) => {
-              const team = e.target.value
-              setSelectedTeam(team)
-              navigate(`/perfil-equipo/${selectedSeason}/${toSlug(team)}`, { replace: true })
+              const search = buildTeamProfileSearch({ season: selectedSeason, trendStat, mode, metric }).toString()
+              navigate({ pathname: buildTeamProfilePath(e.target.value), search: `?${search}` })
             }}
             className="form-control"
           >
-            {teamNames.map(name => (
-              <option key={name} value={name}>{name}</option>
+            <option value="">Selecciona un equipo</option>
+            {teamOptions.map(option => (
+              <option key={option.teamId} value={option.teamId}>{option.name}</option>
             ))}
           </select>
         </div>
@@ -911,7 +948,9 @@ export default function TeamFingerprint({
       {/* content */}
       {!selectedTeam && (
         <div className="bg-white rounded-lg border border-acb-200 p-12 text-center text-acb-400">
-          Selecciona un equipo para ver su estilo de juego.
+          {urlTeamId
+            ? 'No se ha encontrado ese equipo en la temporada seleccionada.'
+            : 'Selecciona un equipo para ver su estilo de juego.'}
         </div>
       )}
 
@@ -945,6 +984,8 @@ export default function TeamFingerprint({
               teams={teams}
               selectedTeam={selectedTeam}
               selectedSeason={selectedSeason}
+              trendStat={trendStat}
+              onTrendStatChange={(value) => updateUrlState({ trendStat: value })}
             />
           </div>
 
@@ -984,11 +1025,17 @@ export default function TeamFingerprint({
             </div>
           </div>
 
+          <TeamRosterTable players={rosterPlayers} playerBio={playerBio} />
+
           <TeamShotProfile
             team={selectedTeam}
             shots={shotRows}
             isLoading={isShotsLoading}
             isAvailable={selectedSeason >= 2021}
+            mode={mode}
+            metric={metric}
+            onModeChange={(value) => updateUrlState({ mode: value })}
+            onMetricChange={(value) => updateUrlState({ metric: value })}
           />
 
           {/* Stat Breakdown */}

@@ -23,6 +23,11 @@ generate_team_pace <- function(
     output_dir = "../openacb_react/public/data"
 ) {
   source(config_path, local = TRUE)
+  source(
+    file.path(dirname(config_path), "team_identities.R"),
+    local = TRUE,
+    encoding = "UTF-8"
+  )
 
   cat(sprintf("\n--- Team Pace: season %d ---\n", season_id))
 
@@ -78,6 +83,12 @@ generate_team_pace <- function(
   # ─── All unique teams and matches ────────────────────────────────────────
 
   all_teams <- unique(pbp$team[!is.na(pbp$team) & pbp$team != ""])
+  all_team_ids <- validate_unique_team_seasons(
+    all_teams,
+    rep(season_id, length(all_teams)),
+    context = sprintf("team pace for season %d", season_id)
+  )
+  names(all_team_ids) <- all_teams
   match_ids <- unique(pbp$id_match)
 
   cat(sprintf("  Found %d teams, %d matches\n", length(all_teams), length(match_ids)))
@@ -313,6 +324,7 @@ generate_team_pace <- function(
 
     list(
       team = tm,
+      teamId = unname(all_team_ids[[tm]]),
       games = n_games,
       quarters = list(
         scored = scored_q,

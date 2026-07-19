@@ -2,6 +2,33 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import { Routes, Route, useLocation, Link, Navigate } from 'react-router-dom'
 import { Analytics } from '@vercel/analytics/react'
 import { BarChart3, Target, Users, TrendingUp, Percent, Trophy, Info, UserCircle, Menu, X, GitCompareArrows, Fingerprint, ChevronDown, Activity, Crown, Flame, Scale, Sparkles } from 'lucide-react'
+import {
+  ROUTE_MANIFEST,
+  buildAboutPath,
+  buildFourFactorsPath,
+  buildGamesPath,
+  buildPlayerSegment,
+  buildLineupAnalysisPath,
+  buildLineupRankingsPath,
+  buildPlayerClutchPath,
+  buildPlayerComparisonPath,
+  buildPlayerProfilePath,
+  buildPlayerSimilarityPath,
+  buildPlayerStatsPath,
+  buildShotChartsPath,
+  buildTeamComparisonPath,
+  buildTeamClutchPath,
+  buildTeamProfilePath,
+  buildTeamQuartersPath,
+  buildTeamStatsPath,
+  buildZoneLeadersPath,
+  canonicalizePathname,
+  getPlayerProfileSlug,
+  matchCanonicalRoute,
+  matchLegacyRoute,
+  resolveCanonicalEntityLocation,
+  resolveLegacyLocation,
+} from './routing'
 const Home = lazy(() => import('./pages/Home'))
 const ShotCharts = lazy(() => import('./pages/ShotCharts'))
 const TeamStats = lazy(() => import('./pages/TeamStats'))
@@ -16,6 +43,8 @@ const PlayerComparison = lazy(() => import('./pages/PlayerComparison'))
 const TeamFingerprint = lazy(() => import('./pages/TeamFingerprint'))
 const TeamMatchup = lazy(() => import('./pages/TeamMatchup'))
 const GameFlow = lazy(() => import('./pages/GameFlow'))
+const TeamClutchPage = lazy(() => import('./pages/GameFlow').then(module => ({ default: module.TeamClutchPage })))
+const TeamPace = lazy(() => import('./pages/TeamPace'))
 const ZoneLeaders = lazy(() => import('./pages/ZoneLeaders'))
 const ClutchStats = lazy(() => import('./pages/ClutchStats'))
 
@@ -29,15 +58,18 @@ const DATA_RESOURCES = {
   teamLogos: { url: '/data/team-logos.json', fallback: {} },
   playerPhotos: { url: '/data/player-photos.json', fallback: {} },
   playerBio: { url: '/data/player-bio.json', fallback: {} },
+  teamIdentities: { url: '/data/team-identities.json' },
 }
 
 const DATA_REQUIREMENTS = {
   home: [],
   about: [],
   teams: ['teamsByStage', 'teamLogos'],
-  fingerprint: ['teams', 'teamLogos'],
+  fingerprint: ['teams', 'players', 'playerNames', 'playerBio', 'teamLogos'],
   matchup: ['teams', 'teamLogos'],
   gameflow: ['teams', 'players', 'playerNames'],
+  quarters: ['teams'],
+  teamClutch: ['teams'],
   factors: ['teams'],
   players: ['playersByStage', 'playerNames', 'playerBio'],
   profile: ['players', 'playersByStage', 'playerNames', 'playerPhotos', 'playerBio'],
@@ -52,24 +84,23 @@ const DATA_REQUIREMENTS = {
 
 const INITIAL_DATA = Object.fromEntries(Object.keys(DATA_RESOURCES).map(key => [key, null]))
 
-// tab id → url path mapping
 const TAB_PATHS = {
   home: '/',
-  teams: '/equipos',
-  fingerprint: '/perfil-equipo',
-  matchup: '/matchup-equipos',
-  gameflow: '/flujo-partido',
-  factors: '/cuatro-factores',
-  players: '/jugadores',
-  profile: '/jugador',
-  similarity: '/similitud',
-  comparison: '/comparar',
-  clutch: '/estadisticas-clutch',
-  lineups: '/alineaciones',
-  rankings: '/mejores-alineaciones',
-  shots: '/cartas-tiro',
-  zoneleaders: '/lideres-zona',
-  about: '/info',
+  teams: buildTeamStatsPath(),
+  fingerprint: buildTeamProfilePath(),
+  matchup: buildTeamComparisonPath(),
+  gameflow: buildGamesPath(),
+  factors: buildFourFactorsPath(),
+  players: buildPlayerStatsPath(),
+  profile: buildPlayerProfilePath(),
+  similarity: buildPlayerSimilarityPath(),
+  comparison: buildPlayerComparisonPath(),
+  clutch: buildPlayerClutchPath(),
+  lineups: buildLineupAnalysisPath(),
+  rankings: buildLineupRankingsPath(),
+  shots: buildShotChartsPath(),
+  zoneleaders: buildZoneLeadersPath(),
+  about: buildAboutPath(),
 }
 
 // navigation structure: single tabs and grouped dropdowns
@@ -116,15 +147,6 @@ const NAV = [
   { id: 'about', label: 'Info', short: 'Info', icon: Info, single: true },
 ]
 
-// derive active tab id from the current url pathname
-function getTabFromPath(pathname) {
-  for (const [tabId, path] of Object.entries(TAB_PATHS)) {
-    if (tabId === 'home') continue // handle home separately
-    if (pathname === path || pathname.startsWith(`${path}/`)) return tabId
-  }
-  return pathname === '/' ? 'home' : null
-}
-
 // return the group id that contains the given tab id
 function getActiveGroup(tabId) {
   for (const item of NAV) {
@@ -134,9 +156,45 @@ function getActiveGroup(tabId) {
   return null
 }
 
+function RouteProblem({ title, message }) {
+  return (
+    <div className="mx-auto my-16 max-w-lg rounded-lg border border-acb-200 bg-white p-6 text-center shadow-sm" role="alert">
+      <h1 className="text-xl font-semibold text-acb-900">{title}</h1>
+      <p className="mt-2 text-sm text-acb-600">{message}</p>
+      <Link to="/" className="mt-5 inline-flex rounded-lg bg-acb-900 px-4 py-2 text-sm font-medium text-white hover:bg-acb-800">
+        Volver al inicio
+      </Link>
+    </div>
+  )
+}
+
+function LegacyRedirect({ context }) {
+  const location = useLocation()
+  const resolution = resolveLegacyLocation(location, context)
+
+  if (resolution?.status === 'redirect') return <Navigate to={resolution.to} replace />
+  if (resolution?.status === 'needs-data') {
+    return <div className="py-16 text-center text-acb-500" role="status">Cargando enlace...</div>
+  }
+  if (resolution?.status === 'ambiguous') {
+    return (
+      <RouteProblem
+        title="El enlace necesita más información"
+        message="Hay más de una entidad que coincide con este enlace antiguo. Abre la herramienta y selecciona la opción correcta."
+      />
+    )
+  }
+  return <RouteProblem title="Enlace no encontrado" message="La entidad indicada en este enlace no existe o ya no está disponible." />
+}
+
 function App() {
   const location = useLocation()
-  const activeTab = getTabFromPath(location.pathname)
+  const normalizedPathname = canonicalizePathname(location.pathname).toLocaleLowerCase('es')
+  const canonicalMatch = matchCanonicalRoute(normalizedPathname)
+  const legacyMatch = canonicalMatch ? null : matchLegacyRoute(normalizedPathname)
+  const routeMatch = canonicalMatch || legacyMatch
+  const pathNeedsNormalization = Boolean(routeMatch && normalizedPathname !== location.pathname)
+  const activeTab = routeMatch?.route.tabId || null
 
   const [data, setData] = useState(INITIAL_DATA)
   const [loadError, setLoadError] = useState('')
@@ -159,12 +217,10 @@ function App() {
   }, [])
 
   useEffect(() => {
-    const tabs = NAV.flatMap(item => item.single ? [item] : item.tabs)
-    const current = tabs.find(tab => tab.id === activeTab)
     document.title = activeTab === 'home'
       ? 'openACB'
-      : `${current?.label || 'Página no encontrada'} | openACB`
-  }, [activeTab])
+      : `${routeMatch?.route.label || 'Página no encontrada'} | openACB`
+  }, [activeTab, routeMatch?.route.label])
 
   useEffect(() => {
     setMenuOpen(false)
@@ -183,7 +239,13 @@ function App() {
   const [clutchCache, setClutchCache] = useState({})
   const [loadingClutch, setLoadingClutch] = useState({})
 
-  const requiredResources = DATA_REQUIREMENTS[activeTab] || []
+  const legacyNeedsTeamIdentities = Boolean(
+    legacyMatch
+    && ['team', 'teamA', 'teamB'].some(param => legacyMatch.params[param])
+  )
+  const requiredResources = legacyNeedsTeamIdentities
+    ? [...(DATA_REQUIREMENTS[activeTab] || []), 'teamIdentities']
+    : (DATA_REQUIREMENTS[activeTab] || [])
   const missingResources = requiredResources.filter(key => data[key] == null)
   const missingKey = missingResources.join('|')
 
@@ -224,21 +286,64 @@ function App() {
     })
   }, [missingKey, retryToken])
 
+  const playerProfileSlugs = useMemo(() => {
+    const names = data.playerNames || {}
+    const rows = [...(data.players || []), ...(data.playersByStage || [])]
+    const idsBySlug = new Map()
+    const slugById = new Map()
+    const playerById = new Map()
+
+    rows.forEach(player => {
+      const id = String(player.licenseId)
+      const slug = getPlayerProfileSlug(player, names[id])
+      if (!idsBySlug.has(slug)) idsBySlug.set(slug, new Set())
+      idsBySlug.get(slug).add(id)
+      slugById.set(id, slug)
+      if (!playerById.has(id)) playerById.set(id, player)
+    })
+
+    return Object.fromEntries([...slugById].map(([id, slug]) => [
+      id,
+      idsBySlug.get(slug).size > 1
+        ? buildPlayerSegment(playerById.get(id), names[id])
+        : slug,
+    ]))
+  }, [data.playerNames, data.players, data.playersByStage])
+
   const namedPlayers = useMemo(() => {
     const names = data.playerNames || {}
     return (data.players || []).map(player => ({
       ...player,
       playerDisplay: names[String(player.licenseId)] || undefined,
+      profileSlug: playerProfileSlugs[String(player.licenseId)],
     }))
-  }, [data.players, data.playerNames])
+  }, [data.players, data.playerNames, playerProfileSlugs])
 
   const namedPlayersByStage = useMemo(() => {
     const names = data.playerNames || {}
     return (data.playersByStage || []).map(player => ({
       ...player,
       playerDisplay: names[String(player.licenseId)] || undefined,
+      profileSlug: playerProfileSlugs[String(player.licenseId)],
     }))
-  }, [data.playersByStage, data.playerNames])
+  }, [data.playersByStage, data.playerNames, playerProfileSlugs])
+
+  const requestedGameSeason = canonicalMatch?.routeId === 'games'
+    ? Number(new URLSearchParams(location.search).get('temporada'))
+    : null
+  const routeGames = Number.isInteger(requestedGameSeason)
+    && Object.hasOwn(gameFlowCache, requestedGameSeason)
+    ? gameFlowCache[requestedGameSeason]
+    : undefined
+  const routingContext = useMemo(() => ({
+    players: namedPlayersByStage.length > 0 ? namedPlayersByStage : namedPlayers,
+    teamIdentities: data.teamIdentities,
+    teamRows: data.teams,
+    ...(routeGames !== undefined ? { games: routeGames } : {}),
+  }), [data.teamIdentities, data.teams, namedPlayers, namedPlayersByStage, routeGames])
+  const canonicalResolution = canonicalMatch
+    ? resolveCanonicalEntityLocation(location, routingContext)
+    : null
 
   const loadShotsForSeason = useCallback(async (season) => {
     if (shotsCache[season]) return shotsCache[season]
@@ -335,7 +440,7 @@ function App() {
     }
   }, [clutchCache, loadingClutch])
 
-  const activeGroupId = getActiveGroup(activeTab)
+  const activeGroupId = routeMatch?.route.navGroupId || getActiveGroup(activeTab)
 
   return (
     <>
@@ -514,7 +619,9 @@ function App() {
 
         {/* main content */}
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          {missingResources.length > 0 && !loadError ? (
+          {pathNeedsNormalization ? (
+            <Navigate to={`${normalizedPathname}${location.search}`} replace />
+          ) : missingResources.length > 0 && !loadError ? (
             <div className="flex min-h-[40vh] items-center justify-center text-acb-500" role="status" aria-live="polite">
               Cargando datos...
             </div>
@@ -530,214 +637,169 @@ function App() {
                 Reintentar
               </button>
             </div>
+          ) : canonicalResolution?.status === 'redirect' ? (
+            <Navigate to={canonicalResolution.to} replace />
+          ) : canonicalResolution?.status === 'not-found' ? (
+            <RouteProblem title="Enlace no encontrado" message="La entidad indicada en este enlace no existe o ya no está disponible." />
+          ) : canonicalResolution?.status === 'ambiguous' ? (
+            <RouteProblem title="El enlace necesita más información" message="Hay más de un jugador con ese nombre. Abre la herramienta y selecciona el jugador correcto." />
           ) : (
             <Suspense fallback={<div className="py-16 text-center text-acb-500" role="status">Cargando herramienta...</div>}>
-            <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/equipos" element={<TeamStats teams={data.teamsByStage} teamLogos={data.teamLogos} />} />
-            <Route path="/perfil-equipo" element={
-              <TeamFingerprint
-                teams={data.teams}
-                teamLogos={data.teamLogos}
-                loadShotsForSeason={loadShotsForSeason}
-                shotsCache={shotsCache}
-                loadingShots={loadingShots}
-              />
-            } />
-            <Route path="/perfil-equipo/:season/:team" element={
-              <TeamFingerprint
-                teams={data.teams}
-                teamLogos={data.teamLogos}
-                loadShotsForSeason={loadShotsForSeason}
-                shotsCache={shotsCache}
-                loadingShots={loadingShots}
-              />
-            } />
-            <Route path="/matchup-equipos" element={
-              <TeamMatchup
-                teams={data.teams}
-                teamLogos={data.teamLogos}
-                loadTeamPaceForSeason={loadTeamPaceForSeason}
-                teamPaceCache={teamPaceCache}
-                loadingTeamPace={loadingTeamPace}
-                loadClutchForSeason={loadClutchForSeason}
-                clutchCache={clutchCache}
-                loadingClutch={loadingClutch}
-                loadShotsForSeason={loadShotsForSeason}
-                shotsCache={shotsCache}
-                loadingShots={loadingShots}
-              />
-            } />
-            <Route path="/matchup-equipos/:season/:teamA/:teamB" element={
-              <TeamMatchup
-                teams={data.teams}
-                teamLogos={data.teamLogos}
-                loadTeamPaceForSeason={loadTeamPaceForSeason}
-                teamPaceCache={teamPaceCache}
-                loadingTeamPace={loadingTeamPace}
-                loadClutchForSeason={loadClutchForSeason}
-                clutchCache={clutchCache}
-                loadingClutch={loadingClutch}
-                loadShotsForSeason={loadShotsForSeason}
-                shotsCache={shotsCache}
-                loadingShots={loadingShots}
-              />
-            } />
-            <Route path="/flujo-partido" element={
-              <GameFlow
-                teams={data.teams}
-                playerRecords={namedPlayers}
-                loadGameFlowForSeason={loadGameFlowForSeason}
-                gameFlowCache={gameFlowCache}
-                loadingGameFlow={loadingGameFlow}
-                loadTeamPaceForSeason={loadTeamPaceForSeason}
-                teamPaceCache={teamPaceCache}
-                loadingTeamPace={loadingTeamPace}
-                loadClutchForSeason={loadClutchForSeason}
-                clutchCache={clutchCache}
-                loadingClutch={loadingClutch}
-              />
-            } />
-            <Route path="/cuatro-factores" element={<FourFactors teams={data.teams} />} />
-            <Route path="/jugadores" element={
-              <PlayerStats
-                players={namedPlayersByStage}
-                playerBio={data.playerBio}
-              />
-            } />
-            <Route path="/jugador" element={
-              <PlayerProfile
-                players={namedPlayersByStage}
-                allPlayers={namedPlayers}
-                playerPhotos={data.playerPhotos}
-                playerBio={data.playerBio}
-                loadLineupsForSeason={loadLineupsForSeason}
-                lineupsCache={lineupsCache}
-                loadingLineups={loadingLineups}
-                loadClutchForSeason={loadClutchForSeason}
-                clutchCache={clutchCache}
-                loadingClutch={loadingClutch}
-              />
-            } />
-            <Route path="/jugador/:licenseId" element={
-              <PlayerProfile
-                players={namedPlayersByStage}
-                allPlayers={namedPlayers}
-                playerPhotos={data.playerPhotos}
-                playerBio={data.playerBio}
-                loadLineupsForSeason={loadLineupsForSeason}
-                lineupsCache={lineupsCache}
-                loadingLineups={loadingLineups}
-                loadClutchForSeason={loadClutchForSeason}
-                clutchCache={clutchCache}
-                loadingClutch={loadingClutch}
-              />
-            } />
-            <Route path="/similitud" element={
-              <PlayerSimilarity
-                players={namedPlayers}
-                similarity={data.similarity}
-              />
-            } />
-            <Route path="/similitud/:licenseId/:season" element={
-              <PlayerSimilarity
-                players={namedPlayers}
-                similarity={data.similarity}
-              />
-            } />
-            <Route path="/comparar" element={
-              <PlayerComparison
-                players={namedPlayers}
-                playerPhotos={data.playerPhotos}
-                playerBio={data.playerBio}
-                loadLineupsForSeason={loadLineupsForSeason}
-                lineupsCache={lineupsCache}
-                loadingLineups={loadingLineups}
-              />
-            } />
-            <Route path="/comparar/:aId/:aSeason/:bId/:bSeason" element={
-              <PlayerComparison
-                players={namedPlayers}
-                playerPhotos={data.playerPhotos}
-                playerBio={data.playerBio}
-                loadLineupsForSeason={loadLineupsForSeason}
-                lineupsCache={lineupsCache}
-                loadingLineups={loadingLineups}
-              />
-            } />
-            <Route path="/alineaciones" element={
-              <LineupAnalysis
-                teams={data.teams}
-                loadLineupsForSeason={loadLineupsForSeason}
-                lineupsCache={lineupsCache}
-                loadingLineups={loadingLineups}
-                playerPhotos={data.playerPhotos}
-                playerRecords={namedPlayers}
-              />
-            } />
-            <Route path="/alineaciones/:season/:team" element={
-              <LineupAnalysis
-                teams={data.teams}
-                loadLineupsForSeason={loadLineupsForSeason}
-                lineupsCache={lineupsCache}
-                loadingLineups={loadingLineups}
-                playerPhotos={data.playerPhotos}
-                playerRecords={namedPlayers}
-              />
-            } />
-            <Route path="/mejores-alineaciones" element={
-              <LineupRankings
-                teams={data.teams}
-                loadLineupsForSeason={loadLineupsForSeason}
-                lineupsCache={lineupsCache}
-                loadingLineups={loadingLineups}
-                playerRecords={namedPlayers}
-              />
-            } />
-            <Route path="/cartas-tiro" element={
-              <ShotCharts
-                loadShotsForSeason={loadShotsForSeason}
-                shotsCache={shotsCache}
-                loadingShots={loadingShots}
-                teams={data.teams}
-                players={namedPlayers}
-                playerPhotos={data.playerPhotos}
-              />
-            } />
-            <Route path="/lideres-zona" element={
-              <ZoneLeaders
-                loadShotsForSeason={loadShotsForSeason}
-                shotsCache={shotsCache}
-                loadingShots={loadingShots}
-                teams={data.teams}
-                players={namedPlayers}
-                playerPhotos={data.playerPhotos}
-              />
-            } />
-            <Route path="/lideres-zona/:season/:metric" element={
-              <ZoneLeaders
-                loadShotsForSeason={loadShotsForSeason}
-                shotsCache={shotsCache}
-                loadingShots={loadingShots}
-                teams={data.teams}
-                players={namedPlayers}
-                playerPhotos={data.playerPhotos}
-              />
-            } />
-            <Route path="/estadisticas-clutch" element={
-              <ClutchStats
-                teams={data.teams}
-                players={namedPlayers}
-                playerBio={data.playerBio}
-                loadClutchForSeason={loadClutchForSeason}
-                clutchCache={clutchCache}
-                loadingClutch={loadingClutch}
-              />
-            } />
-            <Route path="/info" element={<About />} />
-            {/* redirect unknown routes to home */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path={buildTeamStatsPath()} element={<TeamStats teams={data.teamsByStage} teamLogos={data.teamLogos} />} />
+                {[buildTeamProfilePath(), `${buildTeamProfilePath()}/:teamId`].map(path => (
+                  <Route key={path} path={path} element={
+                    <TeamFingerprint
+                      teams={data.teams}
+                      players={namedPlayers}
+                      playerBio={data.playerBio}
+                      teamLogos={data.teamLogos}
+                      loadShotsForSeason={loadShotsForSeason}
+                      shotsCache={shotsCache}
+                      loadingShots={loadingShots}
+                    />
+                  } />
+                ))}
+                {[buildTeamComparisonPath(), `${buildTeamComparisonPath()}/:teamAId/:teamBId`].map(path => (
+                  <Route key={path} path={path} element={
+                    <TeamMatchup
+                      teams={data.teams}
+                      teamLogos={data.teamLogos}
+                      loadTeamPaceForSeason={loadTeamPaceForSeason}
+                      teamPaceCache={teamPaceCache}
+                      loadingTeamPace={loadingTeamPace}
+                      loadClutchForSeason={loadClutchForSeason}
+                      clutchCache={clutchCache}
+                      loadingClutch={loadingClutch}
+                      loadShotsForSeason={loadShotsForSeason}
+                      shotsCache={shotsCache}
+                      loadingShots={loadingShots}
+                    />
+                  } />
+                ))}
+                <Route path={buildFourFactorsPath()} element={<FourFactors teams={data.teams} />} />
+                <Route path={buildTeamQuartersPath()} element={
+                  <TeamPace
+                    teams={data.teams}
+                    loadTeamPaceForSeason={loadTeamPaceForSeason}
+                    teamPaceCache={teamPaceCache}
+                    loadingTeamPace={loadingTeamPace}
+                  />
+                } />
+                <Route path={buildTeamClutchPath()} element={
+                  <TeamClutchPage
+                    teams={data.teams}
+                    loadClutchForSeason={loadClutchForSeason}
+                    clutchCache={clutchCache}
+                    loadingClutch={loadingClutch}
+                  />
+                } />
+                {[buildGamesPath(), `${buildGamesPath()}/:game`].map(path => (
+                  <Route key={path} path={path} element={
+                    <GameFlow
+                      teams={data.teams}
+                      playerRecords={namedPlayers}
+                      loadGameFlowForSeason={loadGameFlowForSeason}
+                      gameFlowCache={gameFlowCache}
+                      loadingGameFlow={loadingGameFlow}
+                    />
+                  } />
+                ))}
+                <Route path={buildPlayerStatsPath()} element={<PlayerStats players={namedPlayersByStage} playerBio={data.playerBio} />} />
+                {[buildPlayerProfilePath(), `${buildPlayerProfilePath()}/:player`].map(path => (
+                  <Route key={path} path={path} element={
+                    <PlayerProfile
+                      players={namedPlayersByStage}
+                      allPlayers={namedPlayers}
+                      playerPhotos={data.playerPhotos}
+                      playerBio={data.playerBio}
+                      loadLineupsForSeason={loadLineupsForSeason}
+                      lineupsCache={lineupsCache}
+                      loadingLineups={loadingLineups}
+                      loadClutchForSeason={loadClutchForSeason}
+                      clutchCache={clutchCache}
+                      loadingClutch={loadingClutch}
+                    />
+                  } />
+                ))}
+                {[buildPlayerSimilarityPath(), `${buildPlayerSimilarityPath()}/:player`].map(path => (
+                  <Route key={path} path={path} element={<PlayerSimilarity players={namedPlayers} similarity={data.similarity} />} />
+                ))}
+                {[buildPlayerComparisonPath(), `${buildPlayerComparisonPath()}/:playerA/:playerB`].map(path => (
+                  <Route key={path} path={path} element={
+                    <PlayerComparison
+                      players={namedPlayers}
+                      playerPhotos={data.playerPhotos}
+                      playerBio={data.playerBio}
+                      loadLineupsForSeason={loadLineupsForSeason}
+                      lineupsCache={lineupsCache}
+                      loadingLineups={loadingLineups}
+                    />
+                  } />
+                ))}
+                <Route path={buildPlayerClutchPath()} element={
+                  <ClutchStats
+                    teams={data.teams}
+                    players={namedPlayers}
+                    playerBio={data.playerBio}
+                    loadClutchForSeason={loadClutchForSeason}
+                    clutchCache={clutchCache}
+                    loadingClutch={loadingClutch}
+                  />
+                } />
+                {[buildLineupAnalysisPath(), `${buildLineupAnalysisPath()}/:teamId`].map(path => (
+                  <Route key={path} path={path} element={
+                    <LineupAnalysis
+                      teams={data.teams}
+                      loadLineupsForSeason={loadLineupsForSeason}
+                      lineupsCache={lineupsCache}
+                      loadingLineups={loadingLineups}
+                      playerPhotos={data.playerPhotos}
+                      playerRecords={namedPlayers}
+                    />
+                  } />
+                ))}
+                <Route path={buildLineupRankingsPath()} element={
+                  <LineupRankings
+                    teams={data.teams}
+                    loadLineupsForSeason={loadLineupsForSeason}
+                    lineupsCache={lineupsCache}
+                    loadingLineups={loadingLineups}
+                    playerRecords={namedPlayers}
+                  />
+                } />
+                {[buildShotChartsPath(), `${buildShotChartsPath()}/equipo/:teamId`, `${buildShotChartsPath()}/jugador/:player`].map(path => (
+                  <Route key={path} path={path} element={
+                    <ShotCharts
+                      loadShotsForSeason={loadShotsForSeason}
+                      shotsCache={shotsCache}
+                      loadingShots={loadingShots}
+                      teams={data.teams}
+                      players={namedPlayers}
+                      playerPhotos={data.playerPhotos}
+                    />
+                  } />
+                ))}
+                <Route path={buildZoneLeadersPath()} element={
+                  <ZoneLeaders
+                    loadShotsForSeason={loadShotsForSeason}
+                    shotsCache={shotsCache}
+                    loadingShots={loadingShots}
+                    teams={data.teams}
+                    players={namedPlayers}
+                    playerPhotos={data.playerPhotos}
+                  />
+                } />
+                <Route path={buildAboutPath()} element={<About />} />
+                {ROUTE_MANIFEST.flatMap(route => route.legacyPatterns.map(path => (
+                  <Route key={`legacy:${path}`} path={path} element={<LegacyRedirect context={routingContext} />} />
+                )))}
+                <Route path="/tiro" element={<LegacyRedirect context={routingContext} />} />
+                <Route path="*" element={
+                  <RouteProblem title="Página no encontrada" message="La dirección no corresponde a ninguna herramienta de openACB." />
+                } />
+              </Routes>
             </Suspense>
           )}
         </main>

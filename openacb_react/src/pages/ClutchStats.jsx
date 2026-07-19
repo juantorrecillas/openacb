@@ -1,13 +1,24 @@
 import { useState, useMemo, useEffect } from 'react'
 import { ArrowUp, ArrowDown, Search, Filter } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { statTitle } from '../utils/statLabels'
 import { getPlayerDisplayName, getPlayerSearchText } from '../utils/playerNames'
 import PageHeader from '../components/PageHeader'
 import { getPercentileBadgeClass } from '../utils/percentileColors'
+import { buildPlayerProfilePath } from '../routing/paths'
+import { parseRouteQuery, serializeRouteQuery, withQuery } from '../routing/query'
 
 function seasonLabel(s) {
   return `${s - 1}-${String(s).slice(-2)}`
+}
+
+function playerProfileUrl(player, season) {
+  const pathname = buildPlayerProfilePath(player, getPlayerDisplayName(player))
+  const search = serializeRouteQuery('playerProfile', {
+    temporada: season,
+    equipo: player.teamId,
+  }, { strict: false })
+  return withQuery(pathname, search)
 }
 
 function fmtVal(v, key) {
@@ -100,27 +111,30 @@ const absolutesCols = [
 
 export default function ClutchStats({ teams, players = [], playerBio = {}, loadClutchForSeason, clutchCache, loadingClutch }) {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
 
   const availableSeasons = useMemo(
     () => [...new Set(teams.map(t => t.season))].sort((a, b) => b - a),
     [teams]
   )
 
-  const [selectedSeason, setSelectedSeason] = useState(availableSeasons[0] || 2026)
-  const [minGames, setMinGames]             = useState(3)
   const [sortKey, setSortKey]               = useState('pts')
   const [sortDir, setSortDir]               = useState('desc')
   const [search, setSearch]                 = useState('')
-  const [teamFilter, setTeamFilter]         = useState('')
-  const [positionFilter, setPositionFilter] = useState('')
-  const [viewMode, setViewMode]             = useState('basic')
   const [showAll, setShowAll]               = useState(false)
+
+  const parsedQuery = parseRouteQuery('playerClutch', searchParams)
+  const requestedSeason = parsedQuery.values.temporada
+  const selectedSeason = availableSeasons.includes(requestedSeason)
+    ? requestedSeason
+    : (availableSeasons[0] || 2026)
+  const minGames = parsedQuery.values['min-partidos'] || 3
+  const routeViewMode = parsedQuery.values.vista || 'basic'
+  const viewMode = routeViewMode === 'absolutes' ? 'absolutos' : routeViewMode
 
   useEffect(() => {
     if (selectedSeason) loadClutchForSeason(selectedSeason)
   }, [selectedSeason, loadClutchForSeason])
-
-  useEffect(() => { setShowAll(false) }, [selectedSeason, minGames, teamFilter, positionFilter, search, viewMode])
 
   const isLoading = loadingClutch[selectedSeason] || false
   const rawPlayers = useMemo(() => clutchCache[selectedSeason]?.players || [], [clutchCache, selectedSeason])
@@ -135,10 +149,15 @@ export default function ClutchStats({ teams, players = [], playerBio = {}, loadC
     return map
   }, [players, selectedSeason])
 
-  const allTeams = useMemo(
-    () => [...new Set(rawPlayers.map(p => p.team))].filter(Boolean).sort(),
-    [rawPlayers]
-  )
+  const teamOptions = useMemo(() => {
+    const byId = new Map()
+    rawPlayers.forEach(player => {
+      if (player.teamId && player.team) byId.set(player.teamId, player.team)
+    })
+    return [...byId.entries()]
+      .map(([teamId, name]) => ({ teamId, name }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'es'))
+  }, [rawPlayers])
 
   const enriched = useMemo(() => {
     const num = v => (v == null || v === 'NA') ? null : Number(v)
@@ -204,10 +223,42 @@ export default function ClutchStats({ teams, players = [], playerBio = {}, loadC
     return POSITION_ORDER.filter(pos => present.has(pos))
   }, [enriched])
 
+  const hasSeasonData = Object.prototype.hasOwnProperty.call(clutchCache, selectedSeason)
+  const requestedTeamFilter = parsedQuery.values.equipo || ''
+  const teamFilter = !hasSeasonData || teamOptions.some(option => option.teamId === requestedTeamFilter)
+    ? requestedTeamFilter
+    : ''
+  const requestedPositionFilter = parsedQuery.values.posicion || ''
+  const positionFilter = !hasSeasonData || allPositions.includes(requestedPositionFilter)
+    ? requestedPositionFilter
+    : ''
+  const canonicalQuery = {
+    temporada: selectedSeason,
+    'min-partidos': minGames,
+    equipo: teamFilter || undefined,
+    posicion: positionFilter || undefined,
+    vista: routeViewMode,
+  }
+  const canonicalSearch = serializeRouteQuery('playerClutch', canonicalQuery)
+  const currentSearch = searchParams.toString()
+
+  useEffect(() => {
+    if (currentSearch !== canonicalSearch) setSearchParams(canonicalSearch, { replace: true })
+  }, [canonicalSearch, currentSearch, setSearchParams])
+
+  useEffect(() => {
+    setShowAll(false)
+  }, [selectedSeason, minGames, teamFilter, positionFilter, search, viewMode])
+
+  const updateQuery = updates => {
+    const nextSearch = serializeRouteQuery('playerClutch', { ...canonicalQuery, ...updates })
+    if (nextSearch !== currentSearch) setSearchParams(nextSearch)
+  }
+
   const filtered = useMemo(() => {
     return enriched.filter(p => {
       if ((p.games || 0) < minGames) return false
-      if (teamFilter && p.team !== teamFilter) return false
+      if (teamFilter && p.teamId !== teamFilter) return false
       if (positionFilter && p.position !== positionFilter) return false
       if (search) {
         const q = search.toLowerCase()
@@ -272,7 +323,7 @@ export default function ClutchStats({ teams, players = [], playerBio = {}, loadC
             <select
               id="clutch-season"
               value={selectedSeason}
-              onChange={e => setSelectedSeason(Number(e.target.value))}
+              onChange={e => updateQuery({ temporada: Number(e.target.value) })}
               className="form-control"
             >
               {availableSeasons.map(s => <option key={s} value={s}>{seasonLabel(s)}</option>)}
@@ -286,7 +337,7 @@ export default function ClutchStats({ teams, players = [], playerBio = {}, loadC
                 key={mode}
                 aria-pressed={viewMode === mode}
                 onClick={() => {
-                  setViewMode(mode)
+                  updateQuery({ vista: mode === 'absolutos' ? 'absolutes' : mode })
                   setSortKey(mode === 'basic' ? 'pts' : mode === 'advanced' ? 'efgPct' : 'ptsT')
                   setSortDir('desc')
                 }}
@@ -302,11 +353,11 @@ export default function ClutchStats({ teams, players = [], playerBio = {}, loadC
             <select
               id="clutch-team"
               value={teamFilter}
-              onChange={e => setTeamFilter(e.target.value)}
+              onChange={e => updateQuery({ equipo: e.target.value || undefined })}
               className="form-control"
             >
               <option value="">Todos los equipos</option>
-              {allTeams.map(t => <option key={t} value={t}>{t}</option>)}
+              {teamOptions.map(team => <option key={team.teamId} value={team.teamId}>{team.name}</option>)}
             </select>
           </div>
 
@@ -317,7 +368,7 @@ export default function ClutchStats({ teams, players = [], playerBio = {}, loadC
               <select
                 id="clutch-position"
                 value={positionFilter}
-                onChange={e => setPositionFilter(e.target.value)}
+                onChange={e => updateQuery({ posicion: e.target.value || undefined })}
                 className="form-control"
               >
                 <option value="">Todas las posiciones</option>
@@ -332,7 +383,7 @@ export default function ClutchStats({ teams, players = [], playerBio = {}, loadC
             <select
               id="clutch-min-games"
               value={minGames}
-              onChange={e => setMinGames(Number(e.target.value))}
+              onChange={e => updateQuery({ 'min-partidos': Number(e.target.value) })}
               className="form-control"
             >
               {[1,3,5,10].map(v => <option key={v} value={v}>{v}+</option>)}
@@ -400,11 +451,11 @@ export default function ClutchStats({ teams, players = [], playerBio = {}, loadC
               ) : displayed.map((p, i) => (
                 <tr
                   key={`${p.licenseId}-${selectedSeason}-${p.team}`}
-                  onClick={() => p.licenseId && navigate(`/jugador/${p.licenseId}`)}
+                  onClick={() => p.licenseId && navigate(playerProfileUrl(p, selectedSeason))}
                   onKeyDown={(e) => {
                     if (p.licenseId && (e.key === 'Enter' || e.key === ' ')) {
                       e.preventDefault()
-                      navigate(`/jugador/${p.licenseId}`)
+                      navigate(playerProfileUrl(p, selectedSeason))
                     }
                   }}
                   tabIndex={p.licenseId ? 0 : undefined}

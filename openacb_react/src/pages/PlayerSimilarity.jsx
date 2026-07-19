@@ -1,10 +1,13 @@
 import { useState, useMemo, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 import PageHeader from '../components/PageHeader'
 import PlayerCombobox from '../components/PlayerCombobox'
 import { statTitle } from '../utils/statLabels'
 import { getPlayerDisplayName, getPlayerSearchText } from '../utils/playerNames'
+import { buildPlayerProfilePath, buildPlayerSimilarityPath } from '../routing/paths'
+import { normalizeNumericId, parsePlayerSegment } from '../routing/identifiers'
+import { readRouteQuery, serializeRouteQuery, withQuery } from '../routing/query'
 
 
 function seasonLabel(s) {
@@ -146,27 +149,44 @@ function getStandoutStats(player, distributions, n = 5) {
   return scored.filter(s => s.z > 0).sort((a, b) => b.z - a.z).slice(0, n)
 }
 
+function playerSeasonTeamKey(licenseId, season, teamId) {
+  return `${licenseId}_${season}_${teamId}`
+}
+
+function buildSimilaritySearch(season, teamId) {
+  return serializeRouteQuery('playerSimilarity', {
+    temporada: season,
+    equipo: teamId,
+  })
+}
+
+function buildProfileUrl(record) {
+  const search = serializeRouteQuery('playerProfile', {
+    temporada: record.season,
+    equipo: record.teamId,
+    fase: 'regular',
+    tabla: 'basico',
+    radar: 'league',
+    percentiles: 'league',
+    tiro: 'own',
+  })
+  return withQuery(buildPlayerProfilePath(record), search)
+}
+
 // ─── Main Page ─────────────────────────────────────────────────
 export default function PlayerSimilarity({ players, similarity }) {
-  const { licenseId: urlLicenseId, season: urlSeason } = useParams()
+  const routeParams = useParams()
   const navigate = useNavigate()
-  const [selectedLicenseId, setSelectedLicenseId] = useState(null)
-  const [selectedSeason, setSelectedSeason] = useState(null)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const parsedPlayer = parsePlayerSegment(routeParams.player)
+  const selectedLicenseId = parsedPlayer?.id || normalizeNumericId(routeParams.licenseId)
+  const hasExplicitPlayer = Boolean(routeParams.player || routeParams.licenseId)
 
-  // sync from url params when navigating via /similitud/:licenseId/:season
-  useEffect(() => {
-    if (urlLicenseId) {
-      const parsed = Number(urlLicenseId)
-      setSelectedLicenseId(isNaN(parsed) ? urlLicenseId : parsed)
-      if (urlSeason) setSelectedSeason(Number(urlSeason))
-    }
-  }, [urlLicenseId, urlSeason])
-
-  // build lookup by license id and season
+  // build lookup by player, season, and team
   const playerLookup = useMemo(() => {
     const map = new Map()
     players.forEach(p => {
-      const key = `${p.licenseId}_${p.season}`
+      const key = playerSeasonTeamKey(p.licenseId, p.season, p.teamId)
       if (!map.has(key)) map.set(key, p)
     })
     return map
@@ -184,32 +204,57 @@ export default function PlayerSimilarity({ players, similarity }) {
     return `Liga Endesa · ${seasonLabel(seasons[0])} a ${seasonLabel(seasons.at(-1))}`
   }, [players])
 
-  // available seasons for the selected player
   const playerRecords = useMemo(() => {
     if (!selectedLicenseId) return []
     return players
       .filter(p => String(p.licenseId) === String(selectedLicenseId))
-      .sort((a, b) => b.season - a.season)
+      .sort((a, b) => b.season - a.season || String(a.team).localeCompare(String(b.team), 'es'))
   }, [players, selectedLicenseId])
 
   const availableSeasons = useMemo(() => {
     return [...new Set(playerRecords.map(r => r.season))]
   }, [playerRecords])
 
-  // default to the latest season when the player changes
-  useEffect(() => {
-    const selectedFromUrl = urlSeason && String(selectedLicenseId) === String(urlLicenseId)
-    if (selectedFromUrl) return
-    if (availableSeasons.length > 0 && !availableSeasons.includes(selectedSeason)) {
-      setSelectedSeason(availableSeasons[0])
-    }
-  }, [selectedLicenseId, selectedSeason, availableSeasons, urlLicenseId, urlSeason])
+  const latestSeason = useMemo(() => {
+    const seasons = players.map(player => Number(player.season)).filter(Number.isFinite)
+    return seasons.length ? Math.max(...seasons) : 2026
+  }, [players])
 
-  // current player record
+  const queryState = readRouteQuery('playerSimilarity', searchParams, {
+    defaults: { temporada: Number(routeParams.season) || availableSeasons[0] || latestSeason },
+  })
+  const selectedSeason = Number.isFinite(Number(queryState.temporada))
+    ? Number(queryState.temporada)
+    : (availableSeasons[0] || latestSeason)
+  const selectedTeamId = queryState.equipo || null
+  const seasonRecords = useMemo(() => (
+    playerRecords.filter(record => Number(record.season) === selectedSeason)
+  ), [playerRecords, selectedSeason])
+
   const currentRecord = useMemo(() => {
     if (!selectedLicenseId || !selectedSeason) return null
-    return playerRecords.find(r => r.season === selectedSeason) || null
-  }, [playerRecords, selectedLicenseId, selectedSeason])
+    if (selectedTeamId) return seasonRecords.find(record => record.teamId === selectedTeamId) || null
+    return seasonRecords.length === 1 ? seasonRecords[0] : null
+  }, [seasonRecords, selectedLicenseId, selectedSeason, selectedTeamId])
+  const hasInvalidTeamSelection = Boolean(
+    selectedTeamId && seasonRecords.length > 0 && !currentRecord
+  )
+
+  useEffect(() => {
+    if (!hasExplicitPlayer) {
+      if (searchParams.toString()) setSearchParams(new URLSearchParams(), { replace: true })
+      return
+    }
+    if (!selectedLicenseId || playerRecords.length === 0) return
+    const representative = currentRecord || playerRecords[0]
+    const pathname = buildPlayerSimilarityPath(representative)
+    const search = buildSimilaritySearch(selectedSeason, currentRecord?.teamId || selectedTeamId)
+    const canonicalSegment = pathname.split('/').at(-1)
+    const pathNeedsNormalization = routeParams.player !== canonicalSegment || Boolean(routeParams.licenseId)
+    if (pathNeedsNormalization || searchParams.toString() !== search) {
+      navigate({ pathname, search: search ? `?${search}` : '' }, { replace: true })
+    }
+  }, [currentRecord, hasExplicitPlayer, navigate, playerRecords, routeParams.licenseId, routeParams.player, searchParams, selectedLicenseId, selectedSeason, selectedTeamId, setSearchParams])
 
   // standout statistics for the selected player
   const standoutCols = useMemo(() => {
@@ -219,32 +264,57 @@ export default function PlayerSimilarity({ players, similarity }) {
 
   // find the similarity entry
   const similarityEntry = useMemo(() => {
-    if (!selectedLicenseId || !selectedSeason) return null
-    const id = `${selectedLicenseId}_${selectedSeason}`
-    return similarity.find(s => s.id === id) || null
-  }, [similarity, selectedLicenseId, selectedSeason])
+    if (!currentRecord) return null
+    return similarity.find(entry => (
+      String(entry.licenseId) === String(currentRecord.licenseId)
+      && Number(entry.season) === Number(currentRecord.season)
+      && entry.teamId === currentRecord.teamId
+    )) || null
+  }, [currentRecord, similarity])
 
   // resolve similar players to full records
   const similarPlayers = useMemo(() => {
     if (!similarityEntry?.similar) return []
     return similarityEntry.similar.map((s, idx) => {
-      const key = `${s.licenseId}_${s.season}`
+      const key = playerSeasonTeamKey(s.licenseId, s.season, s.teamId)
       const player = playerLookup.get(key)
       return {
         rank: idx + 1,
         licenseId: s.licenseId,
         season: s.season,
+        teamId: s.teamId,
         score: s.score,
         name: getPlayerDisplayName(player, `ID ${s.licenseId}`),
         team: player?.team || '-',
-        _record: player, // keep full record for dynamic stat access
+        _record: player,
       }
     })
   }, [similarityEntry, playerLookup])
 
   const handlePlayerSelect = (licenseId) => {
-    setSelectedLicenseId(licenseId)
-    setSelectedSeason(null) // will auto-pick latest
+    const records = players
+      .filter(player => String(player.licenseId) === String(licenseId))
+      .sort((a, b) => b.season - a.season || String(a.team).localeCompare(String(b.team), 'es'))
+    if (!records.length) return
+    const season = records[0].season
+    const latestRecords = records.filter(record => record.season === season)
+    const teamId = latestRecords.length === 1 ? latestRecords[0].teamId : null
+    const search = buildSimilaritySearch(season, teamId)
+    navigate({ pathname: buildPlayerSimilarityPath(records[0]), search: `?${search}` })
+  }
+
+  const handleSeasonSelect = (season) => {
+    const records = playerRecords.filter(record => record.season === season)
+    const teamId = records.length === 1 ? records[0].teamId : null
+    const search = buildSimilaritySearch(season, teamId)
+    navigate({ pathname: buildPlayerSimilarityPath(records[0] || playerRecords[0]), search: `?${search}` })
+  }
+
+  const handleTeamSelect = (teamId) => {
+    const record = seasonRecords.find(candidate => candidate.teamId === teamId)
+    if (!record) return
+    const search = buildSimilaritySearch(selectedSeason, teamId)
+    navigate({ pathname: buildPlayerSimilarityPath(record), search: `?${search}` })
   }
 
   return (
@@ -262,20 +332,37 @@ export default function PlayerSimilarity({ players, similarity }) {
         selectedLicenseId={selectedLicenseId}
       />
 
-      {/* season picker */}
       {selectedLicenseId && availableSeasons.length > 0 && (
-        <div className="flex items-center gap-3">
-          <label htmlFor="similarity-result-season" className="field-label">Temporada</label>
-          <select
-            id="similarity-result-season"
-            value={selectedSeason || ''}
-            onChange={e => setSelectedSeason(Number(e.target.value))}
-            className="form-control-compact"
-          >
-            {availableSeasons.map(s => (
-              <option key={s} value={s}>{seasonLabel(s)}</option>
-            ))}
-          </select>
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-3">
+            <label htmlFor="similarity-result-season" className="field-label">Temporada</label>
+            <select
+              id="similarity-result-season"
+              value={selectedSeason || ''}
+              onChange={e => handleSeasonSelect(Number(e.target.value))}
+              className="form-control-compact"
+            >
+              {availableSeasons.map(s => (
+                <option key={s} value={s}>{seasonLabel(s)}</option>
+              ))}
+            </select>
+          </div>
+          {(seasonRecords.length > 1 || hasInvalidTeamSelection) && (
+            <div className="flex items-center gap-3">
+              <label htmlFor="similarity-result-team" className="field-label">Equipo</label>
+              <select
+                id="similarity-result-team"
+                value={currentRecord?.teamId || ''}
+                onChange={event => handleTeamSelect(event.target.value)}
+                className="form-control-compact"
+              >
+                <option value="">Selecciona un equipo</option>
+                {seasonRecords.map(record => (
+                  <option key={record.teamId} value={record.teamId}>{record.team}</option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
       )}
 
@@ -324,10 +411,10 @@ export default function PlayerSimilarity({ players, similarity }) {
               <tbody className="divide-y divide-acb-100">
                 {similarPlayers.map(p => (
                   <tr
-                    key={`${p.licenseId}_${p.season}_${p.team}`}
-                    onClick={() => navigate(`/jugador/${p.licenseId}`)}
+                    key={`${p.licenseId}_${p.season}_${p.teamId}`}
+                    onClick={() => p._record && navigate(buildProfileUrl(p._record))}
                     onKeyDown={(event) => {
-                      if (event.key === 'Enter' || event.key === ' ') navigate(`/jugador/${p.licenseId}`)
+                      if ((event.key === 'Enter' || event.key === ' ') && p._record) navigate(buildProfileUrl(p._record))
                     }}
                     role="link"
                     tabIndex={0}
@@ -352,13 +439,37 @@ export default function PlayerSimilarity({ players, similarity }) {
         </div>
       )}
 
-      {selectedLicenseId && selectedSeason && !similarityEntry && (
+      {hasExplicitPlayer && (!selectedLicenseId || playerRecords.length === 0) && (
+        <div className="text-center py-12 text-acb-500">
+          No se ha encontrado ningún jugador con ese identificador.
+        </div>
+      )}
+
+      {selectedLicenseId && playerRecords.length > 0 && seasonRecords.length === 0 && (
+        <div className="text-center py-12 text-acb-500">
+          El jugador no tiene datos en la temporada indicada. Selecciona otra temporada.
+        </div>
+      )}
+
+      {hasInvalidTeamSelection && (
+        <div className="text-center py-12 text-acb-500">
+          El equipo indicado no corresponde a este jugador en la temporada seleccionada. Selecciona un equipo disponible.
+        </div>
+      )}
+
+      {seasonRecords.length > 1 && !selectedTeamId && !currentRecord && (
+        <div className="text-center py-12 text-acb-500">
+          El jugador cambió de equipo durante esta temporada. Selecciona la etapa que quieres analizar.
+        </div>
+      )}
+
+      {currentRecord && !similarityEntry && (
         <div className="text-center py-12 text-acb-500">
           No se encontraron datos de similitud para esta temporada. El jugador puede no cumplir los requisitos mínimos (10 partidos, 10+ minutos por partido).
         </div>
       )}
 
-      {!selectedLicenseId && (
+      {!hasExplicitPlayer && (
         <div className="text-center py-12 text-acb-400">
           Selecciona un jugador para ver sus jugadores más similares
         </div>
