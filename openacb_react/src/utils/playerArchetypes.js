@@ -533,6 +533,14 @@ export function classifyArchetype(player, bio) {
     }
   }
 
+  if (isCenterPos && trb >= 85 && blk >= 85 && !isScorer) {
+    return {
+      name: 'Ancla',
+      desc: 'Interior de élite en rebote y protección del aro que sostiene la defensa',
+      color: 'text-plum-700 bg-plum-50 border-plum-200',
+    }
+  }
+
   if (isRebounder && blk >= 80 && ts >= 85 && ppg > 75 && !isWingPos && !isGuardPos) {
     return {
       name: 'Bestia en la Zona',

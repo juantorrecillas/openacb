@@ -252,6 +252,17 @@ describe('center position benchmarks', () => {
     })).toBe('Protector del Aro')
   })
 
+  test('uses Ancla for elite rebounding and rim protection before Protector del Aro', () => {
+    const center = {
+      position: 'Pívot',
+      trbPctPosPct: 85,
+      blkPctPosPct: 85,
+    }
+    expect(archetype(center)).toBe('Ancla')
+    expect(archetype({ ...center, trbPctPosPct: 84.9 })).toBe('Protector del Aro')
+    expect(archetype({ ...center, blkPctPosPct: 84.9 })).toBe('Protector del Aro')
+  })
+
   test('uses center percentiles for offensive rebounding', () => {
     const center = {
       position: 'Pívot',
