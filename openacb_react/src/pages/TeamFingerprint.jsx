@@ -1,4 +1,4 @@
-import { useMemo, useEffect } from 'react'
+import { useMemo, useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import PageHeader from '../components/PageHeader'
@@ -738,6 +738,8 @@ export default function TeamFingerprint({
   const routeParams = useParams()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
+  const [showFloatingTeamHeader, setShowFloatingTeamHeader] = useState(false)
+  const teamHeaderRef = useRef(null)
   const urlTeamId = routeParams.teamId || routeParams.team || ''
 
   const availableSeasons = useMemo(() => {
@@ -902,6 +904,28 @@ export default function TeamFingerprint({
     return { team, offZScores, defZScores, offValues, defValues, strengths, weaknesses, narrative }
   }, [selectedTeam, seasonTeams, leagueStats])
 
+  useEffect(() => {
+    const header = teamHeaderRef.current
+    if (!header || !selectedTeam) {
+      setShowFloatingTeamHeader(false)
+      return undefined
+    }
+
+    const updateFloatingHeader = () => {
+      const topOffset = window.innerWidth >= 1280 ? 80 : window.innerWidth >= 640 ? 64 : 48
+      setShowFloatingTeamHeader(header.getBoundingClientRect().bottom <= topOffset)
+    }
+
+    updateFloatingHeader()
+    window.addEventListener('scroll', updateFloatingHeader, { passive: true })
+    window.addEventListener('resize', updateFloatingHeader)
+
+    return () => {
+      window.removeEventListener('scroll', updateFloatingHeader)
+      window.removeEventListener('resize', updateFloatingHeader)
+    }
+  }, [selectedTeam])
+
   return (
     <div className="app-page space-y-6">
       <PageHeader
@@ -957,7 +981,7 @@ export default function TeamFingerprint({
       {teamData && (
         <div className="space-y-6">
           {/* team header */}
-          <div className="grid lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] gap-6">
+          <div ref={teamHeaderRef} className="grid lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] gap-6">
             <div className="bg-white rounded-lg border border-acb-200 p-5 flex items-center gap-4">
             {teamLogos[selectedTeam] && (
               <img
@@ -987,6 +1011,32 @@ export default function TeamFingerprint({
               trendStat={trendStat}
               onTrendStatChange={(value) => updateUrlState({ trendStat: value })}
             />
+          </div>
+
+          <div
+            aria-hidden={!showFloatingTeamHeader}
+            className={`pointer-events-none fixed left-1/2 top-8 z-40 flex w-[calc(100%-2rem)] max-w-xs -translate-x-1/2 items-center gap-2 rounded-md border border-acb-200 bg-white/95 px-3 py-1.5 shadow-md backdrop-blur-sm transition-[opacity,transform] duration-200 ease-out sm:top-10 xl:top-14 ${
+              showFloatingTeamHeader ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0'
+            }`}
+          >
+            {teamLogos[selectedTeam] && (
+              <img
+                src={teamLogos[selectedTeam]}
+                alt=""
+                className="h-7 w-7 flex-shrink-0 object-contain"
+              />
+            )}
+            <div className="min-w-0 flex-1">
+              <h3 className="truncate text-sm font-bold leading-tight text-acb-900">{selectedTeam}</h3>
+              <p className="truncate text-[10px] leading-tight text-acb-500">
+                {seasonLabel(selectedSeason)}
+                {teamData.team.wins != null && (
+                  <>
+                    {' · '}PJ {teamData.team.games} · {teamData.team.wins}V-{teamData.team.losses}D
+                  </>
+                )}
+              </p>
+            </div>
           </div>
 
           {/* Fortalezas / Debilidades */}
