@@ -242,6 +242,7 @@ test('invalid and stale entity segments return explicit resolution results', () 
   assert.throws(() => buildTeamProfilePath('Real Madrid'), /teamId/)
   assert.throws(() => buildTeamComparisonPath('baskonia', ''), /dos teamId/)
   assert.equal(matchCanonicalRoute('/ruta-que-no-existe'), null)
+  assert.equal(resolveCanonicalEntityLocation('/jugadores/comparar', { players: [{}] }), null)
 
   const players = [
     {

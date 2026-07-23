@@ -351,7 +351,7 @@ export function resolveCanonicalEntityLocation(location, context = {}) {
       : redirect(withQuery(canonicalPath, search), match.routeId, 'profile-slug')
   }
 
-  const playerSegments = match.routeId === 'playerComparison'
+  const playerSegments = match.routeId === 'playerComparison' && match.params.playerA && match.params.playerB
     ? [['playerA', 'a'], ['playerB', 'b']]
     : match.params.player
       ? [['player', null]]
