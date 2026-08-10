@@ -79,7 +79,7 @@ describe('tabla de plantilla', () => {
     expect(headers.slice(0, 3).map(header => header.textContent.trim())).toEqual([
       'Jugador',
       'Posición',
-      'Arquetipo',
+      'Rol',
     ])
     expect(headers.slice(3).map(header => header.textContent.trim())).toEqual(
       playerProfileBasicStatColumns.map(column => column.label)

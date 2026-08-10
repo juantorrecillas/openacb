@@ -389,6 +389,13 @@ export_player_data <- function(all_players, output_name = "players.json") {
         if (is.null(x) || is.na(x)) return(NULL)
         round(as.numeric(x), digits)
       }
+      text_val <- function(x) {
+        if (is.null(x) || is.na(x)) return(NULL)
+        value <- gsub(intToUtf8(160), " ", as.character(x), fixed = TRUE)
+        value <- trimws(value)
+        if (!nzchar(value)) return(NULL)
+        value
+      }
 
       list(
         playerId = p$player_id,
@@ -396,9 +403,9 @@ export_player_data <- function(all_players, output_name = "players.json") {
         player = p$player,
         playerAbbrev = p$player_abbrev,
         playerFull = p$player_full,
-        position = if (!is.null(p$position) && !is.na(p$position)) p$position else NULL,
+        position = text_val(p$position),
         heightM = if (!is.null(p$height_m) && !is.na(p$height_m)) round(as.numeric(p$height_m), 2) else NULL,
-        birthDate = if (!is.null(p$birth_date) && !is.na(p$birth_date)) p$birth_date else NULL,
+        birthDate = text_val(p$birth_date),
         season = p$season,
         competitionStage = p$competition_stage,
         team = p$team,
@@ -410,7 +417,7 @@ export_player_data <- function(all_players, output_name = "players.json") {
         mpg = safe_val(p$mpg, 1),
 
         # Qualified flag (meets games/minutes threshold for percentile calculation)
-        qualified = ifelse(is.null(p$qualified) || is.na(p$qualified), TRUE, as.logical(p$qualified)),
+        qualified = ifelse(is.null(p$qualified) || is.na(p$qualified), FALSE, as.logical(p$qualified)),
 
         # Basic totals
         points = safe_val(p$points, 0),
@@ -445,41 +452,41 @@ export_player_data <- function(all_players, output_name = "players.json") {
         fpg = safe_val(p$fpg, 1),
 
         # Shooting percentages
-        fgPct = safe_val(p$fg_pct, 1),
-        fg2Pct = safe_val(p$fg2_pct, 1),
-        fg3Pct = safe_val(p$fg3_pct, 1),
-        ftPct = safe_val(p$ft_pct, 1),
+        fgPct = pct_val(p$fg_pct, 1),
+        fg2Pct = pct_val(p$fg2_pct, 1),
+        fg3Pct = pct_val(p$fg3_pct, 1),
+        ftPct = pct_val(p$ft_pct, 1),
 
         # Advanced stats
-        efg = safe_val(p$efg, 1),
-        ts = safe_val(p$ts, 1),
-        threeRate = safe_val(p$three_rate, 1),
+        efg = pct_val(p$efg, 1),
+        ts = pct_val(p$ts, 1),
+        threeRate = pct_val(p$three_rate, 1),
 
         # Possessions
         possessions = safe_val(p$possessions, 0),
         possPg = safe_val(p$poss_pg, 1),
 
         # Offensive Rating
-        ortg = safe_val(p$ortg, 1),
+        ortg = pct_val(p$ortg, 1),
 
         # Usage
-        usg = safe_val(p$usg, 1),
+        usg = pct_val(p$usg, 1),
 
         # Advanced Rate Stats
-        orbPct = safe_val(p$orb_pct, 1),
-        drbPct = safe_val(p$drb_pct, 1),
-        trbPct = safe_val(p$trb_pct, 1),
-        astPct = safe_val(p$ast_pct, 1),
-        stlPct = safe_val(p$stl_pct, 1),
-        blkPct = safe_val(p$blk_pct, 1),
-        tovPct = safe_val(p$tov_pct, 1),
-        astToRatio = safe_val(p$ast_to_ratio, 2),
+        orbPct = pct_val(p$orb_pct, 1),
+        drbPct = pct_val(p$drb_pct, 1),
+        trbPct = pct_val(p$trb_pct, 1),
+        astPct = pct_val(p$ast_pct, 1),
+        stlPct = pct_val(p$stl_pct, 1),
+        blkPct = pct_val(p$blk_pct, 1),
+        tovPct = pct_val(p$tov_pct, 1),
+        astToRatio = pct_val(p$ast_to_ratio, 2),
         # Context stats
-        offTo = safe_val(p$off_to, 3),
-        secondChance = safe_val(p$second_chance, 3),
-        assistedFgm = safe_val(p$S_assisted_fgm, 3),
-        assistedFgm2 = safe_val(p$S_assisted_fgm2, 3),
-        assistedFgm3 = safe_val(p$S_assisted_fgm3, 3),
+        offTo = pct_val(p$off_to, 3),
+        secondChance = pct_val(p$second_chance, 3),
+        assistedFgm = pct_val(p$S_assisted_fgm, 3),
+        assistedFgm2 = pct_val(p$S_assisted_fgm2, 3),
+        assistedFgm3 = pct_val(p$S_assisted_fgm3, 3),
 
         # Percentiles — league-wide (NULL for unqualified players)
         ppgPct = pct_val(p$ppg_pct, 1),

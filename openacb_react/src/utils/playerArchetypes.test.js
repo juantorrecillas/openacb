@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, test } from 'vitest'
-import { classifyArchetype, getSeasonArchetypePlayer } from './playerArchetypes'
+import { classifyArchetype, getScopedArchetypePlayer } from './playerArchetypes'
 
 function makePlayer(overrides = {}) {
   return {
@@ -233,6 +233,16 @@ describe('defensive priority', () => {
 })
 
 describe('center position benchmarks', () => {
+  test('does not infer an interior role without positive position evidence', () => {
+    expect(archetype({
+      position: null,
+      heightM: null,
+      trbPctPct: 85,
+      blkPctPct: 95,
+      usgPct: 40,
+    })).toBe('Jugador de Rotación')
+  })
+
   test('uses center percentiles for total rebounding and rim protection', () => {
     const center = {
       position: 'Pívot',
@@ -340,6 +350,44 @@ describe('rotation fallbacks', () => {
     )
   })
 
+  test('keeps role descriptions inside their tested dimensions', () => {
+    const compulsiveScorer = classifyArchetype(makePlayer({
+      position: 'Escolta',
+      mpg: 20,
+      ppgPct: 80,
+      usgPct: 70,
+      astPctPct: 40,
+      threeRatePct: 30,
+      tsPct: 95,
+    }), null)
+    const completeGuard = classifyArchetype(makePlayer({
+      position: 'Base',
+      ppgPct: 66,
+      usgPct: 80,
+      astPctPct: 85,
+      trbPctPct: 40,
+      blkPctPct: 20,
+      tsPct: 10,
+    }), null)
+    const modernCenter = classifyArchetype(makePlayer({
+      position: 'Pívot',
+      ppgPct: 80,
+      usgPct: 70,
+      astPctPct: 70,
+      trbPctPosPct: 80,
+      blkPctPosPct: 10,
+      threeRatePct: 25,
+      mpg: 20,
+    }), null)
+
+    expect(compulsiveScorer.name).toBe('Anotador Compulsivo')
+    expect(compulsiveScorer.desc).toContain('buena eficiencia')
+    expect(completeGuard.name).toBe('Base Completo')
+    expect(completeGuard.desc).not.toContain('eficien')
+    expect(modernCenter.name).toBe('Pívot Moderno Estrella')
+    expect(modernCenter.desc).not.toContain('protege')
+  })
+
   test('keeps specialist archetypes ahead of rotation fallbacks', () => {
     expect(archetype({
       position: 'Alero',
@@ -360,24 +408,25 @@ describe('exported player regressions', () => {
   const playersByStage = JSON.parse(readFileSync(playersByStageUrl, 'utf8'))
   const qualified = players.filter(player => player.qualified && player.competitionStage === 'all')
 
-  test('classifies Aaron Doornekamp in 2022-23 as 3&d', () => {
+  test('classifies Aaron Doornekamp in 2022-23 from corrected midrank percentiles', () => {
     const doornekamp = qualified.find(player => (
       player.season === 2023 && /Doornekamp/i.test(player.playerFull || '')
     ))
     expect(doornekamp).toBeDefined()
-    expect(classifyArchetype(doornekamp, null).name).toBe('3&D')
+    expect(doornekamp.stlPctPct).toBeLessThan(80)
+    expect(classifyArchetype(doornekamp, null).name).toBe('Francotirador')
   })
 
-  test('uses the full-season record for profile archetypes', () => {
+  test('keeps profile archetypes in the selected competition stage', () => {
     const regularDoornekamp = playersByStage.find(player => (
       player.season === 2023
       && player.competitionStage === 'regular'
       && /Doornekamp/i.test(player.playerFull || '')
     ))
-    const seasonDoornekamp = getSeasonArchetypePlayer(regularDoornekamp, players)
+    const scopedDoornekamp = getScopedArchetypePlayer(regularDoornekamp)
     expect(regularDoornekamp).toBeDefined()
-    expect(seasonDoornekamp.competitionStage).toBe('all')
-    expect(classifyArchetype(seasonDoornekamp, null).name).toBe('3&D')
+    expect(scopedDoornekamp.competitionStage).toBe('regular')
+    expect(classifyArchetype(scopedDoornekamp, null).name).toBe('Francotirador')
   })
 
   test('classifies Wilhelm Falk as a rebounding wing', () => {
@@ -440,6 +489,18 @@ describe('exported player regressions', () => {
     expect(classifyArchetype(carroll, null).name).toBe('Sexto Hombre')
   })
 
+  test('classifies Nikola Mirotic in 2019-20 as a scoring star', () => {
+    const mirotic = qualified.find(player => (
+      player.season === 2020 && /Nikola Mirotic/i.test(player.playerFull || '')
+    ))
+
+    expect(mirotic).toBeDefined()
+    expect(mirotic.ppgPct).toBeGreaterThanOrEqual(90)
+    expect(mirotic.tsPct).toBeGreaterThanOrEqual(70)
+    expect(mirotic.usgPct).toBeGreaterThanOrEqual(90)
+    expect(classifyArchetype(mirotic, null).name).toBe('Estrella Anotadora')
+  })
+
   test('no qualified player with meaningful minutes remains a generic role player', () => {
     qualified.forEach(player => {
       if (player.mpg >= 18) {
@@ -448,24 +509,66 @@ describe('exported player regressions', () => {
     })
   })
 
+  test('preserves missing shooting rates when there are no attempts', () => {
+    const zeroAttemptShooters = qualified.filter(player => player.fga3 === 0)
+    expect(zeroAttemptShooters.length).toBeGreaterThan(0)
+    zeroAttemptShooters.forEach(player => {
+      expect(player.fg3Pct).toBeNull()
+      expect(player.fg3PctPct).toBeNull()
+      expect(player.fg3PctPosPct).toBeNull()
+    })
+  })
+
+  test('does not route unknown-position players into interior roles', () => {
+    const interiorRoles = new Set([
+      'Ancla',
+      'Aspiradora',
+      'Bestia en la Zona',
+      'Coche Escoba',
+      'Creador de Tiros Interior',
+      'Interior Anotador',
+      'Interior de Rol Completo',
+      'Intimidador Interior',
+      'Protector del Aro',
+    ])
+    const unknownPosition = qualified.filter(player => !player.position?.trim())
+    expect(unknownPosition.length).toBeGreaterThan(0)
+    unknownPosition.forEach(player => {
+      expect(interiorRoles.has(classifyArchetype(player, null).name)).toBe(false)
+    })
+  })
+
+  test('embeds available bio fields in the player export', () => {
+    expect(players.filter(player => player.heightM != null).length).toBeGreaterThan(3000)
+    expect(players.filter(player => player.birthDate != null).length).toBeGreaterThan(3000)
+  })
+
   test('all generated shooting and passing labels satisfy their invariants', () => {
     qualified.forEach(player => {
       const name = classifyArchetype(player, null).name
+      const isBig = ['Ala-pívot', 'Pívot'].includes(player.position)
+      const shootingAccuracyPct = isBig
+        ? (player.fg3PctPosPct ?? player.fg3PctPct)
+        : player.fg3PctPct
       if (name === 'Francotirador') {
         expect(player.threeRatePct).toBeGreaterThanOrEqual(75)
         expect(player.fga3).toBeGreaterThanOrEqual(20)
-        expect(player.fg3PctPct).toBeGreaterThanOrEqual(70)
+        expect(shootingAccuracyPct).toBeGreaterThanOrEqual(70)
       }
       if (name === '3&D' || name === 'Creador 3&D') {
         expect(player.threeRatePct).toBeGreaterThanOrEqual(75)
         expect(player.fga3).toBeGreaterThanOrEqual(20)
-        expect(player.fg3PctPct).toBeGreaterThanOrEqual(60)
+        expect(shootingAccuracyPct).toBeGreaterThanOrEqual(60)
         expect(player.stlPctPct >= 80 || player.blkPctPct >= 75).toBe(true)
         expect(['Base', 'Escolta', 'Alero', 'Ala-pívot']).toContain(player.position)
       }
       if (name === 'Defensor spot-up') {
-        expect(player.fg3PctPct).toBeLessThan(60)
+        expect(shootingAccuracyPct).toBeLessThan(60)
         expect(player.assistedFgm3).toBeGreaterThanOrEqual(0.75)
+      }
+      if (name === 'Interior con Tiro') {
+        expect(['Ala-pívot', 'Pívot']).toContain(player.position)
+        expect(player.fg3PctPosPct ?? player.fg3PctPct).toBeGreaterThanOrEqual(60)
       }
       if (name === 'Interior Creador') {
         expect(player.position).toBe('Pívot')

@@ -12,6 +12,38 @@
 library(dplyr)
 library(tidyr)
 
+# preserve missingness when a source metric is unavailable
+sum_known <- function(x) {
+  if (all(is.na(x))) return(NA_real_)
+  sum(x, na.rm = TRUE)
+}
+
+# use the midpoint of ties instead of the upper ecdf endpoint
+midrank_percentile <- function(x, reference, lower_is_better = FALSE) {
+  reference <- reference[is.finite(reference)]
+
+  if (length(reference) == 0) {
+    return(rep(NA_real_, length(x)))
+  }
+
+  vapply(x, function(value) {
+    if (!is.finite(value)) return(NA_real_)
+
+    below <- sum(reference < value)
+    tied <- sum(reference == value)
+    percentile <- (below + 0.5 * tied) / length(reference) * 100
+
+    if (lower_is_better) percentile <- 100 - percentile
+    round(percentile, 1)
+  }, numeric(1))
+}
+
+# keep on-court events inside the player's exact team stint
+filter_player_stint_events <- function(df, pista_col, match_ids) {
+  df %>%
+    filter(id_match %in% match_ids, .data[[pista_col]] == 1)
+}
+
 #' Calculate minutes played from play-by-play data
 #'
 #' Uses the crono column and player on-court tracking to calculate
@@ -318,20 +350,20 @@ calculate_player_stats <- function(season_id,
       games = n_distinct(id_match),
       
       # Assisted fg
-      assisted_fgm2 = sum(assisted_fgm2),
-      assisted_fgm3 = sum(assisted_fgm3),
-      assisted_fgm = sum(assisted_fgm),
-      unassisted_fgm = sum(unassisted_fgm),
+      assisted_fgm2 = sum_known(assisted_fgm2),
+      assisted_fgm3 = sum_known(assisted_fgm3),
+      assisted_fgm = sum_known(assisted_fgm),
+      unassisted_fgm = sum_known(unassisted_fgm),
       
       # Off turnover
-      transition_fgm = sum(transition_fgm),
-      transition_fgm2 = sum(transition_fgm2),
-      transition_fgm3 = sum(transition_fgm3),
+      transition_fgm = sum_known(transition_fgm),
+      transition_fgm2 = sum_known(transition_fgm2),
+      transition_fgm3 = sum_known(transition_fgm3),
       
       # 2nd Chance
-      second_chance_fgm = sum(second_chance_fgm),
-      second_chance_fgm2 = sum(second_chance_fgm2),
-      second_chance_fgm3 = sum(second_chance_fgm3),
+      second_chance_fgm = sum_known(second_chance_fgm),
+      second_chance_fgm2 = sum_known(second_chance_fgm2),
+      second_chance_fgm3 = sum_known(second_chance_fgm3),
 
       .groups = "drop"
     ) %>%
@@ -349,14 +381,14 @@ calculate_player_stats <- function(season_id,
       fga = fga2 + fga3,
 
       # Percentages
-      fg_pct = ifelse(fga > 0, fgm / fga * 100, 0),
-      fg2_pct = ifelse(fga2 > 0, fgm2 / fga2 * 100, 0),
-      fg3_pct = ifelse(fga3 > 0, fgm3 / fga3 * 100, 0),
-      ft_pct = ifelse(fta > 0, ftm / fta * 100, 0),
+      fg_pct = ifelse(fga > 0, fgm / fga * 100, NA_real_),
+      fg2_pct = ifelse(fga2 > 0, fgm2 / fga2 * 100, NA_real_),
+      fg3_pct = ifelse(fga3 > 0, fgm3 / fga3 * 100, NA_real_),
+      ft_pct = ifelse(fta > 0, ftm / fta * 100, NA_real_),
 
       # Advanced
-      efg = ifelse(fga > 0, (fgm2 + 1.5 * fgm3) / fga * 100, 0),
-      ts = ifelse(fga + ft_trips > 0, points / (2 * (fga + ft_trips)) * 100, 0),
+      efg = ifelse(fga > 0, (fgm2 + 1.5 * fgm3) / fga * 100, NA_real_),
+      ts = ifelse(fga + ft_trips > 0, points / (2 * (fga + ft_trips)) * 100, NA_real_),
 
       # Possessions (individual contribution)
       # Dean Oliver logic: missed FGs followed by OREB didn't end the possession
@@ -372,10 +404,10 @@ calculate_player_stats <- function(season_id,
                         ftm,
 
       # Offensive Rating (points produced per 100 possessions)
-      ortg = ifelse(possessions > 0, (points_produced / possessions) * 100, 0),
+      ortg = ifelse(possessions > 0, (points_produced / possessions) * 100, NA_real_),
 
       # 3PT attempt rate
-      three_rate = ifelse(fga > 0, fga3 / fga * 100, 0),
+      three_rate = ifelse(fga > 0, fga3 / fga * 100, NA_real_),
 
       # Assist to Turnover ratio
       ast_to_ratio = ifelse(turnovers > 0, assists / turnovers, NA),
@@ -387,9 +419,9 @@ calculate_player_stats <- function(season_id,
       second_chance = ifelse(fga > 0, ((2*second_chance_fgm2) + (3*second_chance_fgm3)) / points, 0),
       
       # Assisted shots
-      S_assisted_fgm = ifelse(fga > 0, ((2*assisted_fgm2) + (3*assisted_fgm3)) / points, 0),
-      S_assisted_fgm2 = ifelse(fga > 0, ((assisted_fgm2)) / (fgm2), 0),
-      S_assisted_fgm3 = ifelse(fga > 0, ((assisted_fgm3)) / (fgm3), 0)
+      S_assisted_fgm = ifelse(fgm > 0, assisted_fgm / fgm, NA_real_),
+      S_assisted_fgm2 = ifelse(fgm2 > 0, assisted_fgm2 / fgm2, NA_real_),
+      S_assisted_fgm3 = ifelse(fgm3 > 0, assisted_fgm3 / fgm3, NA_real_)
       
     )
 
@@ -407,11 +439,19 @@ calculate_player_stats <- function(season_id,
     distinct() %>%
     rename(license_id = license.id, player = license.licenseNick, team = team.team_actual_name)
 
+  player_stint_matches <- player_team_match_map %>%
+    group_by(license_id, team) %>%
+    summarise(match_ids = list(unique(id_match)), .groups = "drop")
+
+  tracked_players_df <- tracked_players_df %>%
+    left_join(player_stint_matches, by = c("license_id", "team"))
+
   # Calculate team and opponent stats while each player is on court
   team_stats_on_court <- lapply(seq_len(nrow(tracked_players_df)), function(idx) {
     player_id <- tracked_players_df$license_id[idx]
     player <- tracked_players_df$player[idx]
     player_team <- tracked_players_df$team[idx]
+    stint_matches <- tracked_players_df$match_ids[[idx]]
 
     # Column name format: {player_nick}_{license_id}_pista
     pista_col <- paste0(player, "_", player_id, "_pista")
@@ -421,10 +461,10 @@ calculate_player_stats <- function(season_id,
       return(NULL)
     }
 
-    if (is.na(player_team)) return(NULL)
+    if (is.na(player_team) || length(stint_matches) == 0) return(NULL)
 
-    # Filter to events where player is on court
-    on_court_df <- df %>% filter(.data[[pista_col]] == 1)
+    # filter to on-court events from this exact player-team stint
+    on_court_df <- filter_player_stint_events(df, pista_col, stint_matches)
 
     # Calculate team stats (player's team)
     team_stats <- on_court_df %>%
@@ -1002,23 +1042,18 @@ calculate_player_stats <- function(season_id,
 
   cat("→ Calculating percentile rankings...\n")
 
-  # Determine if this is the most recent season
-  all_seasons <- get_available_seasons()
-  most_recent_season <- max(all_seasons)
-  is_most_recent <- (season_id == most_recent_season)
+  # use explicit season completion rather than the latest configured year
+  is_complete <- isTRUE(season$is_complete)
 
-  # Apply different thresholds based on season
-  # Most recent season: 5+ games AND 50+ minutes
-  # Previous seasons: 10+ games AND 150+ minutes
   if (!is.null(competition_stage) && competition_stage == "playoffs") {
     qualified <- player_stats$games >= 2 & player_stats$total_minutes >= 20
     cat("  Using playoff threshold: 2+ games AND 20+ minutes\n")
-  } else if (is_most_recent) {
+  } else if (!is_complete) {
     qualified <- player_stats$games >= 5 & player_stats$total_minutes >= 50
-    cat("  Using most recent season threshold: 5+ games AND 50+ minutes\n")
+    cat("  Using in-progress season threshold: 5+ games AND 50+ minutes\n")
   } else {
     qualified <- player_stats$games >= 10 & player_stats$total_minutes >= 150
-    cat("  Using previous season threshold: 10+ games AND 150+ minutes\n")
+    cat("  Using completed season threshold: 10+ games AND 150+ minutes\n")
   }
   cat("  Qualified players for percentile calculation:", sum(qualified), "of", nrow(player_stats), "\n")
 
@@ -1040,11 +1075,10 @@ calculate_player_stats <- function(season_id,
     if (length(qualified_values) == 0) {
       player_stats[[pct_col]] <- NA_real_
     } else {
-      ecdf_func <- ecdf(qualified_values)
-      player_stats[[pct_col]] <- sapply(player_stats[[stat]], function(x) {
-        if (is.na(x)) return(NA)
-        round(ecdf_func(x) * 100, 1)
-      })
+      player_stats[[pct_col]] <- midrank_percentile(
+        player_stats[[stat]],
+        qualified_values
+      )
     }
   }
 
@@ -1059,11 +1093,11 @@ calculate_player_stats <- function(season_id,
     if (length(qualified_values) == 0) {
       player_stats[[pct_col]] <- NA_real_
     } else {
-      ecdf_func <- ecdf(qualified_values)
-      player_stats[[pct_col]] <- sapply(player_stats[[stat]], function(x) {
-        if (is.na(x)) return(NA)
-        round((1 - ecdf_func(x)) * 100, 1)
-      })
+      player_stats[[pct_col]] <- midrank_percentile(
+        player_stats[[stat]],
+        qualified_values,
+        lower_is_better = TRUE
+      )
     }
   }
 
@@ -1100,16 +1134,13 @@ calculate_player_stats <- function(season_id,
         pos_mask <- !is.na(player_stats$position) & player_stats$position == pos
         pos_qualified <- pos_mask & qualified
 
-        if (sum(pos_qualified) >= 5) {
-          qualified_values <- player_stats[[stat]][pos_qualified]
-          ecdf_func <- ecdf(qualified_values)
+        qualified_values <- player_stats[[stat]][pos_qualified]
+        qualified_values <- qualified_values[!is.na(qualified_values)]
 
-          player_stats[[pos_pct_col]][pos_mask & qualified] <- sapply(
+        if (length(qualified_values) >= 5) {
+          player_stats[[pos_pct_col]][pos_mask & qualified] <- midrank_percentile(
             player_stats[[stat]][pos_mask & qualified],
-            function(x) {
-              if (is.na(x)) return(NA)
-              round(ecdf_func(x) * 100, 1)
-            }
+            qualified_values
           )
         }
       }
@@ -1125,16 +1156,14 @@ calculate_player_stats <- function(season_id,
         pos_mask <- !is.na(player_stats$position) & player_stats$position == pos
         pos_qualified <- pos_mask & qualified
 
-        if (sum(pos_qualified) >= 5) {
-          qualified_values <- player_stats[[stat]][pos_qualified]
-          ecdf_func <- ecdf(qualified_values)
+        qualified_values <- player_stats[[stat]][pos_qualified]
+        qualified_values <- qualified_values[!is.na(qualified_values)]
 
-          player_stats[[pos_pct_col]][pos_mask & qualified] <- sapply(
+        if (length(qualified_values) >= 5) {
+          player_stats[[pos_pct_col]][pos_mask & qualified] <- midrank_percentile(
             player_stats[[stat]][pos_mask & qualified],
-            function(x) {
-              if (is.na(x)) return(NA)
-              round((1 - ecdf_func(x)) * 100, 1)
-            }
+            qualified_values,
+            lower_is_better = TRUE
           )
         }
       }
@@ -1174,7 +1203,8 @@ calculate_player_stats <- function(season_id,
   # Select and order columns
   final_stats <- player_stats %>%
     select(
-      player_id, license_id, player, player_abbrev, player_full, position, team, season, competition_stage, games, total_minutes, mpg, qualified,
+      player_id, license_id, player, player_abbrev, player_full, position, height_m, birth_date,
+      team, season, competition_stage, games, total_minutes, mpg, qualified,
       # Basic totals
       points, rebounds, oreb, dreb, assists, steals, blocks, turnovers, fouls,
       # Shooting totals

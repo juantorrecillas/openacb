@@ -7,7 +7,7 @@ import { getPlayerPhoto } from '../utils/playerPhotos'
 import { downloadTableAsCsv } from '../utils/csvDownload'
 import { getPlayerDisplayName, getPlayerSearchText } from '../utils/playerNames'
 import { getPercentileBadgeClass, getPercentileBarClass } from '../utils/percentileColors'
-import { classifyArchetype, getSeasonArchetypePlayer } from '../utils/playerArchetypes'
+import { classifyArchetype, getScopedArchetypePlayer } from '../utils/playerArchetypes'
 import {
   formatPlayerProfileTableValue,
   playerProfileAdvancedStatColumns,
@@ -241,13 +241,13 @@ const careerAdvancedCols = [
   ...playerProfileAdvancedStatColumns,
 ]
 
-function CareerTable({ records, archetypeRecords = records, bio, tab = 'basic', onTabChange }) {
+function CareerTable({ records, bio, tab = 'basic', onTabChange }) {
   const cols = tab === 'basic' ? careerBasicCols : careerAdvancedCols
   const sorted = [...records]
     .sort((a, b) => b.season - a.season)
     .map(record => ({
       ...record,
-      careerRole: classifyArchetype(getSeasonArchetypePlayer(record, archetypeRecords), bio),
+      careerRole: classifyArchetype(getScopedArchetypePlayer(record), bio),
     }))
 
   const handleDownload = () => {
@@ -508,7 +508,8 @@ const radarAxes = [
 function getRadarValues(player, usePos) {
   return radarAxes.map(axis => {
     const k = usePos && axis.posKey ? axis.posKey : axis.key
-    return player[k] ?? 50
+    const value = player[k]
+    return Number.isFinite(value) ? value : null
   })
 }
 
@@ -520,6 +521,14 @@ function RadarChart({ player, usePos }) {
   const levels = [25, 50, 75, 100]
   const n = radarAxes.length
   const values = getRadarValues(player, usePos)
+
+  if (values.some(value => value == null)) {
+    return (
+      <div className="flex min-h-64 items-center justify-center rounded-lg border border-dashed border-acb-200 bg-acb-50 px-6 text-center text-sm text-acb-500" role="status">
+        Percentiles no disponibles para esta muestra y referencia.
+      </div>
+    )
+  }
 
   // Angle for each axis (start from top, go clockwise)
   const angle = (i) => (Math.PI * 2 * i) / n - Math.PI / 2
@@ -612,8 +621,8 @@ function RadarChart({ player, usePos }) {
 }
 
 // ─── Radar + Archetype Card ───────────────────────────────────
-function RadarArchetypeCard({ player, archetypePlayer = player, bio, reference = 'league', onReferenceChange }) {
-  const archetype = classifyArchetype(archetypePlayer, bio)
+function RadarArchetypeCard({ player, bio, reference = 'league', onReferenceChange }) {
+  const archetype = classifyArchetype(getScopedArchetypePlayer(player), bio)
   const usePos = reference === 'position'
 
   return (
@@ -1193,10 +1202,6 @@ export default function PlayerProfile({ players, allPlayers = players, playerPho
     return matches[0] || null
   }, [playerRecords, query.values.equipo, query.values.temporada])
 
-  const archetypeRecord = useMemo(() => {
-    return getSeasonArchetypePlayer(seasonRecord, allPlayerRecords)
-  }, [allPlayerRecords, seasonRecord])
-
   const selectedSeason = seasonRecord?.season ?? null
   const defaultRecord = playerRecords[0] || null
   const isDefaultRecord = Boolean(seasonRecord && defaultRecord
@@ -1342,7 +1347,6 @@ export default function PlayerProfile({ players, allPlayers = players, playerPho
           {/* Career Overview */}
           <CareerTable
             records={playerRecords}
-            archetypeRecords={allPlayerRecords}
             bio={bio}
             tab={careerTab}
             onTabChange={tab => updateRoute({ tabla: tab === 'advanced' ? 'avanzado' : 'basico' })}
@@ -1367,7 +1371,6 @@ export default function PlayerProfile({ players, allPlayers = players, playerPho
             <>
               <RadarArchetypeCard
                 player={seasonRecord}
-                archetypePlayer={archetypeRecord}
                 bio={bio}
                 reference={radarReference}
                 onReferenceChange={reference => updateRoute({ radar: reference })}

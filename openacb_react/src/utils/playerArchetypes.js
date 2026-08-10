@@ -1,14 +1,9 @@
-export function getSeasonArchetypePlayer(player, seasonPlayers = []) {
-  if (!player) return null
-  return seasonPlayers.find(record => (
-    String(record.licenseId) === String(player.licenseId)
-    && Number(record.season) === Number(player.season)
-    && record.teamId === player.teamId
-  )) || player
+export function getScopedArchetypePlayer(player) {
+  return player || null
 }
 
 export function classifyArchetype(player, bio) {
-  if (player.qualified === false) {
+  if (!player || player.qualified === false) {
     return {
       name: 'Datos insuficientes',
       desc: 'No cumple el mínimo de partidos o minutos para calcular el arquetipo',
@@ -31,14 +26,17 @@ export function classifyArchetype(player, bio) {
   const blkPos = player.blkPctPosPct ?? null
   const orbPos = player.orbPctPosPct ?? null
   const thr = player.threeRatePct ?? 50
-  const fg3 = player.fg3PctPct ?? 50
+  const fg3League = player.fg3PctPct ?? 50
+  const fg3Pos = player.fg3PctPosPct ?? null
   const fga3 = player.fga3 ?? 0
   const apg = player.apg ?? 0
   const mpg = player.mpg
 
   // use the record first and keep the bio lookup as a compatibility fallback
-  const rawPos = player.position || (bio && bio.position) || null
-  const position = rawPos && rawPos.trim() ? rawPos.trim() : null
+  const cleanPosition = value => (
+    typeof value === 'string' && value.trim() ? value.trim() : null
+  )
+  const position = cleanPosition(player.position) || cleanPosition(bio && bio.position)
   const height = (() => {
     const value = player.heightM ?? (bio && bio.heightM)
     return value != null && isFinite(value) ? value : null
@@ -52,6 +50,7 @@ export function classifyArchetype(player, bio) {
   const isCenterPos = position === 'Pívot'
   const isPFPos = position === 'Ala-pívot'
   const isPerimeterRole = isGuardPos || isWingPos || isPFPos
+  const fg3 = isBigPos ? (fg3Pos ?? fg3League) : fg3League
 
   // centers are evaluated against centers for rebounding and interior defense
   const trb = isCenterPos ? (trbPos ?? 50) : trbLeague
@@ -156,7 +155,7 @@ export function classifyArchetype(player, bio) {
     }
   }
 
-  if (ppg >= 90 && usg >= 90 && thr >= 35 && ast >= 50 && ast < 70 && ts >= 70 && mpg >= 20) {
+  if (ppg >= 90 && usg >= 90 && thr >= 35 && ast < 70 && ts >= 70 && mpg >= 20) {
     return {
       name: 'Estrella Anotadora',
       desc: 'Anotador élite de alto volumen y eficiencia',
@@ -223,7 +222,7 @@ export function classifyArchetype(player, bio) {
   if (isScorer && thr >= 30 && ast >= 40 && stl < 75 && mpg >= 20) {
     return {
       name: 'Anotador Compulsivo',
-      desc: 'Anotador de gran volumen con eficiencia limitada',
+      desc: `Anotador de gran volumen con ${scoringEfficiency}`,
       color: 'text-gold-700 bg-gold-50 border-gold-200',
     }
   }
@@ -328,7 +327,7 @@ export function classifyArchetype(player, bio) {
   if (ast >= 85 && usg > 70 && ppg > 65 && trb < 50 && blk < 30 && isPointGuard) {
     return {
       name: 'Base Completo',
-      desc: 'Organiza y anota eficientemente con buen volumen',
+      desc: 'Organiza y anota con buen volumen',
       color: 'text-info-700 bg-info-50 border-info-200',
     }
   }
@@ -504,7 +503,7 @@ export function classifyArchetype(player, bio) {
   if (isScorer && trb >= 80 && ast >= 70 && mpg >= 20 && isCenterPos) {
     return {
       name: 'Pívot Moderno Estrella',
-      desc: 'Anota en la pintura, rebotea, protege el aro y habilita a sus compañeros',
+      desc: 'Anota en la pintura, rebotea y habilita a sus compañeros con volumen de estrella',
       color: 'text-accent-700 bg-accent-50 border-accent-200',
     }
   }
@@ -517,7 +516,7 @@ export function classifyArchetype(player, bio) {
     }
   }
 
-  if (isScorer && isRebounder && blk < 70 && thr < 40 && !isWingPos && !isGuardPos && isSelfCreator) {
+  if (isScorer && isRebounder && blk < 70 && thr < 40 && isBigPos && isSelfCreator) {
     return {
       name: 'Creador de Tiros Interior',
       desc: 'Crea sus propios tiros en la zona con eficiencia y volumen',
@@ -525,7 +524,7 @@ export function classifyArchetype(player, bio) {
     }
   }
 
-  if (isScorer && isRebounder && blk < 70 && thr < 40 && !isWingPos && !isGuardPos) {
+  if (isScorer && isRebounder && blk < 70 && thr < 40 && isBigPos) {
     return {
       name: 'Coche Escoba',
       desc: 'Finalizador interior con poca capacidad de generar sus propios tiros',
@@ -541,7 +540,7 @@ export function classifyArchetype(player, bio) {
     }
   }
 
-  if (isRebounder && blk >= 80 && ts >= 85 && ppg > 75 && !isWingPos && !isGuardPos) {
+  if (isRebounder && blk >= 80 && ts >= 85 && ppg > 75 && isBigPos) {
     return {
       name: 'Bestia en la Zona',
       desc: 'Domina la zona con rebotes y protección de aro, anotando con eficiencia',
@@ -549,7 +548,7 @@ export function classifyArchetype(player, bio) {
     }
   }
 
-  if (blk >= 70 && trb >= 70 && ppg >= 85 && !isWingPos && !isGuardPos) {
+  if (blk >= 70 && trb >= 70 && ppg >= 85 && isBigPos) {
     return {
       name: 'Interior Anotador',
       desc: 'Rebotea, protege el aro y anota en alto volumen',
@@ -557,7 +556,7 @@ export function classifyArchetype(player, bio) {
     }
   }
 
-  if ((isRebounder || (isCenterPos && trb >= 72)) && blk >= 80 && usg < 60 && !isWingPos && !isGuardPos) {
+  if ((isRebounder || (isCenterPos && trb >= 72)) && blk >= 80 && usg < 60 && isBigPos) {
     return {
       name: 'Protector del Aro',
       desc: 'Protector interior eficaz sin responsabilidades ofensivas',
@@ -565,7 +564,7 @@ export function classifyArchetype(player, bio) {
     }
   }
 
-  if (blk >= 90 && !isScorer && !isWingPos && !isGuardPos) {
+  if (blk >= 90 && !isScorer && isBigPos) {
     return {
       name: 'Intimidador Interior',
       desc: 'Presencia defensiva cerca del aro con tapones',
@@ -597,7 +596,7 @@ export function classifyArchetype(player, bio) {
     }
   }
 
-  if (blk >= 70 && trb >= 70 && ppg >= 70 && !isWingPos && !isGuardPos) {
+  if (blk >= 70 && trb >= 70 && ppg >= 70 && isBigPos) {
     return {
       name: 'Interior de Rol Completo',
       desc: 'Rebotea, protege el aro y anota sin ser el foco de atención',
@@ -613,7 +612,7 @@ export function classifyArchetype(player, bio) {
     }
   }
 
-  if ((isRebounder || (isCenterPos && trb >= 72)) && orb >= 70 && !isScorer && !isWingPos && !isGuardPos) {
+  if ((isRebounder || (isCenterPos && trb >= 72)) && orb >= 70 && !isScorer && isBigPos) {
     return {
       name: 'Aspiradora',
       desc: 'Dominador del rebote ofensivo y defensivo',

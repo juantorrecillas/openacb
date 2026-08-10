@@ -52,6 +52,7 @@ load_pipeline_modules <- function(base_dir = ".") {
 #'   - "scrape":          Download data from ACB API
 #'   - "clean":           Clean and standardize PBP data
 #'   - "variables":       Create player on-court tracking variables
+#'   - "player_bio":      refresh player positions before player statistics
 #'   - "team_stats":      Calculate team advanced statistics
 #'   - "shot_charts":     Process shot location data
 #'   - "lineup_analysis": Calculate lineup on/off statistics
@@ -63,7 +64,7 @@ load_pipeline_modules <- function(base_dir = ".") {
 #'
 run_season_pipeline <- function(
     season_id,
-    steps = c("scrape", "clean", "variables", "team_stats", "shot_charts",
+    steps = c("scrape", "clean", "variables", "player_bio", "team_stats", "shot_charts",
               "lineup_analysis", "player_stats", "game_flow", "team_pace", "clutch"),
     data_dir = "./data",
     config_path = "./config/seasons.R"
@@ -103,6 +104,12 @@ run_season_pipeline <- function(
 
   step_run("variables",       "Creating player tracking variables",
     create_pbp_variables(season_id, data_dir = data_dir, config_path = config_path))
+
+  step_run("player_bio",      "Refreshing player bio data",
+    generate_player_bio(
+      data_dir = file.path(data_dir, "processed"),
+      seasons = season_id
+    ))
 
   step_run("team_stats",      "Calculating team statistics",
     {
@@ -274,7 +281,7 @@ quick_update <- function(
 ) {
   run_season_pipeline(
     season_id,
-    steps = c("clean", "variables", "team_stats", "shot_charts",
+    steps = c("clean", "variables", "player_bio", "team_stats", "shot_charts",
               "lineup_analysis", "player_stats", "game_flow", "team_pace", "clutch")
   )
 

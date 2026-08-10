@@ -29,25 +29,52 @@ generate_player_bio <- function(
 ) {
   cat("\n--- Extracting player bio data from acb.com ---\n")
 
-  # -- 1. Collect unique licenseIds from processed player stats ----------------
+  # collect ids from both existing stats and the current adjusted pbp
   all_ids <- character(0)
   for (yr in seasons) {
-    paths <- c(
-      file.path(data_dir, paste0("PlayerStats", yr, ".csv")),
-      file.path(data_dir, paste0("PlayerStats", yr, ".Rds"))
+    stats_paths <- c(
+      file.path(data_dir, paste0("PlayerStats", yr, ".Rds")),
+      file.path(data_dir, paste0("PlayerStats", yr, ".csv"))
     )
-    for (p in paths) {
-      if (file.exists(p)) {
-        df <- if (grepl("\\.Rds$", p)) readRDS(p) else
-                read.csv(p, encoding = "UTF-8", stringsAsFactors = FALSE)
-        if ("license_id" %in% names(df)) {
-          all_ids <- c(all_ids, as.character(df$license_id[!is.na(df$license_id)]))
-        }
-        break
+    stats_paths <- stats_paths[file.exists(stats_paths)]
+
+    if (length(stats_paths) > 0) {
+      stats_path <- stats_paths[1]
+      stats <- if (grepl("\\.Rds$", stats_path)) {
+        readRDS(stats_path)
+      } else {
+        read.csv(stats_path, encoding = "UTF-8", stringsAsFactors = FALSE)
+      }
+
+      if ("license_id" %in% names(stats)) {
+        all_ids <- c(all_ids, as.character(stats$license_id[!is.na(stats$license_id)]))
       }
     }
+
+    pbp_paths <- c(
+      file.path(data_dir, paste0("PbP_adjustedData", yr, ".Rds")),
+      file.path(data_dir, paste0("PbP_adjustedData", yr, ".csv"))
+    )
+    pbp_paths <- pbp_paths[file.exists(pbp_paths)]
+
+    if (length(pbp_paths) > 0) {
+      pbp_path <- pbp_paths[1]
+      pbp <- if (grepl("\\.Rds$", pbp_path)) {
+        readRDS(pbp_path)
+      } else {
+        read.csv(pbp_path, encoding = "UTF-8", stringsAsFactors = FALSE)
+      }
+
+      if ("license.id" %in% names(pbp)) {
+        all_ids <- c(all_ids, as.character(pbp$license.id[!is.na(pbp$license.id)]))
+      }
+
+      pista_cols <- grep("_[0-9]+_pista$", names(pbp), value = TRUE)
+      pista_ids <- sub("^.*_([0-9]+)_pista$", "\\1", pista_cols)
+      all_ids <- c(all_ids, pista_ids)
+    }
   }
-  all_ids <- unique(all_ids)
+  all_ids <- unique(all_ids[nzchar(all_ids)])
   cat(sprintf("  Found %d unique players across all seasons.\n", length(all_ids)))
 
   if (length(all_ids) == 0) {
@@ -63,7 +90,15 @@ generate_player_bio <- function(
     cat(sprintf("  Loaded %d existing entries (incremental mode).\n", length(bio_map)))
   }
 
-  pending <- setdiff(all_ids, names(bio_map))
+  has_position <- function(entry) {
+    if (is.null(entry) || is.null(entry$position)) return(FALSE)
+    value <- gsub(intToUtf8(160), " ", as.character(entry$position), fixed = TRUE)
+    nzchar(trimws(value))
+  }
+
+  pending <- all_ids[!vapply(all_ids, function(lid) {
+    has_position(bio_map[[lid]])
+  }, logical(1))]
   cat(sprintf("  %d players to scrape.\n", length(pending)))
 
   if (length(pending) == 0) {
@@ -100,7 +135,12 @@ generate_player_bio <- function(
     fecha_text  <- html %>% html_nodes(css_fecha)    %>% html_text() %>% trimws()
 
     # Position: keep as-is (e.g. "Escolta", "Base", "Ala-Pívot")
-    position <- if (length(pos_text) > 0 && nzchar(pos_text[1])) pos_text[1] else NA_character_
+    position <- NA_character_
+    if (length(pos_text) > 0) {
+      position_value <- gsub(intToUtf8(160), " ", pos_text[1], fixed = TRUE)
+      position_value <- trimws(position_value)
+      if (nzchar(position_value)) position <- position_value
+    }
 
     # Height: "1,88" → 1.88 (numeric)
     height_m <- NA_real_
@@ -146,9 +186,15 @@ generate_player_bio <- function(
 
   # CSV for R pipeline (07_player_stats.R joins position from here)
   csv_file <- file.path(data_dir, "player_bio.csv")
+  clean_position <- function(entry) {
+    if (!has_position(entry)) return(NA_character_)
+    value <- gsub(intToUtf8(160), " ", as.character(entry$position), fixed = TRUE)
+    trimws(value)
+  }
+
   bio_df <- data.frame(
     license_id = as.integer(names(bio_map)),
-    position   = sapply(bio_map, function(x) if (!is.null(x$position))  x$position  else NA_character_),
+    position   = sapply(bio_map, clean_position),
     height_m   = sapply(bio_map, function(x) if (!is.null(x$heightM))   x$heightM   else NA_real_),
     birth_date = sapply(bio_map, function(x) if (!is.null(x$birthDate)) x$birthDate else NA_character_),
     stringsAsFactors = FALSE,

@@ -107,7 +107,7 @@ export default function TeamRosterTable({ players = [], playerBio = {} }) {
                   Posición
                 </th>
                 <th className="data-table-head text-left data-table-sticky-head team-roster-sticky-archetype team-roster-col-archetype bg-acb-50">
-                  Arquetipo
+                  Rol
                 </th>
                 {columns.map(column => (
                   <th
