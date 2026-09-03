@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Routes, Route, useLocation, Link, Navigate } from 'react-router-dom'
 import { Analytics } from '@vercel/analytics/react'
-import { BarChart3, Target, Users, TrendingUp, Percent, Trophy, Info, UserCircle, Menu, X, GitCompareArrows, Fingerprint, ChevronDown, Activity, Crown, Flame, Scale, Sparkles } from 'lucide-react'
+import { Menu, X, ChevronDown } from 'lucide-react'
 import {
   ROUTE_MANIFEST,
   buildAboutPath,
@@ -106,45 +106,45 @@ const TAB_PATHS = {
 // navigation structure: single tabs and grouped dropdowns
 const NAV = [
   {
-    id: 'equipos', label: 'Equipos', short: 'Equipos', icon: BarChart3,
+    id: 'equipos', label: 'Equipos', short: 'Equipos',
     tabs: [
-      { id: 'teams',       label: 'Estadísticas de Equipo', icon: BarChart3 },
-      { id: 'fingerprint', label: 'Perfil de Equipo',       icon: Fingerprint },
-      { id: 'gameflow',    label: 'Análisis de Partido',    icon: Activity },
-      { id: 'factors',     label: 'Four Factors',           icon: Percent },
+      { id: 'teams',       label: 'Estadísticas de Equipo' },
+      { id: 'fingerprint', label: 'Perfil de Equipo' },
+      { id: 'gameflow',    label: 'Análisis de Partido' },
+      { id: 'factors',     label: 'Four Factors' },
     ],
   },
   {
-    id: 'jugadores', label: 'Jugadores', short: 'Jugadores', icon: Users,
+    id: 'jugadores', label: 'Jugadores', short: 'Jugadores',
     tabs: [
-      { id: 'players', label: 'Estadísticas de Jugador', icon: Users },
-      { id: 'profile', label: 'Perfil de Jugador',       icon: UserCircle },
-      { id: 'clutch',  label: 'Estadísticas Clutch',     icon: Flame },
+      { id: 'players', label: 'Estadísticas de Jugador' },
+      { id: 'profile', label: 'Perfil de Jugador' },
+      { id: 'clutch',  label: 'Estadísticas Clutch' },
     ],
   },
   {
-    id: 'herramientas', label: 'Herramientas', short: 'Herramientas', icon: Sparkles,
+    id: 'herramientas', label: 'Herramientas', short: 'Herramientas',
     tabs: [
-      { id: 'similarity', label: 'Similitud',          icon: Sparkles },
-      { id: 'comparison', label: 'Comparar Jugadores', icon: GitCompareArrows },
-      { id: 'matchup',    label: 'Cara a Cara',        icon: Scale },
+      { id: 'similarity', label: 'Similitud' },
+      { id: 'comparison', label: 'Comparar Jugadores' },
+      { id: 'matchup',    label: 'Cara a Cara' },
     ],
   },
   {
-    id: 'alineaciones', label: 'Alineaciones', short: 'Alineaciones', icon: TrendingUp,
+    id: 'alineaciones', label: 'Alineaciones', short: 'Alineaciones',
     tabs: [
-      { id: 'lineups',  label: 'Análisis On/Off',      icon: TrendingUp },
-      { id: 'rankings', label: 'Mejores Alineaciones', icon: Trophy },
+      { id: 'lineups',  label: 'Análisis On/Off' },
+      { id: 'rankings', label: 'Mejores Alineaciones' },
     ],
   },
   {
-    id: 'tiro', label: 'Tiro', short: 'Tiro', icon: Target,
+    id: 'tiro', label: 'Tiro', short: 'Tiro',
     tabs: [
-      { id: 'shots',       label: 'Cartas de Tiro',   icon: Target },
-      { id: 'zoneleaders', label: 'Líderes por Zona', icon: Crown },
+      { id: 'shots',       label: 'Cartas de Tiro' },
+      { id: 'zoneleaders', label: 'Líderes por Zona' },
     ],
   },
-  { id: 'about', label: 'Info', short: 'Info', icon: Info, single: true },
+  { id: 'about', label: 'Info', short: 'Info', single: true },
 ]
 
 // return the group id that contains the given tab id
@@ -158,10 +158,10 @@ function getActiveGroup(tabId) {
 
 function RouteProblem({ title, message }) {
   return (
-    <div className="mx-auto my-16 max-w-lg rounded-lg border border-acb-200 bg-white p-6 text-center shadow-sm" role="alert">
-      <h1 className="text-xl font-semibold text-acb-900">{title}</h1>
-      <p className="mt-2 text-sm text-acb-600">{message}</p>
-      <Link to="/" className="mt-5 inline-flex rounded-lg bg-acb-900 px-4 py-2 text-sm font-medium text-white hover:bg-acb-800">
+    <div className="mx-auto my-16 max-w-lg border border-t-4 border-acb-200 border-t-accent-500 bg-white p-7" role="alert">
+      <h1 className="font-display text-3xl font-semibold text-acb-900">{title}</h1>
+      <p className="mt-3 text-sm text-acb-600">{message}</p>
+      <Link to="/" className="mt-6 inline-flex border-b-2 border-accent-500 py-1 text-sm font-semibold text-acb-900 hover:text-accent-700">
         Volver al inicio
       </Link>
     </div>
@@ -446,29 +446,31 @@ function App() {
     <>
       <div className="min-h-screen bg-acb-50">
         {/* header */}
-        <header className="bg-white border-b border-acb-200 sticky top-0 z-50 relative">
-          <div className="h-12 sm:h-16 xl:h-20">
-            <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-full">
+        <header className="site-header sticky top-0 z-50 border-b border-t-[3px] border-b-acb-200 border-t-accent-500 bg-white">
+          <div className="h-14 sm:h-[68px]">
+            <div className="mx-auto h-full max-w-[1440px] px-3 sm:px-6 lg:px-8">
               <div className="flex items-center justify-between h-full">
 
                 {/* logo */}
                 <Link
                   to="/"
                   onClick={() => setMenuOpen(false)}
-                  className="flex items-center gap-1.5 sm:gap-2 hover:opacity-80 transition-opacity shrink-0"
+                  className="group flex shrink-0 items-center gap-2.5"
                 >
                   <img
                     src="/openacb_nobckg.png"
                     alt="Logotipo de openACB"
-                    className="w-10 h-10 sm:w-14 sm:h-14 xl:w-20 xl:h-20 object-contain"
+                    className="h-10 w-10 object-contain sm:h-12 sm:w-12"
                   />
-                  <span className="text-base sm:text-lg font-semibold text-acb-900 hidden sm:block">openACB</span>
+                  <span className="font-display text-lg font-semibold leading-none text-acb-900 sm:text-xl">openACB</span>
+                  <span className="hidden border-l border-acb-200 pl-3 text-[10px] font-semibold uppercase leading-tight tracking-[0.16em] text-acb-500 lg:block">
+                    Liga Endesa<br />datos y análisis
+                  </span>
                 </Link>
 
                 {/* desktop navigation */}
-                <nav className="hidden xl:flex items-center gap-0.5 ml-4 flex-1 min-w-0" aria-label="Navegación principal">
+                <nav className="ml-auto hidden h-full items-stretch gap-1 xl:flex" aria-label="Navegación principal">
                   {NAV.map((item) => {
-                    const Icon = item.icon
                     const isActive = activeGroupId === item.id || (item.single && activeTab === item.id)
 
                     if (item.single) {
@@ -476,10 +478,9 @@ function App() {
                         <Link
                           key={item.id}
                           to={TAB_PATHS[item.id] || '/'}
-                          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border transition-colors text-xs font-medium whitespace-nowrap
-                            ${isActive ? 'border-transparent text-accent-700 font-semibold' : 'border-transparent text-acb-600 hover:text-accent-700'}`}
+                          className={`relative flex h-full items-center border-b-2 px-3 pt-0.5 text-sm font-semibold transition-colors
+                            ${isActive ? 'border-accent-500 text-acb-900' : 'border-transparent text-acb-600 hover:border-acb-300 hover:text-acb-900'}`}
                         >
-                          <Icon className="w-3.5 h-3.5" />
                           <span>{item.short}</span>
                         </Link>
                       )
@@ -508,31 +509,28 @@ function App() {
                           aria-expanded={openGroup === item.id}
                           aria-haspopup="menu"
                           aria-controls={`desktop-menu-${item.id}`}
-                          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border transition-colors text-xs font-medium whitespace-nowrap
-                            ${isActive ? 'border-transparent text-accent-700 font-semibold' : 'border-transparent text-acb-600 hover:text-accent-700'}`}
+                          className={`relative flex h-full items-center gap-1.5 border-b-2 px-3 pt-0.5 text-sm font-semibold transition-colors
+                            ${isActive ? 'border-accent-500 text-acb-900' : 'border-transparent text-acb-600 hover:border-acb-300 hover:text-acb-900'}`}
                         >
-                          <Icon className="w-3.5 h-3.5" />
                           <span>{item.short}</span>
-                          <ChevronDown className={`w-3 h-3 opacity-40 transition-transform ${openGroup === item.id ? 'rotate-180' : ''}`} />
+                          <ChevronDown className={`h-3 w-3 text-acb-400 transition-transform ${openGroup === item.id ? 'rotate-180' : ''}`} />
                         </button>
 
                         {openGroup === item.id && (
-                          <div className="absolute top-full left-0 pt-1 z-50 min-w-max">
-                            <div id={`desktop-menu-${item.id}`} role="menu" className="bg-white border border-acb-200 rounded-lg shadow-lg py-1">
+                          <div className="absolute left-0 top-full z-50 min-w-max pt-px">
+                            <div id={`desktop-menu-${item.id}`} role="menu" className="border border-t-2 border-acb-200 border-t-accent-500 bg-white py-1 shadow-[0_14px_30px_rgba(16,42,67,0.14)]">
                             {item.tabs.map(tab => {
-                              const TabIcon = tab.icon
                               return (
                                 <Link
                                   key={tab.id}
                                   to={TAB_PATHS[tab.id] || '/'}
                                   onClick={() => setOpenGroup(null)}
                                   role="menuitem"
-                                  className={`flex items-center gap-2.5 w-full px-4 py-2 text-xs transition-colors
+                                  className={`flex w-full items-center px-4 py-2.5 text-sm transition-colors
                                     ${activeTab === tab.id
-                                      ? 'text-accent-700 font-semibold'
-                                      : 'text-acb-600 hover:text-accent-700'}`}
+                                      ? 'bg-acb-50 font-semibold text-accent-700'
+                                      : 'text-acb-600 hover:bg-acb-50 hover:text-acb-900'}`}
                                 >
-                                  <TabIcon className="w-4 h-4" />
                                   {tab.label}
                                 </Link>
                               )
@@ -546,14 +544,14 @@ function App() {
                 </nav>
 
                 {/* hamburger button */}
-                <div className="xl:hidden" ref={menuRef}>
+                <div className="h-full xl:hidden" ref={menuRef}>
                   <button
                     type="button"
                     onClick={() => setMenuOpen(!menuOpen)}
                     aria-label={menuOpen ? 'Cerrar menú de navegación' : 'Abrir menú de navegación'}
                     aria-expanded={menuOpen}
                     aria-controls="mobile-navigation"
-                    className="p-2 rounded-md text-acb-600 hover:text-acb-900 hover:bg-acb-100 transition-colors"
+                    className="flex h-full items-center border-l border-acb-200 px-3 text-acb-600 transition-colors hover:bg-acb-50 hover:text-acb-900"
                   >
                     {menuOpen ? <X className="w-5 h-5 sm:w-6 sm:h-6" /> : <Menu className="w-5 h-5 sm:w-6 sm:h-6" />}
                   </button>
@@ -567,44 +565,38 @@ function App() {
             <div
               id="mobile-navigation"
               ref={dropdownRef}
-              className="xl:hidden absolute left-0 right-0 top-full max-h-[calc(100vh-3rem)] sm:max-h-[calc(100vh-4rem)] overflow-y-auto bg-white border-b border-acb-200 shadow-lg z-50"
+              className="absolute left-0 right-0 top-full z-50 max-h-[calc(100vh-3.5rem)] overflow-y-auto border-b-2 border-b-accent-500 bg-white shadow-[0_16px_30px_rgba(16,42,67,0.14)] xl:hidden"
             >
-              <nav className="max-w-7xl mx-auto px-3 sm:px-4 py-2 flex flex-col gap-0.5" aria-label="Navegación móvil">
+              <nav className="mx-auto grid max-w-[1440px] gap-px px-4 py-4 sm:grid-cols-2 sm:px-6" aria-label="Navegación móvil">
                 {NAV.map((item) => {
-                  const Icon = item.icon
-
                   if (item.single) {
                     return (
                       <Link
                         key={item.id}
                         to={TAB_PATHS[item.id] || '/'}
                         onClick={() => setMenuOpen(false)}
-                        className={`flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors text-sm font-medium
-                          ${activeTab === item.id ? 'bg-acb-100 text-acb-900' : 'text-acb-600 hover:text-acb-900 hover:bg-acb-50'}`}
+                        className={`flex min-h-11 items-center border-t border-acb-200 px-3 text-sm font-semibold transition-colors
+                          ${activeTab === item.id ? 'text-accent-700' : 'text-acb-600 hover:bg-acb-50 hover:text-acb-900'}`}
                       >
-                        <Icon className="w-4 h-4" />
                         {item.label}
                       </Link>
                     )
                   }
 
                   return (
-                    <div key={item.id} className="mt-1">
-                      <div className="flex items-center gap-2 px-3 py-1 text-xs font-semibold text-acb-400 uppercase tracking-wider">
-                        <Icon className="w-3.5 h-3.5" />
+                    <div key={item.id} className="border-t border-acb-200 py-2">
+                      <div className="px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-acb-500">
                         {item.label}
                       </div>
                       {item.tabs.map(tab => {
-                        const TabIcon = tab.icon
                         return (
                           <Link
                             key={tab.id}
                             to={TAB_PATHS[tab.id] || '/'}
                             onClick={() => setMenuOpen(false)}
-                            className={`flex items-center gap-3 w-full px-3 py-2 pl-7 rounded-md transition-colors text-sm
-                              ${activeTab === tab.id ? 'text-accent-700 font-semibold' : 'text-acb-600 hover:text-accent-700'}`}
+                            className={`flex min-h-11 w-full items-center px-3 text-sm transition-colors
+                              ${activeTab === tab.id ? 'font-semibold text-accent-700' : 'text-acb-600 hover:bg-acb-50 hover:text-acb-900'}`}
                           >
-                            <TabIcon className="w-4 h-4" />
                             {tab.label}
                           </Link>
                         )
@@ -618,7 +610,7 @@ function App() {
         </header>
 
         {/* main content */}
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <main className="mx-auto max-w-[1440px] px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
           {pathNeedsNormalization ? (
             <Navigate to={`${normalizedPathname}${location.search}`} replace />
           ) : missingResources.length > 0 && !loadError ? (
@@ -626,13 +618,13 @@ function App() {
               Cargando datos...
             </div>
           ) : loadError ? (
-            <div className="mx-auto my-16 max-w-md rounded-lg border border-negative-200 bg-white p-6 text-center shadow-sm" role="alert">
-              <h1 className="text-xl font-semibold text-acb-900">No se pueden mostrar los datos</h1>
-              <p className="mt-2 text-sm text-acb-600">{loadError}</p>
+            <div className="mx-auto my-16 max-w-md border border-t-4 border-negative-200 border-t-negative-500 bg-white p-7" role="alert">
+              <h1 className="font-display text-3xl font-semibold text-acb-900">No se pueden mostrar los datos</h1>
+              <p className="mt-3 text-sm text-acb-600">{loadError}</p>
               <button
                 type="button"
                 onClick={() => setRetryToken(token => token + 1)}
-                className="mt-5 rounded-lg bg-acb-900 px-4 py-2 text-sm font-medium text-white hover:bg-acb-800"
+                className="mt-6 bg-acb-900 px-4 py-2 text-sm font-semibold text-white hover:bg-acb-800"
               >
                 Reintentar
               </button>
@@ -805,10 +797,11 @@ function App() {
         </main>
 
         {/* footer */}
-        <footer className="border-t border-acb-200 bg-white mt-12">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            <div className="flex items-center justify-between text-sm text-acb-500">
-              <p>hecho con cariño por <a href="https://juantorrecillas.es" className="text-acb-600 hover:text-lemon underline">juan torrecillas</a> 🍋</p>
+        <footer className="mt-16 border-t-[3px] border-accent-500 bg-acb-900">
+          <div className="mx-auto max-w-[1440px] px-4 py-7 sm:px-6 lg:px-8">
+            <div className="flex flex-col gap-2 text-sm text-acb-300 sm:flex-row sm:items-center sm:justify-between">
+              <p className="font-display text-lg font-semibold text-white">openACB</p>
+              <p>hecho con cariño por <a href="https://juantorrecillas.es" className="font-semibold text-white underline decoration-accent-500 underline-offset-4 hover:text-lemon">juan torrecillas</a> 🍋</p>
             </div>
           </div>
         </footer>

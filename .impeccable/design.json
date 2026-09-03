@@ -1,0 +1,349 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-04T01:23:20.3299883+02:00",
+  "title": "Design System: openACB",
+  "extensions": {
+    "colorMeta": {
+      "league-navy": {
+        "role": "primary",
+        "displayName": "League Navy",
+        "canonical": "#102a43",
+        "tonalRamp": ["#102a43", "#243b53", "#334e68", "#526f8a", "#9fb3c8", "#bcccdc", "#d9e2ec", "#f0f4f8"]
+      },
+      "deep-blue-ink": {
+        "role": "neutral",
+        "displayName": "Deep Blue Ink",
+        "canonical": "#243b53",
+        "tonalRamp": ["#102a43", "#243b53", "#334e68", "#526f8a", "#9fb3c8", "#bcccdc", "#d9e2ec", "#f0f4f8"]
+      },
+      "body-blue": {
+        "role": "neutral",
+        "displayName": "Body Blue",
+        "canonical": "#334e68",
+        "tonalRamp": ["#102a43", "#243b53", "#334e68", "#526f8a", "#9fb3c8", "#bcccdc", "#d9e2ec", "#f0f4f8"]
+      },
+      "muted-blue": {
+        "role": "neutral",
+        "displayName": "Muted Blue",
+        "canonical": "#526f8a",
+        "tonalRamp": ["#102a43", "#243b53", "#334e68", "#526f8a", "#9fb3c8", "#bcccdc", "#d9e2ec", "#f0f4f8"]
+      },
+      "strong-rule": {
+        "role": "neutral",
+        "displayName": "Strong Rule",
+        "canonical": "#9fb3c8",
+        "tonalRamp": ["#102a43", "#243b53", "#334e68", "#526f8a", "#9fb3c8", "#bcccdc", "#d9e2ec", "#f0f4f8"]
+      },
+      "soft-rule": {
+        "role": "neutral",
+        "displayName": "Soft Rule",
+        "canonical": "#bcccdc",
+        "tonalRamp": ["#102a43", "#243b53", "#334e68", "#526f8a", "#9fb3c8", "#bcccdc", "#d9e2ec", "#f0f4f8"]
+      },
+      "hairline": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "#d9e2ec",
+        "tonalRamp": ["#102a43", "#243b53", "#334e68", "#526f8a", "#9fb3c8", "#bcccdc", "#d9e2ec", "#f0f4f8"]
+      },
+      "cool-ground": {
+        "role": "neutral",
+        "displayName": "Cool Ground",
+        "canonical": "#f0f4f8",
+        "tonalRamp": ["#102a43", "#243b53", "#334e68", "#526f8a", "#9fb3c8", "#bcccdc", "#d9e2ec", "#f0f4f8"]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Paper",
+        "canonical": "#ffffff",
+        "tonalRamp": ["#102a43", "#243b53", "#334e68", "#526f8a", "#9fb3c8", "#d9e2ec", "#f0f4f8", "#ffffff"]
+      },
+      "court-orange": {
+        "role": "secondary",
+        "displayName": "Court Orange",
+        "canonical": "#fe5917",
+        "tonalRamp": ["#a43900", "#cb600e", "#d04313", "#d75915", "#fe5917", "#f9b478", "#fde6d5", "#fef5ef"]
+      },
+      "orange-active": {
+        "role": "secondary",
+        "displayName": "Orange Active",
+        "canonical": "#d04313",
+        "tonalRamp": ["#a43900", "#cb600e", "#d04313", "#d75915", "#fe5917", "#f9b478", "#fde6d5", "#fef5ef"]
+      },
+      "positive": {
+        "role": "tertiary",
+        "displayName": "Positive Green",
+        "canonical": "#2aa867",
+        "tonalRamp": ["#14532d", "#166534", "#15803d", "#16a34a", "#2aa867", "#86efac", "#dcfce7", "#f0fdf4"]
+      },
+      "negative": {
+        "role": "tertiary",
+        "displayName": "Negative Red",
+        "canonical": "#dd415d",
+        "tonalRamp": ["#4c0519", "#881337", "#9f1239", "#be1c3f", "#dd415d", "#fda4af", "#ffe4e6", "#fff1f2"]
+      },
+      "comparison-blue": {
+        "role": "tertiary",
+        "displayName": "Comparison Blue",
+        "canonical": "#3b82f6",
+        "tonalRamp": ["#1e3a8a", "#1e40af", "#1d4ed8", "#2563eb", "#3b82f6", "#93c5fd", "#dbeafe", "#eff6ff"]
+      },
+      "archetype-gold": {
+        "role": "tertiary",
+        "displayName": "Archetype Gold",
+        "canonical": "#b48a10",
+        "tonalRamp": ["#342203", "#543606", "#744f09", "#946c0d", "#b48a10", "#ecc930", "#f9f2c4", "#fdfbf0"]
+      },
+      "archetype-sage": {
+        "role": "tertiary",
+        "displayName": "Archetype Sage",
+        "canonical": "#358479",
+        "tonalRamp": ["#0c2422", "#143835", "#1d4f4b", "#286863", "#358479", "#76c0b0", "#d3eee6", "#f0f9f6"]
+      },
+      "archetype-plum": {
+        "role": "tertiary",
+        "displayName": "Archetype Plum",
+        "canonical": "#8349d8",
+        "tonalRamp": ["#290e57", "#3d1680", "#5220a0", "#6932be", "#8349d8", "#bc8df2", "#ecddfb", "#f6f0fe"]
+      },
+      "archetype-sand": {
+        "role": "tertiary",
+        "displayName": "Archetype Sand",
+        "canonical": "#957851",
+        "tonalRamp": ["#2d2114", "#46351f", "#60492d", "#7a603e", "#957851", "#c9b290", "#f1ebe0", "#faf8f5"]
+      },
+      "lemon-note": {
+        "role": "tertiary",
+        "displayName": "Lemon Note",
+        "canonical": "#ece338",
+        "tonalRamp": ["#3a3704", "#5a5508", "#7a740f", "#9d9618", "#bfb727", "#d6ce30", "#ece338", "#f9f6a4"]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Landing-page statements and the largest editorial numbers only."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Tool and page titles with tight tracking."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Section and category headings."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Explanations and working copy."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Uppercase field labels and compact table headers."
+      },
+      "control": {
+        "displayName": "Control",
+        "purpose": "Navigation, tabs, buttons, and compact interactive text."
+      },
+      "form": {
+        "displayName": "Form",
+        "purpose": "Input and select values, increasing to 16px on small screens."
+      },
+      "table": {
+        "displayName": "Table",
+        "purpose": "Dense row content and identities."
+      },
+      "numeric": {
+        "displayName": "Numeric",
+        "purpose": "Tabular values, scopes, dates, and compact statistical notation."
+      }
+    },
+    "shadows": [
+      {
+        "name": "header-lift",
+        "value": "0 8px 22px rgba(16, 42, 67, 0.06)",
+        "purpose": "Barely visible separation beneath the sticky header."
+      },
+      {
+        "name": "overlay-lift",
+        "value": "0 14px 30px rgba(16, 42, 67, 0.14)",
+        "purpose": "Desktop dropdowns and temporary menus."
+      },
+      {
+        "name": "mobile-overlay-lift",
+        "value": "0 16px 30px rgba(16, 42, 67, 0.14)",
+        "purpose": "Full-width mobile navigation."
+      },
+      {
+        "name": "raised-overlay",
+        "value": "0 14px 30px rgba(16, 42, 67, 0.16)",
+        "purpose": "The strongest approved shadow for transient layered content."
+      }
+    ],
+    "motion": [
+      {
+        "name": "state-standard",
+        "value": "150ms cubic-bezier(0.4, 0, 0.2, 1)",
+        "purpose": "Color, border, and background state changes."
+      },
+      {
+        "name": "directional-nudge",
+        "value": "transform 150ms cubic-bezier(0.4, 0, 0.2, 1)",
+        "purpose": "Small arrow and chevron translations that clarify direction."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "0.01ms",
+        "purpose": "Preference override for transitions and animations."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      },
+      {
+        "name": "xl",
+        "value": "1280px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The square navy action used when a page needs one clear recovery or commit control.",
+      "html": "<button class=\"ds-btn-primary\" type=\"button\">Reintentar</button>",
+      "css": ".ds-btn-primary { border: 0; border-radius: 0; background: #102a43; color: #ffffff; padding: 8px 16px; font-family: 'Source Sans 3', 'Segoe UI', sans-serif; font-size: 14px; line-height: 20px; font-weight: 600; cursor: pointer; transition: background-color 150ms cubic-bezier(0.4, 0, 0.2, 1); } .ds-btn-primary:hover { background: #243b53; } .ds-btn-primary:focus-visible { outline: 2px solid #fe5917; outline-offset: 3px; } .ds-btn-primary:active { background: #102a43; }"
+    },
+    {
+      "name": "Form Field",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "A compact white field with explicit uppercase labeling and orange focus.",
+      "html": "<label class=\"ds-field-label\" for=\"ds-player\">JUGADOR</label><div class=\"ds-field-wrap\"><svg class=\"ds-field-icon\" aria-hidden=\"true\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"11\" cy=\"11\" r=\"8\"></circle><path d=\"m21 21-4.3-4.3\"></path></svg><input class=\"ds-field\" id=\"ds-player\" placeholder=\"Buscar jugador...\"></div>",
+      "css": ".ds-field-label { display: block; color: #3d5871; font-family: 'Source Sans 3', 'Segoe UI', sans-serif; font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.08em; } .ds-field-wrap { position: relative; margin-top: 4px; } .ds-field-icon { position: absolute; left: 12px; top: 50%; width: 16px; height: 16px; color: #526f8a; transform: translateY(-50%); pointer-events: none; } .ds-field { width: 100%; height: 40px; border: 1px solid #9fb3c8; border-radius: 2px; background: #ffffff; color: #102a43; padding: 0 12px 0 40px; font-family: 'Source Sans 3', 'Segoe UI', sans-serif; font-size: 14px; line-height: 20px; outline: none; transition: border-color 150ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 150ms cubic-bezier(0.4, 0, 0.2, 1); } .ds-field::placeholder { color: #526f8a; } .ds-field:hover { border-color: #526f8a; } .ds-field:focus { border-color: #fe5917; box-shadow: 0 0 0 1px #fe5917; } .ds-field:focus-visible { outline: 2px solid #fe5917; outline-offset: 3px; }"
+    },
+    {
+      "name": "Segmented Control",
+      "kind": "button",
+      "refersTo": "segmented-control",
+      "description": "A compact choice set expressed as a ruled strip rather than connected pills.",
+      "html": "<div class=\"ds-segmented\" role=\"group\" aria-label=\"Tipo de estadísticas\"><button class=\"ds-segmented-option ds-segmented-option-active\" type=\"button\" aria-pressed=\"true\">Básico</button><button class=\"ds-segmented-option\" type=\"button\" aria-pressed=\"false\">Avanzado</button></div>",
+      "css": ".ds-segmented { display: inline-flex; overflow: hidden; border: 1px solid #9fb3c8; border-radius: 0; background: #ffffff; } .ds-segmented-option { min-height: 32px; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; color: #3d5871; padding: 6px 12px; font-family: 'Source Sans 3', 'Segoe UI', sans-serif; font-size: 14px; line-height: 20px; font-weight: 600; cursor: pointer; transition: color 150ms cubic-bezier(0.4, 0, 0.2, 1), background-color 150ms cubic-bezier(0.4, 0, 0.2, 1), border-color 150ms cubic-bezier(0.4, 0, 0.2, 1); } .ds-segmented-option:hover { background: #f0f4f8; color: #102a43; } .ds-segmented-option:focus-visible { outline: 2px solid #fe5917; outline-offset: -2px; } .ds-segmented-option-active { border-bottom-color: #fe5917; background: #ffffff; color: #102a43; } .ds-segmented-option-active:hover { background: #ffffff; }"
+    },
+    {
+      "name": "Primary Navigation",
+      "kind": "nav",
+      "refersTo": "primary-nav",
+      "description": "The white desktop navigation with semibold labels and rule-based state.",
+      "html": "<nav class=\"ds-primary-nav\" aria-label=\"Navegación principal\"><a class=\"ds-primary-nav-item ds-primary-nav-active\" href=\"#\">Equipos</a><a class=\"ds-primary-nav-item\" href=\"#\">Jugadores</a><a class=\"ds-primary-nav-item\" href=\"#\">Herramientas</a></nav>",
+      "css": ".ds-primary-nav { display: flex; align-items: stretch; height: 68px; gap: 4px; border-top: 3px solid #fe5917; border-bottom: 1px solid #bcccdc; background: #ffffff; padding: 0 12px; box-shadow: 0 8px 22px rgba(16, 42, 67, 0.06); } .ds-primary-nav-item { display: flex; align-items: center; border-bottom: 2px solid transparent; color: #3d5871; padding: 2px 12px 0; font-family: 'Source Sans 3', 'Segoe UI', sans-serif; font-size: 14px; line-height: 20px; font-weight: 600; text-decoration: none; transition: color 150ms cubic-bezier(0.4, 0, 0.2, 1), border-color 150ms cubic-bezier(0.4, 0, 0.2, 1); } .ds-primary-nav-item:hover { border-bottom-color: #9fb3c8; color: #102a43; } .ds-primary-nav-item:focus-visible { outline: 2px solid #fe5917; outline-offset: 3px; } .ds-primary-nav-active { border-bottom-color: #fe5917; color: #102a43; }"
+    },
+    {
+      "name": "Analysis Tabs",
+      "kind": "nav",
+      "refersTo": "analysis-tabs",
+      "description": "Open-spaced local navigation anchored by one horizontal rule.",
+      "html": "<nav class=\"ds-tabs\" aria-label=\"Análisis de partido\"><a class=\"ds-tab ds-tab-active\" href=\"#\">Flujo de partido</a><a class=\"ds-tab\" href=\"#\">Rendimiento por cuarto</a><a class=\"ds-tab\" href=\"#\">Clutch</a></nav>",
+      "css": ".ds-tabs { display: flex; flex-wrap: wrap; column-gap: 20px; border-bottom: 1px solid #9fb3c8; } .ds-tab { border-bottom: 2px solid transparent; color: #526f8a; padding: 8px 0; font-family: 'Source Sans 3', 'Segoe UI', sans-serif; font-size: 14px; line-height: 20px; font-weight: 600; text-decoration: none; transition: color 150ms cubic-bezier(0.4, 0, 0.2, 1), border-color 150ms cubic-bezier(0.4, 0, 0.2, 1); } .ds-tab:hover { border-bottom-color: #9fb3c8; color: #102a43; } .ds-tab:focus-visible { outline: 2px solid #fe5917; outline-offset: 3px; } .ds-tab-active { border-bottom-color: #fe5917; color: #102a43; }"
+    },
+    {
+      "name": "Page Header",
+      "kind": "custom",
+      "refersTo": "page-header",
+      "description": "A condensed tool title, explanatory subtitle, and optional monospaced scope above a strong rule.",
+      "html": "<header class=\"ds-page-header\"><div><h1 class=\"ds-page-title\">Estadísticas de Equipo</h1><p class=\"ds-page-subtitle\">Compara el rendimiento, el ritmo y la eficiencia de cada equipo.</p><p class=\"ds-page-scope\">TEMPORADA 2025-26 · LIGA REGULAR</p></div></header>",
+      "css": ".ds-page-header { display: grid; gap: 20px; border-bottom: 1px solid #9fb3c8; padding-bottom: 20px; } .ds-page-title { margin: 0; color: #102a43; font-family: 'Barlow Semi Condensed', 'Arial Narrow', sans-serif; font-size: 36px; line-height: 1; font-weight: 600; letter-spacing: -0.02em; } .ds-page-subtitle { max-width: 48rem; margin: 12px 0 0; color: #3d5871; font-family: 'Source Sans 3', 'Segoe UI', sans-serif; font-size: 16px; line-height: 1.375; } .ds-page-scope { margin: 8px 0 0; color: #526f8a; font-family: 'JetBrains Mono', Consolas, monospace; font-size: 12px; line-height: 16px; }"
+    },
+    {
+      "name": "Statistics Plaque",
+      "kind": "card",
+      "refersTo": "stat-plaque",
+      "description": "The sharp navy summary block used for one high-value product or dataset fact.",
+      "html": "<aside class=\"ds-stat-plaque\"><div class=\"ds-stat-top\"><strong class=\"ds-stat-number\">10</strong><span class=\"ds-stat-label\">Temporadas disponibles</span></div><p class=\"ds-stat-range\">2016-17 — 2025-26</p><a class=\"ds-stat-link\" href=\"#\">100% código abierto<svg aria-hidden=\"true\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M7 17 17 7\"></path><path d=\"M7 7h10v10\"></path></svg></a></aside>",
+      "css": ".ds-stat-plaque { border-top: 4px solid #fe5917; border-radius: 0; background: #102a43; color: #ffffff; padding: 24px; } .ds-stat-top { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; border-bottom: 1px solid #334e68; padding-bottom: 16px; } .ds-stat-number { font-family: 'Barlow Semi Condensed', 'Arial Narrow', sans-serif; font-size: 48px; line-height: 1; font-weight: 600; } .ds-stat-label { max-width: 160px; color: #d9e2ec; font-family: 'Source Sans 3', 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.375; text-align: right; } .ds-stat-range { margin: 0; padding: 16px 0; color: #d9e2ec; font-family: 'JetBrains Mono', Consolas, monospace; font-size: 14px; line-height: 20px; } .ds-stat-link { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #334e68; color: #ffffff; padding-top: 16px; font-family: 'Source Sans 3', 'Segoe UI', sans-serif; font-size: 14px; line-height: 20px; font-weight: 600; text-decoration: none; } .ds-stat-link svg { width: 16px; height: 16px; color: #f8974d; transition: transform 150ms cubic-bezier(0.4, 0, 0.2, 1); } .ds-stat-link:hover svg { transform: translate(2px, -2px); } .ds-stat-link:focus-visible { outline: 2px solid #fe5917; outline-offset: 3px; }"
+    },
+    {
+      "name": "Data Table",
+      "kind": "custom",
+      "refersTo": "data-table",
+      "description": "A compact ruled table with uppercase labels and monospaced right-aligned values.",
+      "html": "<div class=\"ds-table-wrap\" tabindex=\"0\" aria-label=\"Estadísticas de ejemplo\"><table class=\"ds-table\"><thead><tr><th>Jugador</th><th class=\"ds-table-number\">MIN</th><th class=\"ds-table-number\">ORtg</th></tr></thead><tbody><tr><td class=\"ds-table-identity\">Jugador completo</td><td class=\"ds-table-number\">24.8</td><td class=\"ds-table-number\">118.4</td></tr><tr><td class=\"ds-table-identity\">Segundo jugador</td><td class=\"ds-table-number\">19.6</td><td class=\"ds-table-number\">112.1</td></tr></tbody></table></div>",
+      "css": ".ds-table-wrap { overflow-x: auto; border: 1px solid #d9e2ec; border-radius: 2px; background: #ffffff; } .ds-table-wrap:focus-visible { outline: 2px solid #fe5917; outline-offset: 3px; } .ds-table { width: 100%; border-collapse: collapse; color: #334e68; font-family: 'Source Sans 3', 'Segoe UI', sans-serif; font-size: 12px; line-height: 18px; } .ds-table th { background: #f0f4f8; color: #3d5871; padding: 8px 10px; font-size: 10.5px; line-height: 15px; font-weight: 600; letter-spacing: 0.07em; text-align: left; text-transform: uppercase; white-space: nowrap; } .ds-table td { border-top: 1px solid #d9e2ec; background: #ffffff; padding: 8px 10px; white-space: nowrap; transition: background-color 150ms cubic-bezier(0.4, 0, 0.2, 1); } .ds-table tr:hover td { background: #f0f4f8; } .ds-table-identity { color: #102a43; font-weight: 500; } .ds-table .ds-table-number { font-family: 'JetBrains Mono', Consolas, monospace; font-variant-numeric: tabular-nums; text-align: right; }"
+    },
+    {
+      "name": "Archetype Chip",
+      "kind": "chip",
+      "refersTo": "chip-archetype",
+      "description": "A quiet categorical tag for player archetypes and similar analytical classifications.",
+      "html": "<span class=\"ds-chip-archetype\">Anotador eficiente</span>",
+      "css": ".ds-chip-archetype { display: inline-flex; max-width: 100%; overflow: hidden; border: 1px solid #f4e07a; border-radius: 4px; background: #fdfbf0; color: #744f09; padding: 2px 8px; font-family: 'Source Sans 3', 'Segoe UI', sans-serif; font-size: 11px; line-height: 16px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Courtside Statistics Desk",
+    "overview": "OpenACB should feel like a working Liga Endesa statistics desk: decisive condensed headlines, ruled information architecture, and dense analytical material arranged for fast scanning. The cool blue-grey ground behaves like editorial stock, while navy anchors identity and orange marks active states and important edges.\n\nSurfaces stay largely flat and rectangular so the basketball evidence remains primary. Restrained overlays are reserved for menus and search results; team marks, player imagery, charts, and data supply the visual personality. The system explicitly avoids generic AI-dashboard gradients, glass effects, icon-tile grids, and stacks of soft floating cards.",
+    "keyCharacteristics": [
+      "Condensed, decisive hierarchy",
+      "Ruled, data-first information architecture",
+      "Cool blue-grey ground with navy and orange identity",
+      "Sharp geometry with restrained depth",
+      "Dense but readable analytical controls and tables"
+    ],
+    "rules": [
+      {
+        "name": "The Orange Is a Signal Rule",
+        "body": "Use orange for identity, selection, focus, and directional emphasis; never wash large analytical surfaces in it.",
+        "section": "colors"
+      },
+      {
+        "name": "The Condensed Hierarchy Rule",
+        "body": "Use the display family for headings and emphatic figures, not for paragraphs or dense table values.",
+        "section": "typography"
+      },
+      {
+        "name": "The Evidence First Rule",
+        "body": "Give charts, tables, filters, and definitions the width they need before adding decorative composition.",
+        "section": "layout"
+      },
+      {
+        "name": "The Flat-by-Default Rule",
+        "body": "Resting content surfaces have no shadow; elevation is a temporary state, not a card style.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Square Desk Rule",
+        "body": "Prefer crisp rectangles and ruled edges; rounded silhouettes are for data marks and compact tags, not general containers.",
+        "section": "shapes"
+      },
+      {
+        "name": "The Ruled Container Rule",
+        "body": "Prefer borders and aligned baselines over nested cards when grouping related analytical content.",
+        "section": "components"
+      }
+    ],
+    "dos": [
+      "Do put basketball evidence before decorative interface chrome.",
+      "Do use the 4px spacing rhythm, sharp corners, and ruled sections to keep dense content orderly.",
+      "Do reserve monospaced type for numbers, dates, scopes, and compact statistical notation.",
+      "Do preserve full player names wherever identity matters.",
+      "Do keep focus visible, touch targets at least 44px on mobile, and dense tables horizontally operable."
+    ],
+    "donts": [
+      "Don't introduce gradients, glass effects, icon-tile dashboards, or soft floating card stacks.",
+      "Don't use orange as a broad surface color or semantic substitute for positive and negative values.",
+      "Don't add shadows to resting analytical containers.",
+      "Don't round every panel, control, or navigation item into a pill.",
+      "Don't sacrifice labels, units, or methodological context for visual minimalism."
+    ]
+  }
+}

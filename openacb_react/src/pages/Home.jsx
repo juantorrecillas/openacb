@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Target, BarChart3, Users, TrendingUp, Trophy, Percent, UserCircle, ArrowRight, GitCompareArrows, Fingerprint, Activity, Crown, Sparkles, Scale, Flame } from 'lucide-react'
+import { ArrowRight, ArrowUpRight } from 'lucide-react'
 import {
   buildAboutPath,
   buildFourFactorsPath,
@@ -41,10 +41,10 @@ const categories = [
     title: 'Equipos',
     description: 'Rendimiento, estilo e identidad de cada equipo',
     tools: [
-      { id: 'teams',       title: 'Estadísticas de Equipo', description: 'Rendimiento, ritmo y eficiencia.',                               icon: BarChart3 },
-      { id: 'fingerprint', title: 'Perfil de Equipo',       description: 'Fortalezas, debilidades y estilo.',               icon: Fingerprint },
-      { id: 'gameflow',    title: 'Análisis de Partido',    description: 'Evolución del marcador y jugadas.', icon: Activity },
-      { id: 'factors',     title: 'Four Factors',           description: 'Tiro, pérdidas, rebote y tiros libres.',                         icon: Percent },
+      { id: 'teams',       title: 'Estadísticas de Equipo', description: 'Rendimiento, ritmo y eficiencia.' },
+      { id: 'fingerprint', title: 'Perfil de Equipo',       description: 'Fortalezas, debilidades y estilo.' },
+      { id: 'gameflow',    title: 'Análisis de Partido',    description: 'Evolución del marcador y jugadas.' },
+      { id: 'factors',     title: 'Four Factors',           description: 'Tiro, pérdidas, rebote y tiros libres.' },
     ],
   },
   {
@@ -52,9 +52,9 @@ const categories = [
     title: 'Jugadores',
     description: 'Estadísticas individuales y perfiles de jugador',
     tools: [
-      { id: 'players', title: 'Estadísticas de Jugador', description: 'Producción, eficiencia y métricas avanzadas.', icon: Users },
-      { id: 'profile', title: 'Perfil de Jugador',       description: 'Perfil completo, estilo y evolución.', icon: UserCircle },
-      { id: 'clutch',  title: 'Estadísticas clutch',     description: 'Rendimiento en finales ajustados.', icon: Flame },
+      { id: 'players', title: 'Estadísticas de Jugador', description: 'Producción, eficiencia y métricas avanzadas.' },
+      { id: 'profile', title: 'Perfil de Jugador',       description: 'Perfil completo, estilo y evolución.' },
+      { id: 'clutch',  title: 'Estadísticas clutch',     description: 'Rendimiento en finales ajustados.' },
     ],
   },
   {
@@ -62,9 +62,9 @@ const categories = [
     title: 'Herramientas',
     description: 'Comparativas y búsqueda de similitud entre jugadores y equipos',
     tools: [
-      { id: 'similarity', title: 'Similitud',          description: 'Jugadores con perfiles similares.',                    icon: Sparkles },
-      { id: 'comparison', title: 'Comparar Jugadores', description: 'Comparación directa entre jugadores.',          icon: GitCompareArrows },
-      { id: 'matchup',    title: 'Cara a Cara',        description: 'Compara dos equipos por métricas.',      icon: Scale },
+      { id: 'similarity', title: 'Similitud',          description: 'Jugadores con perfiles similares.' },
+      { id: 'comparison', title: 'Comparar Jugadores', description: 'Comparación directa entre jugadores.' },
+      { id: 'matchup',    title: 'Cara a Cara',        description: 'Compara dos equipos por métricas.' },
     ],
   },
   {
@@ -72,8 +72,8 @@ const categories = [
     title: 'Alineaciones',
     description: 'Combinaciones y rendimiento de quintetos',
     tools: [
-      { id: 'lineups',  title: 'Análisis On/Off',     description: 'Impacto de jugadores y quintetos.', icon: TrendingUp },
-      { id: 'rankings', title: 'Mejores Alineaciones', description: 'Quintetos con mayor rendimiento.',  icon: Trophy },
+      { id: 'lineups',  title: 'Análisis On/Off',      description: 'Impacto de jugadores y quintetos.' },
+      { id: 'rankings', title: 'Mejores Alineaciones', description: 'Quintetos con mayor rendimiento.' },
     ],
   },
   {
@@ -81,96 +81,90 @@ const categories = [
     title: 'Tiro',
     description: 'Visualizaciones de tiro y líderes por zona',
     tools: [
-      { id: 'shots',       title: 'Cartas de tiro',   description: 'Mapas de tiro por jugador o equipo.',                                             icon: Target },
-      { id: 'zoneleaders', title: 'Líderes por zona', description: 'Anotadores y eficiencia por zona.', icon: Crown },
+      { id: 'shots',       title: 'Cartas de tiro',   description: 'Mapas de tiro por jugador o equipo.' },
+      { id: 'zoneleaders', title: 'Líderes por zona', description: 'Anotadores y eficiencia por zona.' },
     ],
   },
 ]
 
 function CategoryBlock({ category, wide = false }) {
   return (
-    <div className={`bg-white rounded-xl overflow-hidden border border-acb-200 ${wide ? 'md:col-span-2' : ''}`}>
+    <section className={`border-t-2 border-acb-800 ${wide ? 'lg:col-span-2' : ''}`}>
       {/* category header */}
-      <div className="bg-acb-700 px-5 py-4">
-        <h3 className="text-sm font-bold text-white uppercase tracking-wide">{category.title}</h3>
-        <p className="text-acb-300 text-xs mt-0.5">{category.description}</p>
-      </div>
+      <header className="grid gap-1 border-b border-acb-200 py-4 sm:grid-cols-[9rem_1fr] sm:items-baseline">
+        <h3 className="font-display text-2xl font-semibold text-acb-900">{category.title}</h3>
+        <p className="text-sm text-acb-500 sm:text-right">{category.description}</p>
+      </header>
       {/* tools list */}
-      <div className={wide ? 'divide-y divide-acb-100 md:grid md:grid-cols-2 md:divide-y-0 md:divide-x' : 'divide-y divide-acb-100'}>
+      <div className={wide ? 'lg:grid lg:grid-cols-2 lg:gap-x-10' : ''}>
         {category.tools.map((tool) => {
-          const Icon = tool.icon
           return (
             <Link
               key={tool.id}
               to={TAB_PATHS[tool.id] || '/'}
-              className="w-full flex items-center gap-3 px-5 py-3.5 text-left hover:bg-accent-100 transition-colors group"
+              className="group grid min-h-[76px] w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b border-acb-200 py-3.5 text-left transition-colors hover:border-accent-400"
             >
-              <div className="flex-shrink-0 p-2 rounded-lg bg-acb-100">
-                <Icon className="w-4 h-4 text-acb-500" />
+              <div className="min-w-0">
+                <div className="font-display text-lg font-semibold text-acb-800 transition-colors group-hover:text-accent-700">{tool.title}</div>
+                <div className="mt-0.5 text-sm leading-snug text-acb-500">{tool.description}</div>
               </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-sm font-semibold text-acb-800 group-hover:text-accent-700">{tool.title}</div>
-                <div className="text-xs text-acb-400 leading-relaxed">{tool.description}</div>
-              </div>
-              <ArrowRight className="w-3.5 h-3.5 text-acb-300 group-hover:text-accent-500 group-hover:translate-x-0.5 transition-all flex-shrink-0" />
+              <ArrowRight className="h-4 w-4 flex-shrink-0 text-acb-300 transition-[color,transform] group-hover:translate-x-1 group-hover:text-accent-500" />
             </Link>
           )
         })}
       </div>
-    </div>
+    </section>
   )
 }
 
 function Home() {
   return (
-    <div className="app-page max-w-5xl mx-auto">
+    <div className="app-page mx-auto max-w-6xl">
       {/* hero section */}
-      <div className="text-center mb-10">
-        <div className="flex justify-center mb-6">
-          <img src="/openacb_nobckg.png" alt="Logotipo de openACB" className="w-28 h-28 object-contain" />
+      <section className="grid gap-10 border-b border-acb-300 pb-10 pt-2 lg:grid-cols-[minmax(0,1.45fr)_minmax(18rem,0.55fr)] lg:items-end lg:pb-12">
+        <div>
+          <h1 className="max-w-4xl font-display text-5xl font-semibold leading-[0.94] tracking-[-0.025em] text-acb-900 sm:text-6xl lg:text-7xl">
+            Estadística avanzada de la Liga Endesa
+          </h1>
+          <p className="mt-6 max-w-3xl text-lg leading-relaxed text-acb-600 sm:text-xl">
+            Herramientas de analítica y estadísticas avanzadas para la Liga ACB. Explora, visualiza y utiliza los recursos disponibles para entender mejor el baloncesto ACB.
+          </p>
         </div>
-        <h1 className="text-4xl font-bold text-acb-900 mb-4">Bienvenido a openACB</h1>
-        <p className="text-xl text-acb-600 max-w-3xl mx-auto leading-relaxed">
-          Herramientas de analítica y estadísticas avanzadas para la Liga ACB.
-          Explora, visualiza y utiliza los recursos disponibles para entender mejor el baloncesto ACB.
-        </p>
-      </div>
+
+        <aside className="border-t-4 border-accent-500 bg-acb-900 p-6 text-white sm:p-7">
+          <div className="flex items-baseline justify-between gap-4 border-b border-acb-700 pb-4">
+            <strong className="font-display text-5xl font-semibold leading-none">10</strong>
+            <span className="max-w-40 text-right text-sm leading-snug text-acb-200">Temporadas disponibles</span>
+          </div>
+          <p className="py-4 font-mono text-sm text-acb-200">2016-17 — 2025-26</p>
+          <a
+            href="https://github.com/juantorrecillas/openacb"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group flex items-center justify-between border-t border-acb-700 pt-4 text-sm font-semibold text-white"
+          >
+            100% código abierto
+            <ArrowUpRight className="h-4 w-4 text-accent-400 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+          </a>
+        </aside>
+      </section>
 
       {/* category grid */}
-      <div className="grid md:grid-cols-2 gap-5 mb-8">
+      <div className="mb-12 mt-12 grid gap-x-10 gap-y-12 lg:grid-cols-2">
         {categories.map((category, index) => (
           <CategoryBlock key={category.id} category={category} wide={index === categories.length - 1} />
         ))}
       </div>
 
-      {/* quick stats banner */}
-      <div className="bg-gradient-to-r from-acb-900 to-acb-700 rounded-lg p-8 text-white">
-        <div className="grid md:grid-cols-2 gap-8 text-center">
-          <div>
-            <div className="text-3xl font-bold mb-2">10</div>
-            <div className="text-acb-300 text-sm">Temporadas disponibles: 2016-17 a 2025-26</div>
-          </div>
-          <a
-            href="https://github.com/juantorrecillas/openacb"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block group hover:opacity-90 transition-opacity"
-            title="Ver código en GitHub"
-          >
-            <div className="text-3xl font-bold mb-2">100%</div>
-            <div className="text-acb-300 text-sm group-hover:text-white transition-colors">Código Abierto ↗</div>
-          </a>
-        </div>
-      </div>
-
       {/* cta */}
-      <div className="mt-8 text-center">
+      <div className="flex items-center justify-between gap-6 border-t border-acb-300 py-6">
+        <p className="text-sm text-acb-500">Datos, metodología y código disponibles para consulta.</p>
         <Link
           to={buildAboutPath()}
-          className="inline-flex items-center gap-2 px-6 py-3 bg-acb-900 text-white rounded-lg hover:bg-acb-800 transition-colors"
+          className="group inline-flex shrink-0 items-center gap-2 text-sm font-semibold text-acb-900 underline decoration-accent-500 decoration-2 underline-offset-4"
         >
-          Más información sobre el proyecto
-          <ArrowRight className="w-4 h-4" />
+          Sobre el proyecto
+          <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
         </Link>
       </div>
     </div>

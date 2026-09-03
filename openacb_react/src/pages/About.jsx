@@ -1,4 +1,31 @@
-import { Mail, Globe, Code, Info, Github } from 'lucide-react'
+import { ArrowRight, ArrowUpRight } from 'lucide-react'
+
+const definitions = [
+  ['Posesiones', 'FGA + FT_trip - ORB + TOV. Número de posesiones de un equipo.'],
+  ['ORtg', 'Rating Ofensivo = (Puntos / Posesiones) x 100. Puntos anotados por cada 100 posesiones.'],
+  ['ORtg individual', 'Puntos producidos / posesiones utilizadas x 100. La métrica individual tiene en cuenta no sólo los puntos anotados, sino los producidos a partir de asistencias y rebotes ofensivos. Las asistencias se dividen entre 0.3 puntos para el asistente y 0.7 para el anotador por cada punto anotado.'],
+  ['DRtg', 'Defensive Rating = (Puntos Rivales / Posesiones Rivales) x 100. Puntos permitidos por cada 100 posesiones.'],
+  ['NetRtg', 'Net Rating = ORtg - DRtg. Diferencial de eficiencia entre ataque y defensa.'],
+  ['TS%', 'True Shooting % = Puntos / (2 x (FGA + FT_trip)). Eficiencia de tiro incluyendo tiros libres y el valor extra de los triples.'],
+  ['eFG%', 'Effective Field Goal % = (FGM + 0.5 x 3PM) / FGA. Porcentaje de tiro ajustado por el valor de los triples.'],
+  ['3PT Rating %', '3ptAtt% = 3PI / TCI. Qué porcentaje representan los triples sobre el total de tiros.'],
+  ['PER%', '% Pérdidas = Pérdidas / Posesiones. Porcentaje de posesiones que terminan en pérdida.'],
+  ['RO%', '% Rebote Ofensivo = ORB / (ORB + Opp_DRB). Porcentaje de rebotes ofensivos capturados.'],
+  ['RD%', '% Rebote Defensivo = DRB / (DRB + Opp_ORB). Porcentaje de rebotes defensivos capturados.'],
+  ['% Tiros libres', 'FTM / FGA. Tiros libres anotados por cada tiro de campo intentado.'],
+  ['AST%', 'Tasa de Asistencias = Asistencias / FGM. Porcentaje de canastas asistidas.'],
+  ['Ritmo', 'Posesiones / Partidos. Ritmo de juego (posesiones por partido).'],
+  ['Usage', '% de Uso: estimación del número de posesiones utilizadas por un jugador con respecto al total de posesiones disponibles cuando estaba en pista. Además de tiros, tiros libres y pérdidas, también se consideran las asistencias como parte porcentual de una posesión finalizada.'],
+  ['On/Off', 'Compara las estadísticas del equipo cuando ciertos jugadores están en cancha y cuando no están. Se agregan las posesiones en cada escenario y se calculan ORtg/DRtg para describir la diferencia observada; no es una estimación causal del impacto individual.'],
+]
+
+const toolSummaries = [
+  ['Equipos', 'Las herramientas de equipo muestran estadísticas avanzadas para todos los equipos ACB en la temporada escogida. Sirven para obtener información rápida de un vistazo, identificar fortalezas o debilidades y saber qué equipos destacan en las categorías de interés. También incluyen perfiles de equipo, análisis de partido y Four Factors.'],
+  ['Jugadores', 'Estas herramientas reúnen estadísticas individuales básicas y avanzadas. Incluyen tablas para toda la liga, perfiles con detalle sobre producción, eficiencia y evolución, y estadísticas clutch para analizar el rendimiento en finales ajustados.'],
+  ['Herramientas', 'Este bloque permite comparar y buscar relaciones entre jugadores y equipos. La similitud encuentra perfiles estadísticos parecidos; la comparación directa enfrenta dos jugadores; y el cara a cara compara dos equipos por métricas.'],
+  ['Alineaciones', 'Las estadísticas de alineación analizan el desempeño de un equipo cuando ciertos jugadores o conjuntos de jugadores están o no en cancha. Incluyen análisis On/Off y rankings para identificar combinaciones especialmente productivas.'],
+  ['Tiro', 'Las cartas de tiro muestran la distribución de lanzamientos de un jugador o equipo. Permiten estudiar tendencia, eficiencia y selección de tiro. Los líderes por zona recogen a los máximos anotadores y a los más eficientes desde cada zona del campo.'],
+]
 
 function About() {
   const contactInfo = {
@@ -7,186 +34,89 @@ function About() {
     GitHub: 'https://github.com/juantorrecillas/openacb',
   }
 
-  return (
-    <div className="app-page max-w-4xl mx-auto">
+  const textLink = 'font-semibold text-acb-800 underline decoration-accent-500 decoration-2 underline-offset-4 transition-colors hover:text-accent-700'
 
-      {/* sobre mí */}
-      <div className="bg-white rounded-lg shadow-sm border border-acb-200 p-5 sm:p-8 mb-6">
-        <h1 className="text-3xl font-bold text-acb-900 mb-4">Sobre mí</h1>
-        <div className="text-base text-acb-700 space-y-2">
-          <p>
-            <strong>Juan Torrecillas.</strong> Soy Analista de Política Económica en el Joint Research Centre de la Comisión Europea. Como académico y aficionado al baloncesto, me alegra ver que el uso de la analítica y la estadística avanzada se hace más común. Con esta herramienta, tanto para aficionados como para amantes del dato, quiero hacer la perspectiva analítica accesible para todo el mundo. Que cada vez que alguien entre al sitio consiga llevarse algo nuevo aprendido en su mochila.
+  return (
+    <div className="app-page mx-auto max-w-6xl">
+      <header className="grid gap-8 border-b border-acb-300 pb-10 pt-2 lg:grid-cols-[minmax(0,1.35fr)_minmax(18rem,0.65fr)] lg:items-end">
+        <div>
+          <h1 className="font-display text-5xl font-semibold leading-none tracking-[-0.025em] text-acb-900 sm:text-6xl">Sobre openACB</h1>
+          <p className="mt-5 max-w-3xl text-xl leading-relaxed text-acb-600">
+            Una plataforma abierta de análisis y estadística avanzada para la Liga Endesa.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-3 mt-4 pt-4 border-t border-acb-200">
-          <a href="https://x.com/juan_torrec" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-acb-600 hover:text-accent-500 transition-colors" aria-label="Perfil de Juan Torrecillas en X">
-            {/* logotipo oficial de x */}
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 22.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-            </svg>
-            <span className="text-sm">X</span>
+        <nav className="border-t-2 border-acb-800 py-4" aria-label="Enlaces de Juan Torrecillas">
+          <a href="https://x.com/juan_torrec" target="_blank" rel="noopener noreferrer" className="flex justify-between border-b border-acb-200 py-2 text-sm font-semibold text-acb-700 hover:text-accent-700">
+            X <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
           </a>
-          <a href={contactInfo.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-acb-600 hover:text-lemon transition-colors">
-            <Globe className="w-5 h-5" />
-            <span className="text-sm">Web personal</span>
+          <a href={contactInfo.website} target="_blank" rel="noopener noreferrer" className="flex justify-between border-b border-acb-200 py-2 text-sm font-semibold text-acb-700 hover:text-accent-700">
+            Web personal <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
           </a>
-          <a href={contactInfo.GitHub} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-acb-600 hover:text-accent-500 transition-colors">
-            <Github className="w-5 h-5" />
-            <span className="text-sm">GitHub</span>
+          <a href={contactInfo.GitHub} target="_blank" rel="noopener noreferrer" className="flex justify-between border-b border-acb-200 py-2 text-sm font-semibold text-acb-700 hover:text-accent-700">
+            GitHub <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
           </a>
-          <a href={`mailto:${contactInfo.email}`} className="flex items-center gap-2 text-acb-600 hover:text-accent-500 transition-colors">
-            <Mail className="w-5 h-5" />
-            <span className="text-sm">Email</span>
+          <a href={`mailto:${contactInfo.email}`} className="flex justify-between py-2 text-sm font-semibold text-acb-700 hover:text-accent-700">
+            Email <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </a>
-        </div>
-      </div>
-      <div className="bg-white rounded-lg shadow-sm border border-acb-200 p-5 sm:p-8 mb-6">
-        <div className="flex items-center gap-4 mb-4">
-          <div className="p-3 bg-acb-100 rounded-lg">
-            <Info className="w-8 h-8 text-acb-700" />
-          </div>
-          <div>
-            <h2 className="text-xl font-semibold text-acb-900">¿Qué es openACB?</h2>
-          </div>
-        </div>
+        </nav>
+      </header>
 
-          <div className="prose prose-slate max-w-none">
-            <p className="text-acb-700 leading-relaxed">
-          openACB es una plataforma que recoge herramientas de análisis de estadísticas avanzadas para la Liga Endesa.
-          Este proyecto compila datos de Play-by-Play de acb.com para presentar una serie de estadísticas y herramientas analíticas que pueden resultar útiles para aficionados o cuerpos técnicos. En mi opinión, la herramienta tiene una serie de ventajas que la hacen interesante para este público. En primer lugar, reúne en un mismo sitio una gran cantidad de estadísticas. Segundo, proporciona herramientas de analítica avanzada, como el análisis On/Off o las cartas de tiro, que pueden ser de gran interés tanto para analistas como para aficionados. En tercer lugar, es una app de código abierto. La mayoría de herramientas de analítica avanzada están escondidas bajo servicios de suscripción o muros de pago. Aquí tienes varios de esos servicios disponibles gratuitamente, sin anuncios y en código abierto. Sin ser una plataforma profesional, presenta una serie de herramientas de analítica avanzada que pueden ayudar a conocer mejor el perfil de equipos y jugadores a un nivel más técnico y avanzado. Y todo, repito, de forma gratuita. En el repositorio de GitHub puedes encontrar tanto los datos como el código utilizado para descargar, tratar y presentar los mismos. <strong>Es, en definitiva, una herramienta cuyo único objetivo es ser utilizada.</strong> Si te ha parecido útil, por favor, házmelo saber escribiéndome a mi correo: <a href={`mailto:${contactInfo.email}`} className="text-acb-600 hover:text-accent-500 underline break-all">{contactInfo.email}</a>.
-            </p>
-          </div>
+      {/* proyecto y autor */}
+      <section className="grid gap-10 border-b border-acb-300 py-12 lg:grid-cols-[minmax(0,1.3fr)_minmax(18rem,0.7fr)]">
+        <div>
+          <h2 className="font-display text-3xl font-semibold text-acb-900">¿Qué es openACB?</h2>
+          <p className="mt-4 max-w-[72ch] text-base leading-7 text-acb-700">
+            openACB recoge herramientas de análisis de estadísticas avanzadas para la Liga Endesa. El proyecto compila datos de Play-by-Play de acb.com para presentar estadísticas y herramientas analíticas útiles para aficionados o cuerpos técnicos. Reúne una gran cantidad de estadísticas y ofrece análisis On/Off, cartas de tiro y otros recursos avanzados que suelen estar detrás de servicios de suscripción o muros de pago. Aquí están disponibles gratuitamente, sin anuncios y en código abierto. En el repositorio de GitHub se pueden consultar tanto los datos como el código utilizado para descargar, tratar y presentarlos. <strong>Es, en definitiva, una herramienta cuyo único objetivo es ser utilizada.</strong>
+          </p>
         </div>
-
-      
+        <aside className="border-t-4 border-accent-500 bg-white px-5 py-6 sm:px-6">
+          <h2 className="font-display text-2xl font-semibold text-acb-900">Juan Torrecillas</h2>
+          <p className="mt-3 text-sm leading-6 text-acb-600">
+            Analista de Política Económica en el Joint Research Centre de la Comisión Europea, académico y aficionado al baloncesto. openACB busca hacer la perspectiva analítica accesible y que cada visita deje algo nuevo aprendido.
+          </p>
+        </aside>
+      </section>
 
       {/* contacto */}
-      <div className="bg-white rounded-lg shadow-sm border border-acb-200 p-5 sm:p-8 mb-6">
-        <h2 className="text-xl font-semibold text-acb-900 mb-4">Contacto</h2>
-
-        <div className="space-y-4">
-          <div className="flex items-center gap-3 text-acb-700">
-            <Mail className="w-5 h-5 text-acb-400" />
-            <a
-              href={`mailto:${contactInfo.email}`}
-              className="hover:text-accent-500 hover:underline text-base break-all"
-            >
-              {contactInfo.email}
-            </a>
+      <section className="grid gap-6 border-b border-acb-300 py-10 md:grid-cols-[12rem_1fr]">
+        <h2 className="font-display text-3xl font-semibold text-acb-900">Contacto</h2>
+        <div>
+          <div className="grid gap-x-8 gap-y-3 sm:grid-cols-2">
+            <a href={`mailto:${contactInfo.email}`} className={`${textLink} break-all`}>{contactInfo.email}</a>
+            <a href={contactInfo.website} target="_blank" rel="noopener noreferrer" className={`${textLink} break-all`}>{contactInfo.website}</a>
+            <a href={contactInfo.GitHub} target="_blank" rel="noopener noreferrer" className={textLink}>Ver código en GitHub</a>
           </div>
-
-          <div className="flex items-center gap-3 text-acb-700">
-            <Globe className="w-5 h-5 text-acb-400" />
-            <a
-              href={contactInfo.website}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-lemon hover:underline text-base break-all"
-            >
-              {contactInfo.website}
-            </a>
-          </div>
-
-          <div className="flex items-center gap-3 text-acb-700">
-            <Code className="w-5 h-5 text-acb-400" />
-            <a
-              href={contactInfo.GitHub}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-accent-500 hover:underline text-base"
-            >
-              Ver código en GitHub
-            </a>
-          </div>
-        </div>
-
-        <div className="mt-6 pt-6 border-t border-acb-200">
-          <p className="text-base text-acb-600">
+          <p className="mt-6 max-w-[70ch] text-base text-acb-600">
             Si tienes algún comentario, sugerencia o encuentras un error en la página, escríbeme un correo o abre un issue en GitHub.
           </p>
         </div>
-      </div>
+      </section>
 
       {/* glosario y herramientas */}
-      <div className="grid md:grid-cols-2 gap-6 mb-6">
+      <div className="grid gap-12 py-12 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+        <section>
+          <h2 className="font-display text-3xl font-semibold text-acb-900">Algunas definiciones</h2>
+          <dl className="mt-5 border-t-2 border-acb-800">
+            {definitions.map(([term, description]) => (
+              <div key={term} className="grid gap-1 border-b border-acb-200 py-3 sm:grid-cols-[9rem_1fr] sm:gap-5">
+                <dt className="font-mono text-xs font-medium text-acb-900">{term}</dt>
+                <dd className="text-sm leading-6 text-acb-600">{description}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
 
-        {/* glosario */}
-        <div className="bg-white rounded-lg shadow-sm border border-acb-200 p-6">
-          <h2 className="text-xl font-semibold text-acb-900 mb-4 flex items-center gap-2">
-            Algunas definiciones
-          </h2>
-          <div className="space-y-3 text-sm text-acb-700">
-            <div>
-              <span className="font-medium">Posesiones:</span> FGA + FT_trip - ORB + TOV. Número de posesiones de un equipo.
-            </div>
-            <div>
-              <span className="font-medium">ORtg:</span> Rating Ofensivo = (Puntos / Posesiones) x 100. Puntos anotados por cada 100 posesiones.
-            </div>
-                        <div>
-              <span className="font-medium">ORtg individual:</span> (Puntos producidos/ Posesiones utilizadas) x 100. La métrica individual tiene en cuenta, no sólo los puntos anotados, sino los producidos a partir de asistencias y rebotes ofensivos. Las asistencias se dividen entre 0.3 puntos para el asistente y 0.7 para el anotador por cada punto anotado.
-            </div>
-            <div>
-              <span className="font-medium">DRtg:</span> Defensive Rating = (Puntos Rivales / Posesiones Rivales) x 100. Puntos permitidos por cada 100 posesiones.
-            </div>
-            <div>
-              <span className="font-medium">NetRtg:</span> Net Rating = ORtg - DRtg. Diferencial de eficiencia entre ataque y defensa.
-            </div>
-            <div>
-              <span className="font-medium">TS%:</span> True Shooting % = Puntos / (2 x (FGA + FT_trip)). Eficiencia de tiro incluyendo tiros libres y el valor extra de los triples.
-            </div>
-            <div>
-              <span className="font-medium">eFG%:</span> Effective Field Goal % = (FGM + 0.5 x 3PM) / FGA. Porcentaje de tiro ajustado por el valor de los triples.
-            </div>
-            <div>
-              <span className="font-medium">3PT Rating %:</span> 3ptAtt% = 3PI / TCI. Qué porcentaje representan los triples sobre el total de tiros.</div>
-            <div>
-              <span className="font-medium">PER%:</span> % Pérdidas = Pérdidas / Posesiones. Porcentaje de posesiones que terminan en pérdida.
-            </div>
-            <div>
-              <span className="font-medium">RO%:</span> % Rebote Ofensivo = ORB / (ORB + Opp_DRB). Porcentaje de rebotes ofensivos capturados.
-            </div>
-            <div>
-              <span className="font-medium">RD%:</span> % Rebote Defensivo = DRB / (DRB + Opp_ORB). Porcentaje de rebotes defensivos capturados.
-            </div>
-            <div>
-              <span className="font-medium">% Tiros libres:</span> FTM / FGA. Tiros libres anotados por cada tiro de campo intentado.
-            </div>
-            <div>
-              <span className="font-medium">AST%:</span> Tasa de Asistencias = Asistencias / FGM. Porcentaje de canastas asistidas.
-            </div>
-            <div>
-              <span className="font-medium">Ritmo:</span> Posesiones / Partidos. Ritmo de juego (posesiones por partido).
-            </div>
-            <div>
-              <span className="font-medium">Usage:</span> % de Uso: Estimación del número de posesiones utilizadas por un jugador con respecto al total de posesiones disponibles cuando estaba en pista. Además de los tiros, tiros libres y pérdidas, también se consideran las asistencias como parte porcentual de una posesión finalizada.
-            </div>
-            <div>
-              <span className="font-medium">On/Off:</span> Compara las estadísticas del equipo cuando ciertos jugadores están en cancha y cuando no están. Se agregan las posesiones en cada escenario y se calculan ORtg/DRtg para describir la diferencia observada; no es una estimación causal del impacto individual.
-            </div>
-          </div>
-        </div>
-
-        {/* sobre las herramientas */}
-        <div className="bg-white rounded-lg shadow-sm border border-acb-200 p-6">
-          <h2 className="text-xl font-semibold text-acb-900 mb-4">Resumen de las herramientas</h2>
-          <div className="space-y-3 text-sm text-acb-700">
-            <div>
-              <span className="font-medium">Equipos:</span> Las herramientas de equipo nos muestran estadísticas avanzadas para todos los equipos ACB en la temporada escogida. Es útil para obtener información rápida de un vistazo, identificar fortalezas o debilidades de algunos equipos, o para saber qué equipos de la liga destacan en las categorías en las que estemos interesados. Además de las estadísticas generales, también hay perfiles de equipo para entender mejor su estilo, una herramienta de análisis de partido para revisar la evolución del marcador y de las jugadas, y una sección de Four Factors para resumir tiro, pérdidas, rebote y tiros libres.
-            </div>
-            <div>
-              <span className="font-medium">Jugadores:</span> Estas herramientas muestran una compilación de estadísticas individuales, tanto básicas como avanzadas. Existen disponibles tablas para toda la liga, perfiles de jugador con información más detallada sobre producción, eficiencia y evolución, y estadísticas clutch para analizar el rendimiento en finales ajustados. La idea es que se pueda pasar de una visión general de la liga a una lectura más concreta de qué hace bien un jugador y en qué contexto aporta más.
-            </div>
-            <div>
-              <span className="font-medium">Herramientas:</span> Este bloque recoge herramientas pensadas para comparar y buscar relaciones entre jugadores y equipos. La similitud permite encontrar jugadores con un perfil estadístico parecido; la comparación directa sirve para poner dos jugadores frente a frente en una misma vista; y el cara a cara de equipos permite comparar dos equipos por métricas para entender mejor cómo encajan sus fortalezas y debilidades.
-            </div>
-            <div>
-              <span className="font-medium">Alineaciones:</span> Las estadísticas de alineación nos permiten analizar el desempeño de un equipo cuando ciertos jugadores o conjuntos de jugadores están (o no) en la cancha. Se puede utilizar para identificar combinaciones de jugadores con las que un equipo tiende a tener un mejor desempeño. Además del análisis On/Off, también hay un ranking de mejores alineaciones para encontrar quintetos que hayan producido especialmente bien en una temporada determinada.
-            </div>
-            <div>
-              <span className="font-medium">Tiro:</span> Las cartas de tiro muestran la distribución de tiros de campo para un jugador o equipo. Es una herramienta que nos permite, por ejemplo, conocer desde dónde un equipo tiene tendencia a tirar, desde dónde son más eficientes los lanzamientos de un jugador o si la selección de tiro puede ser mejorable. También se ofrecen líderes por zona para revisar los máximos anotadores y los anotadores más eficientes desde cada zona del campo en una temporada dada.
-            </div>
-          </div>
-        </div>
+        <section>
+          <h2 className="font-display text-3xl font-semibold text-acb-900">Resumen de las herramientas</h2>
+          <dl className="mt-5 border-t-2 border-acb-800">
+            {toolSummaries.map(([term, description]) => (
+              <div key={term} className="border-b border-acb-200 py-4">
+                <dt className="font-display text-xl font-semibold text-acb-900">{term}</dt>
+                <dd className="mt-1 text-sm leading-6 text-acb-600">{description}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
       </div>
     </div>
   )

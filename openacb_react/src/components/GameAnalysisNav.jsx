@@ -15,16 +15,16 @@ const ITEMS = [
 
 export default function GameAnalysisNav({ season }) {
   return (
-    <nav className="flex gap-2 flex-wrap" aria-label="Análisis de partido">
+    <nav className="flex flex-wrap gap-x-5 border-b border-acb-300" aria-label="Análisis de partido">
       {ITEMS.map(item => (
         <NavLink
           key={item.path}
           to={withQuery(item.path, serializeRouteQuery(item.routeId, { temporada: season }, { strict: false }))}
           end={item.path === buildGamesPath()}
-          className={({ isActive }) => `px-4 py-1.5 rounded-full text-sm font-medium ${
+          className={({ isActive }) => `border-b-2 px-0 py-2 text-sm font-semibold transition-colors ${
             isActive
-              ? 'bg-acb-900 text-white'
-              : 'border border-acb-200 text-acb-500 hover:bg-acb-50'
+              ? 'border-accent-500 text-acb-900'
+              : 'border-transparent text-acb-500 hover:border-acb-300 hover:text-acb-900'
           }`}
         >
           {item.label}
