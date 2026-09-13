@@ -1,0 +1,432 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/manrope/manrope-700.ttf') format('truetype');
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .filter-panel {
+    @apply flex flex-wrap items-end gap-4 rounded-md border border-acb-200 bg-white p-4;
+  }
+
+  .field-label {
+    @apply block text-sm font-medium text-acb-600;
+  }
+
+  .form-control {
+    @apply h-10 w-full rounded-md border border-acb-200 bg-white px-3 text-sm text-acb-900 shadow-sm outline-none transition-colors placeholder:text-acb-400 focus:border-accent-400 focus:ring-2 focus:ring-accent-200;
+  }
+
+  .form-control-compact {
+    @apply rounded-md border border-acb-200 bg-white px-3 py-1.5 text-sm text-acb-900 outline-none transition-colors focus:border-accent-400 focus:ring-2 focus:ring-accent-200;
+  }
+
+  .segmented-control {
+    @apply inline-flex overflow-hidden rounded-md border border-acb-200 bg-white;
+  }
+
+  .segmented-option {
+    @apply px-3 py-1.5 text-sm font-medium text-acb-600 transition-colors hover:bg-acb-50;
+  }
+
+  .segmented-option[aria-pressed='true'] {
+    @apply bg-acb-800 text-white hover:bg-acb-800;
+  }
+
+  .data-table {
+    @apply w-full text-xs sm:text-sm;
+  }
+
+  .data-table th,
+  .data-table td {
+    @apply px-2 py-2;
+  }
+
+  .data-table-head {
+    @apply px-2.5 py-2 text-xs font-semibold uppercase tracking-wider text-acb-600 whitespace-nowrap;
+  }
+
+  .data-table-group {
+    @apply px-2.5 py-2 text-center text-xs font-semibold uppercase tracking-wider text-acb-700 whitespace-nowrap;
+  }
+
+  .data-table-cell {
+    @apply px-2.5 py-2 text-xs sm:text-sm text-acb-700 whitespace-nowrap;
+  }
+
+  .profile-history-team {
+    @apply px-2 py-2 text-left text-xs sm:text-sm font-sans font-normal text-acb-700 whitespace-nowrap;
+  }
+
+  .data-table-number {
+    @apply text-right font-mono tabular-nums;
+  }
+
+  .data-table-identity {
+    @apply text-left font-medium text-acb-900;
+  }
+
+  .data-table-value {
+    @apply inline-flex items-center justify-end gap-1 whitespace-nowrap;
+  }
+
+  .data-table-badge {
+    @apply rounded px-1 py-0.5 font-sans text-[9px] leading-3;
+  }
+
+  .data-table-row {
+    @apply bg-white hover:bg-acb-50 transition-colors;
+  }
+
+  .data-table-sticky,
+  .data-table-sticky-after-rank {
+    @apply sticky z-10;
+    background-color: inherit;
+    box-shadow: 1px 0 0 #d9e2ec;
+  }
+
+  .data-table-sticky {
+    left: 0;
+  }
+
+  .data-table-sticky-after-rank {
+    left: 2.5rem;
+  }
+
+  .data-table-sticky-after-season {
+    @apply sticky z-10;
+    left: 4.5rem;
+    background-color: inherit;
+    box-shadow: 1px 0 0 #d9e2ec;
+  }
+
+  .team-roster-sticky-player,
+  .team-roster-sticky-position,
+  .team-roster-sticky-archetype {
+    @apply sticky z-10;
+    background-color: inherit;
+  }
+
+  .team-roster-sticky-player {
+    left: 0;
+  }
+
+  .team-roster-sticky-position {
+    left: 12rem;
+  }
+
+  .team-roster-sticky-archetype {
+    left: 17rem;
+    box-shadow: 1px 0 0 #d9e2ec;
+  }
+
+  .career-sticky-season,
+  .career-sticky-team,
+  .career-sticky-role {
+    @apply sticky z-10;
+    background-color: inherit;
+  }
+
+  .career-sticky-season {
+    left: 0;
+  }
+
+  .career-sticky-team {
+    left: 4.5rem;
+  }
+
+  .career-sticky-role {
+    left: 14.5rem;
+    box-shadow: 1px 0 0 #d9e2ec;
+  }
+
+  .data-table-sticky-head {
+    @apply z-20;
+  }
+
+  .data-col-rank {
+    width: 2.5rem;
+    min-width: 2.5rem;
+  }
+
+  .data-col-season {
+    width: 4.5rem;
+    min-width: 4.5rem;
+  }
+
+  .data-col-player {
+    width: 12rem;
+    min-width: 12rem;
+  }
+
+  .data-col-team {
+    width: 10rem;
+    min-width: 10rem;
+  }
+
+  .data-col-position {
+    width: 5rem;
+    min-width: 5rem;
+  }
+
+  .team-roster-col-player {
+    width: 12rem;
+    min-width: 12rem;
+    max-width: 12rem;
+  }
+
+  .team-roster-col-position {
+    width: 5rem;
+    min-width: 5rem;
+    max-width: 5rem;
+  }
+
+  .team-roster-col-archetype {
+    width: 12rem;
+    min-width: 12rem;
+    max-width: 12rem;
+  }
+
+  .team-roster-role {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    line-height: 1.25;
+    letter-spacing: 0.01em;
+    text-overflow: ellipsis;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+
+  .career-col-role {
+    width: 14rem;
+    min-width: 14rem;
+    max-width: 14rem;
+  }
+
+  .data-col-games {
+    width: 3.5rem;
+    min-width: 3.5rem;
+  }
+
+  .data-col-number {
+    width: 4.5rem;
+    min-width: 4.5rem;
+  }
+}
+
+/* custom properties for the color scheme */
+:root {
+  --color-positive: #2aa867;
+  --color-negative: #dd415d;
+  --color-accent: #f0845e;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background-color: #f8fafc;
+  color: #1e293b;
+  -webkit-font-smoothing: antialiased;
+}
+
+.pageHeader {
+  align-items: flex-start;
+  gap: 12px 32px;
+  padding: 12px 0 22px;
+}
+
+.pageHeaderContent { flex: 1 1 auto; }
+
+.pageHeaderTitle {
+  margin: 0;
+  font-family: 'Manrope', 'Inter', sans-serif;
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+.pageHeaderSubtitle {
+  margin-top: 10px;
+  max-width: 64ch;
+  color: #486581;
+  font-size: 0.9375rem;
+  line-height: 1.7;
+}
+
+.pageHeaderScope {
+  color: #486581;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.pageHeaderActions { align-self: flex-end; }
+
+.siteFooter {
+  margin-top: 3rem;
+  border-top: 1px solid #243b53;
+  background: #102a43;
+  color: #bcccdc;
+}
+
+.siteFooterInner {
+  max-width: 1280px;
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  margin: 0 auto;
+  padding: 14px 28px;
+}
+
+.siteFooterNote {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  letter-spacing: 0.01em;
+}
+
+.siteFooterNote a {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  color: #ece338;
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-color: rgba(236, 227, 56, 0.65);
+  text-underline-offset: 4px;
+  transition: color 160ms ease-out, text-decoration-color 160ms ease-out;
+}
+
+.siteFooterNote a:hover,
+.siteFooterNote a:focus-visible {
+  color: #f4e07a;
+  text-decoration-color: #ece338;
+}
+
+.siteFooterLemon {
+  display: inline-flex;
+  align-items: center;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+@media (max-width: 639px) {
+  .pageHeader { padding-block: 8px 18px; }
+  .pageHeaderTitle { font-size: 2rem; }
+  .pageHeaderSubtitle { font-size: 0.875rem; line-height: 1.6; }
+  .pageHeaderActions { align-self: auto; }
+  .siteFooterInner { min-height: 68px; padding-inline: 24px; }
+}
+
+@media (max-width: 479px) {
+  .siteFooterInner { padding-inline: 16px; }
+}
+
+.app-page {
+  font-size: 1rem;
+  line-height: 1.5rem;
+}
+
+.app-page .text-xs { font-size: 0.75rem; line-height: 1rem; }
+.app-page .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+.app-page .text-base { font-size: 1rem; line-height: 1.5rem; }
+.app-page .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+.app-page .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+.app-page .text-2xl { font-size: 1.5rem; line-height: 2rem; }
+.app-page .text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
+.app-page .text-4xl { font-size: 2.25rem; line-height: 2.5rem; }
+
+.app-page .data-table {
+  font-size: 0.75rem;
+  line-height: 1.125rem;
+}
+
+.app-page .data-table th {
+  font-size: 0.65625rem;
+  line-height: 0.9375rem;
+}
+
+.app-page .data-table td {
+  font-size: 0.75rem;
+  line-height: 1.125rem;
+}
+
+@media (max-width: 639px) {
+  .team-roster-sticky-position,
+  .team-roster-sticky-archetype,
+  .career-sticky-team,
+  .career-sticky-role {
+    position: static;
+    box-shadow: none;
+  }
+  .team-roster-sticky-player,
+  .career-sticky-season {
+    box-shadow: 1px 0 0 #d9e2ec;
+  }
+  .team-roster-col-player { width: 8.5rem; min-width: 8.5rem; max-width: 8.5rem; }
+  .team-roster-col-position { width: 4.5rem; min-width: 4.5rem; max-width: 4.5rem; }
+  .team-roster-col-archetype { width: 9rem; min-width: 9rem; max-width: 9rem; }
+  .app-page .data-table th { font-size: 0.6875rem; line-height: 0.9375rem; }
+  .app-page .data-table td { font-size: 0.75rem; line-height: 1.125rem; }
+  .app-page :where(input, select, textarea),
+  .app-page :where(input, select, textarea).text-xs,
+  .app-page :where(input, select, textarea).text-sm {
+    font-size: 1rem;
+    line-height: 1.25rem;
+  }
+}
+
+/* utility classes using css variables */
+.text-positive { color: var(--color-positive); }
+.text-negative { color: var(--color-negative); }
+.bg-positive { background-color: var(--color-positive); }
+.bg-negative { background-color: var(--color-negative); }
+
+/* shot chart specific */
+.shot-made {
+  fill: var(--color-positive);
+  opacity: 0.75;
+}
+
+.shot-missed {
+  fill: var(--color-negative);
+  opacity: 0.5;
+}
+
+.court-paint {
+  fill: #f8fafc;
+}
+
+/* custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}

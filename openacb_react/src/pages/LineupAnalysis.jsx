@@ -1,0 +1,1365 @@
+import React, { useState, useMemo, useEffect } from 'react'
+import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
+import { getPlayerPhoto } from '../utils/playerPhotos'
+import { getPlayerDisplayName as getCanonicalPlayerName } from '../utils/playerNames'
+import { AlertTriangle, Info, X, Search, ChevronDown, ChevronUp } from 'lucide-react'
+import LineupToolShell, { lineupToolStyles as styles } from '../components/LineupToolShell'
+import { normalizeNumericId } from '../routing/identifiers'
+import { buildLineupAnalysisPath } from '../routing/paths'
+import { parseRouteQuery, serializeRouteQuery, withQuery } from '../routing/query'
+
+/**
+ * Lineup Analysis Page - Cleaning the Glass Style
+ *
+ * Allows users to select specific player combinations and see their on/off court impact.
+ * Uses pre-calculated data from R for instant performance.
+ */
+
+// Extract licenseId from player key format "Name_12345"
+const getIdFromKey = (key) => key?.split('_').pop() || ''
+const MIN_ON_OFF_MINUTES = 50
+const EMPTY_PLAYER_IDS = Object.freeze([])
+const hasNumber = (value) => value != null && !Number.isNaN(Number(value))
+
+const normalizeSearch = (value) => String(value || '')
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .toLocaleLowerCase('es')
+
+export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCache, loadingLineups, playerPhotos = {}, playerRecords = [] }) {
+  const { teamId: urlTeamId } = useParams()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const [searchParams] = useSearchParams()
+
+  // State for UI
+  const [showAllPlayers, setShowAllPlayers] = useState(false)
+  const [sortConfig, setSortConfig] = useState({ key: 'netDiff', direction: 'desc' })
+
+  const availableSeasons = useMemo(() => {
+    const seasons = [...new Set(teams.map(t => t.season))].sort((a, b) => b - a)
+    return seasons
+  }, [teams])
+
+  const routeSearch = searchParams.toString()
+  const parsedQuery = useMemo(
+    () => parseRouteQuery('lineupAnalysis', routeSearch),
+    [routeSearch],
+  )
+  const requestedSeason = parsedQuery.values.temporada
+  const selectedSeason = availableSeasons.includes(requestedSeason)
+    ? requestedSeason
+    : (availableSeasons[0] || 2025)
+  const requestedSelectedIds = parsedQuery.values.con || EMPTY_PLAYER_IDS
+  const requestedExcludedId = parsedQuery.values.sin?.[0] || ''
+  const [searchQuery, setSearchQuery] = useState('')
+
+  const seasonFilteredTeams = useMemo(() => {
+    return teams.filter(t => t.season === selectedSeason)
+  }, [teams, selectedSeason])
+
+  const teamOptions = useMemo(() => {
+    const byId = new Map()
+    seasonFilteredTeams.forEach(team => {
+      if (team.teamId && team.team) byId.set(team.teamId, team.team)
+    })
+    return [...byId.entries()]
+      .map(([teamId, name]) => ({ teamId, name }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'es'))
+  }, [seasonFilteredTeams])
+
+  const selectedTeamOption = teamOptions.find(team => team.teamId === urlTeamId) || null
+  const selectedTeam = selectedTeamOption?.name || ''
+  const invalidTeam = Boolean(urlTeamId && !selectedTeamOption)
+
+  useEffect(() => {
+    if (selectedTeamOption) loadLineupsForSeason(selectedSeason)
+  }, [loadLineupsForSeason, selectedSeason, selectedTeamOption])
+
+  const lineupData = useMemo(() => lineupsCache[selectedSeason] || null, [lineupsCache, selectedSeason])
+  const loading = Boolean(selectedTeamOption && loadingLineups[selectedSeason])
+
+  const currentTeamData = useMemo(() => {
+    if (!lineupData?.data) return null
+    return lineupData.data[selectedTeam] || null
+  }, [lineupData, selectedTeam])
+
+  const availablePlayers = useMemo(() => {
+    if (!currentTeamData?.players) return []
+    return Object.keys(currentTeamData.players).sort()
+  }, [currentTeamData])
+
+  const playerIdentityMaps = useMemo(() => {
+    const keyById = new Map()
+    const idByKey = new Map()
+    const ambiguousIds = new Set()
+
+    Object.entries(currentTeamData?.players || {}).forEach(([key, player]) => {
+      const licenseId = normalizeNumericId(player.id || player.licenseId || getIdFromKey(key))
+      if (!licenseId) return
+      idByKey.set(key, licenseId)
+      if (keyById.has(licenseId) && keyById.get(licenseId) !== key) ambiguousIds.add(licenseId)
+      else keyById.set(licenseId, key)
+    })
+    ambiguousIds.forEach(id => keyById.delete(id))
+
+    return { keyById, idByKey, ambiguousIds }
+  }, [currentTeamData])
+
+  const hasLoadedLineupData = Object.prototype.hasOwnProperty.call(lineupsCache, selectedSeason)
+  const invalidSelectedIds = useMemo(
+    () => hasLoadedLineupData && selectedTeamOption
+      ? requestedSelectedIds.filter(id => !playerIdentityMaps.keyById.has(id))
+      : [],
+    [hasLoadedLineupData, playerIdentityMaps, requestedSelectedIds, selectedTeamOption],
+  )
+  const hasTooManyPlayers = requestedSelectedIds.length > 5
+  const selectedPlayers = useMemo(
+    () => invalidSelectedIds.length === 0 && !hasTooManyPlayers
+      ? requestedSelectedIds.map(id => playerIdentityMaps.keyById.get(id)).filter(Boolean)
+      : [],
+    [hasTooManyPlayers, invalidSelectedIds, playerIdentityMaps, requestedSelectedIds],
+  )
+  const requestedExcludedKey = requestedExcludedId
+    ? playerIdentityMaps.keyById.get(requestedExcludedId) || ''
+    : ''
+
+  const playerNameById = useMemo(() => {
+    const names = new Map()
+    playerRecords.forEach(player => {
+      if (player.licenseId != null) {
+        names.set(String(player.licenseId), getCanonicalPlayerName(player))
+      }
+    })
+    return names
+  }, [playerRecords])
+
+  // Create a mapping from player key to display info
+  const playerDisplayMap = useMemo(() => {
+    if (!currentTeamData?.players) return {}
+    const map = {}
+    Object.entries(currentTeamData.players).forEach(([key, player]) => {
+      const licenseId = player.id || player.licenseId || key.split('_').pop()
+      const fullName = playerNameById.get(String(licenseId))
+      map[key] = {
+        name: fullName || player.name || player.nickname || key,
+        nickname: player.nickname || key
+      }
+    })
+    return map
+  }, [currentTeamData, playerNameById])
+
+  // Helper to get display name for a player key
+  const getPlayerDisplayName = (playerKey) => {
+    return playerDisplayMap[playerKey]?.name || playerKey
+  }
+
+  // find teammates with a valid directional exclusion split
+  const availableExclusions = useMemo(() => {
+    if (selectedPlayers.length !== 1 || !currentTeamData?.pairs) return []
+
+    const focalPlayer = selectedPlayers[0]
+    const teammates = []
+
+    Object.values(currentTeamData.pairs).forEach(pair => {
+      if (pair.player1 === focalPlayer && pair.without?.player1) {
+        teammates.push(pair.player2)
+      } else if (pair.player2 === focalPlayer && pair.without?.player2) {
+        teammates.push(pair.player1)
+      }
+    })
+
+    return teammates.sort((a, b) => {
+      const nameA = playerDisplayMap[a]?.name || a
+      const nameB = playerDisplayMap[b]?.name || b
+      return nameA.localeCompare(nameB, 'es')
+    })
+  }, [currentTeamData, selectedPlayers, playerDisplayMap])
+
+  const invalidExcludedPlayer = Boolean(
+    requestedExcludedId
+    && hasLoadedLineupData
+    && selectedTeamOption
+    && (
+      !requestedExcludedKey
+      || selectedPlayers.length !== 1
+      || !availableExclusions.includes(requestedExcludedKey)
+    )
+  )
+  const excludedPlayer = requestedExcludedId && !invalidExcludedPlayer
+    ? requestedExcludedKey
+    : ''
+  const playerSelectionError = hasTooManyPlayers
+    ? 'Solo puedes analizar hasta cinco jugadores a la vez.'
+    : invalidSelectedIds.length > 0
+      ? `No se ${invalidSelectedIds.length === 1 ? 'encuentra el jugador indicado' : 'encuentran los jugadores indicados'} en este equipo y temporada.`
+      : invalidExcludedPlayer
+        ? 'La selección «sin» no corresponde a un compañero con un desglose disponible.'
+        : ''
+
+  const canonicalQuery = {
+    temporada: selectedSeason,
+    con: requestedSelectedIds.length > 0 ? requestedSelectedIds : undefined,
+    sin: requestedExcludedId ? [requestedExcludedId] : undefined,
+  }
+  const canonicalSearch = serializeRouteQuery('lineupAnalysis', canonicalQuery)
+  const canonicalPath = selectedTeamOption
+    ? buildLineupAnalysisPath(selectedTeamOption.teamId)
+    : urlTeamId
+      ? location.pathname
+      : buildLineupAnalysisPath()
+  const canonicalLocation = withQuery(canonicalPath, canonicalSearch)
+  const currentLocation = `${location.pathname}${location.search}`
+
+  useEffect(() => {
+    if (canonicalLocation !== currentLocation) navigate(canonicalLocation, { replace: true })
+  }, [canonicalLocation, currentLocation, navigate])
+
+  const navigateState = ({ teamId = selectedTeamOption?.teamId || null, query = {} } = {}) => {
+    const pathname = teamId ? buildLineupAnalysisPath(teamId) : buildLineupAnalysisPath()
+    const target = withQuery(pathname, serializeRouteQuery('lineupAnalysis', { ...canonicalQuery, ...query }))
+    if (target !== currentLocation) navigate(target)
+  }
+
+  // Get all players data for the table
+  const allPlayersData = useMemo(() => {
+    if (!currentTeamData?.players) return []
+
+    const playersObj = currentTeamData.players
+    return Object.entries(playersObj).map(([key, player]) => ({
+      ...player,
+      key,
+      name: playerDisplayMap[key]?.name || player.name || player.nickname || key,
+      deltaORtg: (player.onORtg ?? 0) - (player.offORtg ?? 0),
+      deltaDRtg: (player.onDRtg ?? 0) - (player.offDRtg ?? 0),
+      deltaEFG: (player.onEFG ?? 0) - (player.offEFG ?? 0),
+      deltaTOV: (player.onTOV ?? 0) - (player.offTOV ?? 0),
+      deltaORB: (player.onORB ?? 0) - (player.offORB ?? 0),
+      deltaAST: (player.onAST ?? 0) - (player.offAST ?? 0),
+      deltaOppEFG: (player.onOppEFG ?? 0) - (player.offOppEFG ?? 0),
+      deltaOppTOV: (player.onOppTOV ?? 0) - (player.offOppTOV ?? 0),
+      deltaDRB: (player.onDRB ?? 0) - (player.offDRB ?? 0),
+    }))
+  }, [currentTeamData, playerDisplayMap])
+
+  // Sorted players data
+  const sortedPlayersData = useMemo(() => {
+    const sorted = [...allPlayersData]
+    sorted.sort((a, b) => {
+      const aVal = a[sortConfig.key] ?? 0
+      const bVal = b[sortConfig.key] ?? 0
+      return sortConfig.direction === 'asc' ? aVal - bVal : bVal - aVal
+    })
+    return sorted
+  }, [allPlayersData, sortConfig])
+
+  const rankedPlayersData = useMemo(
+    () => sortedPlayersData.filter(player => (player.onMin ?? 0) >= MIN_ON_OFF_MINUTES),
+    [sortedPlayersData]
+  )
+
+  // Filter players by search query (search by display name, not key)
+  const filteredPlayers = useMemo(() => {
+    if (searchQuery.trim() === '') return availablePlayers
+    const query = normalizeSearch(searchQuery)
+    return availablePlayers.filter(playerKey => {
+      const displayName = playerDisplayMap[playerKey]?.name || playerKey
+      const nickname = playerDisplayMap[playerKey]?.nickname || playerKey
+      return normalizeSearch(displayName).includes(query) ||
+             normalizeSearch(nickname).includes(query)
+    })
+  }, [availablePlayers, searchQuery, playerDisplayMap])
+
+  // Get data for selected players
+  const getLineupDataForPlayers = () => {
+    if (!currentTeamData || selectedPlayers.length === 0) return null
+
+    const sortedPlayers = [...selectedPlayers].sort()
+
+    if (selectedPlayers.length === 1) {
+      return currentTeamData.players?.[selectedPlayers[0]] || null
+    } else if (selectedPlayers.length === 2) {
+      // Pairs use underscore separator
+      const playerKey = sortedPlayers.join('_')
+      return currentTeamData.pairs?.[playerKey] || null
+    } else if (selectedPlayers.length === 3) {
+      // Trios use underscore separator
+      const playerKey = sortedPlayers.join('_')
+      return currentTeamData.trios?.[playerKey] || null
+    } else if (selectedPlayers.length === 4) {
+      // No 4-player data exists (not computed in ETL)
+      return null
+    } else if (selectedPlayers.length === 5) {
+      // 5-man lineups use pipe separator
+      const lineupKey = sortedPlayers.join('|')
+      return currentTeamData.lineups?.[lineupKey] || null
+    }
+    return null
+  }
+
+  const currentLineupData = getLineupDataForPlayers()
+
+  // resolve the focal player's directional split without relying on pair key order
+  const currentExclusionData = useMemo(() => {
+    if (selectedPlayers.length !== 1 || !excludedPlayer || !currentTeamData?.pairs) return null
+
+    const focalPlayer = selectedPlayers[0]
+    const pair = Object.values(currentTeamData.pairs).find(item => (
+      (item.player1 === focalPlayer && item.player2 === excludedPlayer) ||
+      (item.player2 === focalPlayer && item.player1 === excludedPlayer)
+    ))
+
+    if (!pair) return null
+
+    const split = pair.player1 === focalPlayer
+      ? pair.without?.player1 || null
+      : pair.without?.player2 || null
+
+    if (!split) return null
+    return {
+      without: split,
+      together: {
+        min: pair.onMin,
+        poss: pair.onPoss,
+        ORtg: pair.onORtg,
+        DRtg: pair.onDRtg,
+        netRtg: pair.onNetRtg,
+        eFG: pair.onEFG,
+        TOV: pair.onTOV,
+        AST: pair.onAST,
+        oppEFG: pair.onOppEFG,
+        DRB: pair.onDRB
+      }
+    }
+  }, [currentTeamData, selectedPlayers, excludedPlayer])
+
+  // shape exclusions like the duo card, with a clear net comparison row
+  const exclusionAnalysisData = useMemo(() => {
+    if (!currentExclusionData) return null
+
+    const { without, together } = currentExclusionData
+    const isNumber = (value) => value != null && !Number.isNaN(Number(value))
+    const diff = (a, b) => (
+      !isNumber(a) || !isNumber(b)
+        ? null
+        : Math.round((a - b) * 10) / 10
+    )
+
+    return {
+      without,
+      together,
+      impact: {
+        netRtg: diff(without.netRtg, together.netRtg)
+      },
+    }
+  }, [currentExclusionData])
+
+  // Player selection handlers
+  const addPlayer = (player) => {
+    if (excludedPlayer || selectedPlayers.includes(player) || selectedPlayers.length >= 5) return
+    const licenseId = playerIdentityMaps.idByKey.get(player)
+    if (!licenseId) return
+    navigateState({ query: { con: [...requestedSelectedIds, licenseId], sin: undefined } })
+  }
+
+  const excludePlayer = (player) => {
+    if (selectedPlayers.length !== 1 || !availableExclusions.includes(player)) return
+    const licenseId = playerIdentityMaps.idByKey.get(player)
+    if (licenseId) navigateState({ query: { sin: [licenseId] } })
+  }
+
+  const removePlayer = (player) => {
+    const licenseId = playerIdentityMaps.idByKey.get(player)
+    navigateState({
+      query: {
+        con: requestedSelectedIds.filter(id => id !== licenseId),
+        sin: undefined,
+      },
+    })
+  }
+
+  const toggleSinglePlayer = (player) => {
+    if (selectedPlayers.includes(player)) removePlayer(player)
+    else {
+      const licenseId = playerIdentityMaps.idByKey.get(player)
+      if (licenseId) navigateState({ query: { con: [licenseId], sin: undefined } })
+    }
+  }
+
+  const clearPlayers = () => {
+    navigateState({ query: { con: undefined, sin: undefined } })
+  }
+
+  // Sort handler
+  const handleSort = (key) => {
+    setSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'desc' ? 'asc' : 'desc'
+    }))
+  }
+
+  // Performance indicator helper
+  const getPerformanceIndicator = (value, threshold = 0, inverse = false, minutes = MIN_ON_OFF_MINUTES) => {
+    if (value == null) return { tone: 'neutral', label: 'Sin dato' }
+    if ((minutes ?? 0) < MIN_ON_OFF_MINUTES) return { tone: 'small', label: 'Muestra reducida' }
+
+    const adjusted = inverse ? -value : value
+    if (adjusted > threshold + 5) return { tone: 'elite', label: 'Élite' }
+    if (adjusted > threshold + 2) return { tone: 'good', label: 'Bueno' }
+    if (adjusted > threshold - 2) return { tone: 'neutral', label: 'Medio' }
+    if (adjusted > threshold - 5) return { tone: 'mid', label: 'Debajo de la media' }
+    return { tone: 'low', label: 'Bajo' }
+  }
+
+  // Rating color helper
+  const getRatingColor = (value, isDefensive = false) => {
+    if (value == null) return 'text-acb-400'
+    const threshold = isDefensive ? 105 : 110
+    const good = isDefensive ? value < threshold : value > threshold
+    const great = isDefensive ? value < threshold - 5 : value > threshold + 5
+
+    if (great) return 'text-positive'
+    if (good) return 'text-positive'
+    return 'text-negative'
+  }
+
+  if (loading) {
+    return (
+      <LineupToolShell
+        activeTool="analysis"
+        title="Análisis de alineaciones"
+      >
+        <div className={styles.loadingState} role="status">Cargando alineaciones…</div>
+      </LineupToolShell>
+    )
+  }
+
+  return (
+    <LineupToolShell
+        activeTool="analysis"
+        title="Análisis de alineaciones"
+      >
+
+      {/* Controls */}
+      <div className={styles.selectionBoard}>
+        <div className={styles.scopeControls}>
+          {/* Season Filter */}
+          <div className={styles.controlField}>
+            <label htmlFor="lineup-analysis-season" className="field-label">Temporada</label>
+            <select
+              id="lineup-analysis-season"
+              value={selectedSeason}
+              onChange={(e) => {
+                const season = Number(e.target.value)
+                const keepTeam = teams.some(team => team.season === season && team.teamId === urlTeamId)
+                navigateState({
+                  teamId: keepTeam ? urlTeamId : null,
+                  query: { temporada: season, con: undefined, sin: undefined },
+                })
+              }}
+              className="form-control"
+            >
+              {availableSeasons.map(season => (
+                <option key={season} value={season}>{season-1}-{String(season).slice(-2)}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Team Filter */}
+          <div className={`${styles.controlField} ${styles.controlFieldWide}`}>
+            <label htmlFor="lineup-analysis-team" className="field-label">Equipo</label>
+            <select
+              id="lineup-analysis-team"
+              value={selectedTeamOption?.teamId || ''}
+              onChange={(e) => {
+                navigateState({
+                  teamId: e.target.value || null,
+                  query: { con: undefined, sin: undefined },
+                })
+              }}
+              className="form-control min-w-[200px]"
+            >
+              <option value="">Selecciona un equipo</option>
+              {teamOptions.map(team => (
+                <option key={team.teamId} value={team.teamId}>{team.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {!urlTeamId && (
+          <div className={styles.statusLine} role="status">
+            Selecciona un equipo para empezar el análisis de alineaciones.
+          </div>
+        )}
+
+        {invalidTeam && (
+          <div className={styles.errorLine} role="alert">
+            Ese equipo no está disponible en la temporada seleccionada. Elige un equipo válido de la lista.
+          </div>
+        )}
+
+        {selectedTeamOption && hasLoadedLineupData && !currentTeamData && (
+          <div className={styles.errorLine} role="alert">
+            No hay datos de alineaciones disponibles para este equipo y temporada.
+          </div>
+        )}
+
+        {playerSelectionError && (
+          <div className={styles.errorLine} role="alert">
+            <span>{playerSelectionError}</span>
+            <button type="button" onClick={clearPlayers} className="font-medium underline hover:no-underline">
+              Limpiar selección
+            </button>
+          </div>
+        )}
+
+        {/* Player Selection */}
+        {selectedTeamOption && currentTeamData && !playerSelectionError && (
+        <div className={styles.rosterWorkbench}>
+          <div className={styles.searchField}>
+            <Search className="w-4 h-4 text-acb-400" />
+            <input
+              aria-label="Buscar jugadores"
+              type="text"
+              placeholder="Buscar jugadores..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              disabled={Boolean(excludedPlayer)}
+              className="disabled:bg-acb-50 disabled:text-acb-400"
+            />
+          </div>
+
+          {/* Selected Players Chips */}
+          {selectedPlayers.length > 0 && (
+            <div className={styles.selectionStrip}>
+              <span className={styles.selectionStripLabel}>En pista</span>
+              {selectedPlayers.map(playerKey => (
+                <div key={playerKey} className={styles.selectionChip}>
+                  {getPlayerPhoto(playerPhotos, playerIdentityMaps.idByKey.get(playerKey), selectedSeason) && (
+                    <img src={getPlayerPhoto(playerPhotos, playerIdentityMaps.idByKey.get(playerKey), selectedSeason)} alt="" className="w-5 h-5 rounded-full object-cover object-top" />
+                  )}
+                  <span className="text-sm font-medium">{getPlayerDisplayName(playerKey)}</span>
+                  <button
+                    type="button"
+                    onClick={() => removePlayer(playerKey)}
+                    className="hover:text-accent-600"
+                    aria-label={`Quitar ${getPlayerDisplayName(playerKey)}`}
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+              {excludedPlayer && (
+                <button
+                  type="button"
+                  onClick={() => navigateState({ query: { sin: undefined } })}
+                  className={styles.selectionChip}
+                  aria-label={`Quitar comparación sin ${getPlayerDisplayName(excludedPlayer)}`}
+                >
+                  Sin {getPlayerDisplayName(excludedPlayer)} <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+              <button onClick={clearPlayers} className={styles.clearButton}>
+                Limpiar
+              </button>
+              {selectedPlayers.length === 1 && !excludedPlayer && availableExclusions.length > 0 && (
+                <span className={styles.relationHelp}>
+                  <span className="hidden sm:inline">Pasa sobre otro jugador y elige </span>
+                  <span className="sm:hidden">Elige </span>
+                  <span className="font-semibold text-acb-700">Con</span> o <span className="font-semibold text-acb-700">Sin</span>.
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Player Grid */}
+          <div className={styles.playerPool}>
+            {filteredPlayers.length > 0 ? (
+              <div className={styles.playerGrid}>
+                {filteredPlayers.map(playerKey => {
+                  const displayName = getPlayerDisplayName(playerKey)
+                  const photo = getPlayerPhoto(playerPhotos, playerIdentityMaps.idByKey.get(playerKey), selectedSeason)
+                  const isSelected = selectedPlayers.includes(playerKey)
+                  const isExcluded = excludedPlayer === playerKey
+                  const selectionClosed = Boolean(excludedPlayer) || selectedPlayers.length >= 5
+                  const showRelationActions = selectedPlayers.length > 0 && !isSelected && !isExcluded && !selectionClosed
+                  const canExclude = selectedPlayers.length === 1 && availableExclusions.includes(playerKey)
+                  const identity = (
+                    <>
+                      {photo && <img src={photo} alt="" className="h-5 w-5 shrink-0 rounded-full object-cover object-top" />}
+                      <span className="min-w-0 truncate" title={displayName}>{displayName}</span>
+                    </>
+                  )
+
+                  return (
+                    <div
+                      key={playerKey}
+                      className={`group ${styles.playerTile} ${
+                        isSelected
+                          ? styles.playerTileSelected
+                          : isExcluded
+                            ? styles.playerTileExcluded
+                            : selectionClosed
+                              ? styles.playerTileDisabled
+                              : ''
+                      }`}
+                    >
+                      {selectedPlayers.length === 0 ? (
+                        <button
+                          type="button"
+                          onClick={() => addPlayer(playerKey)}
+                          className={styles.playerIdentity}
+                          aria-label={`Seleccionar a ${displayName}`}
+                        >
+                          {identity}
+                        </button>
+                      ) : (
+                        <>
+                          <div
+                            className={styles.playerIdentity}
+                            aria-disabled={!isSelected && !isExcluded && selectionClosed ? 'true' : undefined}
+                          >
+                            {identity}
+                            {isExcluded && <span className="ml-auto text-[10px] font-bold uppercase tracking-wide">Sin</span>}
+                          </div>
+                          {showRelationActions && (
+                            <div className={styles.relationActions}>
+                              <button
+                                type="button"
+                                onClick={() => addPlayer(playerKey)}
+                                className={`${styles.relationButton} ${styles.relationButtonPrimary}`}
+                                aria-label={`Analizar con ${displayName}`}
+                              >
+                                Con
+                              </button>
+                              {selectedPlayers.length === 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => excludePlayer(playerKey)}
+                                  disabled={!canExclude}
+                                  className={styles.relationButton}
+                                  aria-label={`Analizar sin ${displayName}`}
+                                  title={canExclude ? `Analizar sin ${displayName}` : 'Sin datos suficientes para esta exclusión'}
+                                >
+                                  Sin
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="p-4 text-center text-acb-400 text-sm">
+                No se encontraron jugadores{searchQuery && ` para "${searchQuery}"`}
+              </div>
+            )}
+          </div>
+        </div>
+        )}
+      </div>
+
+      {/* Individual Player Analysis Results */}
+      {selectedPlayers.length === 1 && currentLineupData && !excludedPlayer && (
+        <section className={styles.sheet}>
+          <div className={styles.navyHeader}>
+            <h3 className="font-semibold text-white text-lg">
+              {selectedPlayers.map(getPlayerDisplayName).join(' · ')}
+            </h3>
+            <p className="text-acb-200 text-sm">
+              {currentLineupData.onMin?.toFixed(1)} min en cancha • {currentLineupData.offMin?.toFixed(1)} min fuera
+            </p>
+          </div>
+
+          {/* Stats Table */}
+          <div className={styles.tableFrame} tabIndex={0} aria-label="Comparación On/Off de la selección">
+            <table className="data-table table-fixed">
+              <colgroup>
+                <col className="w-[27%]" />
+                <col className="w-[18.25%]" />
+                <col className="w-[18.25%]" />
+                <col className="w-[18.25%]" />
+                <col className="w-[18.25%]" />
+              </colgroup>
+              <thead>
+                <tr className="bg-acb-50 text-left text-xs text-acb-600 uppercase tracking-wider">
+                  <th className="data-table-head text-left">Métrica</th>
+                  <th className="data-table-head text-center" title="Rendimiento con la selección en pista">
+                    <span className="sm:hidden">On</span><span className="hidden sm:inline">En cancha</span>
+                  </th>
+                  <th className="data-table-head text-center" title="Rendimiento con la selección fuera de pista">
+                    <span className="sm:hidden">Off</span><span className="hidden sm:inline">Fuera de cancha</span>
+                  </th>
+                  <th className="data-table-head text-center" title="En cancha menos fuera de cancha">
+                    <span className="sm:hidden">Diff</span><span className="hidden sm:inline">Diff On−Off</span>
+                  </th>
+                  <th className="data-table-head text-center">Impacto</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-acb-100">
+                {/* ATAQUE */}
+                <tr className="bg-acb-50">
+                  <td colSpan={5} className="data-table-group text-left">Ataque</td>
+                </tr>
+                <StatRow
+                  label="Ef. Ofensiva"
+                  onValue={currentLineupData.onORtg}
+                  offValue={currentLineupData.offORtg}
+                  goodThreshold={110}
+                />
+                <StatRow
+                  label="eFG%"
+                  onValue={currentLineupData.onEFG}
+                  offValue={currentLineupData.offEFG}
+                  goodThreshold={50}
+                  diffUnit=" pp"
+                />
+                <StatRow
+                  label="PER%"
+                  onValue={currentLineupData.onTOV}
+                  offValue={currentLineupData.offTOV}
+                  goodThreshold={15}
+                  inverse
+                  diffUnit=" pp"
+                />
+                <StatRow
+                  label="RO%"
+                  onValue={currentLineupData.onORB}
+                  offValue={currentLineupData.offORB}
+                  goodThreshold={30}
+                  diffUnit=" pp"
+                />
+                <StatRow
+                  label="AST%"
+                  onValue={currentLineupData.onAST}
+                  offValue={currentLineupData.offAST}
+                  goodThreshold={50}
+                  diffUnit=" pp"
+                />
+                {/* DEFENSA */}
+                <tr className="bg-acb-50">
+                  <td colSpan={5} className="data-table-group text-left" title="Estadísticas permitidas al rival">Defensa</td>
+                </tr>
+                <StatRow
+                  label="Ef. Defensiva"
+                  onValue={currentLineupData.onDRtg}
+                  offValue={currentLineupData.offDRtg}
+                  goodThreshold={105}
+                  inverse
+                />
+                <StatRow
+                  label="eFG%"
+                  onValue={currentLineupData.onOppEFG}
+                  offValue={currentLineupData.offOppEFG}
+                  goodThreshold={50}
+                  inverse
+                  diffUnit=" pp"
+                />
+                <StatRow
+                  label="PER%"
+                  onValue={currentLineupData.onOppTOV}
+                  offValue={currentLineupData.offOppTOV}
+                  goodThreshold={14}
+                  diffUnit=" pp"
+                />
+                <StatRow
+                  label="RD%"
+                  onValue={currentLineupData.onDRB}
+                  offValue={currentLineupData.offDRB}
+                  goodThreshold={70}
+                  diffUnit=" pp"
+                />
+                {/* BALANCE */}
+                <tr className="bg-acb-50">
+                  <td colSpan={5} className="data-table-group text-left">Balance</td>
+                </tr>
+                <StatRow
+                  label="Ef. Neta"
+                  onValue={currentLineupData.onNetRtg}
+                  offValue={currentLineupData.offNetRtg}
+                  goodThreshold={0}
+                  highlight
+                />
+              </tbody>
+            </table>
+          </div>
+
+          {/* Impact Summary */}
+          <div className={styles.impactStrip}>
+              <div className="text-center">
+                <div className={`text-2xl font-bold font-mono ${
+                  currentLineupData.netDiff > 0 ? 'text-positive' :
+                  currentLineupData.netDiff < 0 ? 'text-negative' : 'text-acb-500'
+                }`}>
+                  {currentLineupData.netDiff > 0 ? '+' : ''}{currentLineupData.netDiff?.toFixed(1)}
+                </div>
+                <div className="text-sm text-acb-600 mt-1">Diff Neto On−Off</div>
+              </div>
+              <PerformanceMark {...getPerformanceIndicator(currentLineupData.netDiff, 0, false, currentLineupData.onMin)} />
+          </div>
+        </section>
+      )}
+
+      {/* pair, trio, lineup, and exclusion analysis results */}
+      {(() => {
+        const isExclusion = Boolean(selectedPlayers.length === 1 && excludedPlayer && exclusionAnalysisData)
+        if (isExclusion) {
+          return (
+            <ExclusionComparisonCard
+              data={exclusionAnalysisData}
+              focalName={getPlayerDisplayName(selectedPlayers[0])}
+              excludedName={getPlayerDisplayName(excludedPlayer)}
+              onClear={() => navigateState({ query: { sin: undefined } })}
+            />
+          )
+        }
+
+        const analysisData = selectedPlayers.length > 1 ? currentLineupData : null
+
+        if (!analysisData) return null
+
+        return (
+          <section className={styles.sheet}>
+          <div className={styles.navyHeader}>
+            <h3 className="font-semibold text-white text-lg">
+              {`Análisis de ${selectedPlayers.length === 2 ? 'Dúo' : selectedPlayers.length === 3 ? 'Trío' : 'Quinteto'}`}
+            </h3>
+            <p className="text-acb-200 text-sm">
+              {selectedPlayers.map(k => getPlayerDisplayName(k)).join(' + ')} • {analysisData.onMin?.toFixed(1)} min juntos
+              {analysisData.offMin != null && ` • ${analysisData.offMin?.toFixed(1)} min separados`}
+            </p>
+          </div>
+
+          {/* main ratings */}
+          <div className={styles.scoreStrip}>
+            <div className={styles.scoreCell}>
+              <span className={styles.scoreLabel}>Ef. Ofensiva</span>
+              <span className={`${styles.scoreValue} ${getRatingColor(analysisData.onORtg)}`}>
+                {analysisData.onORtg?.toFixed(1)}
+              </span>
+            </div>
+            <div className={styles.scoreCell}>
+              <span className={styles.scoreLabel}>Ef. Defensiva</span>
+              <span className={`${styles.scoreValue} ${getRatingColor(analysisData.onDRtg, true)}`}>
+                {analysisData.onDRtg?.toFixed(1)}
+              </span>
+            </div>
+            <div className={styles.scoreCell}>
+              <span className={styles.scoreLabel}>Ef. Neta</span>
+              <span className={`${styles.scoreValue} ${
+                analysisData.onNetRtg > 0 ? 'text-positive' :
+                analysisData.onNetRtg < 0 ? 'text-negative' : 'text-acb-500'
+              }`}>
+                {analysisData.onNetRtg > 0 ? '+' : ''}{analysisData.onNetRtg?.toFixed(1)}
+              </span>
+              <PerformanceMark {...getPerformanceIndicator(analysisData.onNetRtg, 0, false, analysisData.onMin)} />
+            </div>
+            {analysisData.netDiff != null ? (
+              <div className={styles.scoreCell}>
+                <span className={styles.scoreLabel}>Impacto</span>
+                <span className={`${styles.scoreValue} ${
+                  analysisData.netDiff > 0 ? 'text-positive' :
+                  analysisData.netDiff < 0 ? 'text-negative' : 'text-acb-500'
+                }`}>
+                  {(analysisData.netDiff > 0 ? '+' : '') + analysisData.netDiff?.toFixed(1)}
+                </span>
+                <PerformanceMark {...getPerformanceIndicator(analysisData.netDiff, 0, false, analysisData.onMin)} />
+              </div>
+            ) : (
+              <div className={styles.scoreCell}>
+                <span className={styles.scoreLabel}>Posesiones</span>
+                <span className={`${styles.scoreValue} text-acb-700`}>
+                  {analysisData.onPoss}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* ataque */}
+          {(() => {
+            const stats = [
+              { label: 'eFG%',  val: analysisData.onEFG,  fmt: v => `${v.toFixed(1)}%`, color: 'text-acb-700' },
+              { label: 'PER%',  val: analysisData.onTOV,  fmt: v => `${v.toFixed(1)}%`, color: 'text-acb-700' },
+              { label: 'RO%',   val: analysisData.onORB,  fmt: v => `${v.toFixed(1)}%`, color: 'text-acb-700' },
+              { label: 'AST%',  val: analysisData.onAST,  fmt: v => `${v.toFixed(1)}%`, color: 'text-acb-700' },
+            ].filter(s => s.val != null)
+            if (stats.length === 0) return null
+            return (
+              <div className={styles.statBand}>
+                <div className={styles.statBandLabel}>Ataque</div>
+                <div className={styles.statGrid} style={{ gridTemplateColumns: `repeat(${stats.length}, 1fr)` }}>
+                  {stats.map(s => (
+                    <div key={s.label} className="p-3 text-center">
+                      <div className="text-xs text-acb-500 uppercase tracking-wider mb-1">{s.label}</div>
+                      <div className={`text-lg font-semibold font-mono ${s.color}`}>{s.fmt(s.val)}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
+          })()}
+
+          {/* defensa */}
+          {(() => {
+            const stats = [
+              { label: 'DRtg', val: analysisData.onDRtg, fmt: v => v.toFixed(1), color: analysisData.onDRtg < 105 ? 'text-positive' : 'text-negative' },
+              { label: 'eFG%', val: analysisData.onOppEFG, fmt: v => `${v.toFixed(1)}%`, color: analysisData.onOppEFG < 50 ? 'text-positive' : 'text-negative' },
+              { label: 'PER%', val: analysisData.onOppTOV, fmt: v => `${v.toFixed(1)}%`, color: analysisData.onOppTOV > 14 ? 'text-positive' : 'text-negative' },
+              { label: 'RD%',  val: analysisData.onDRB, fmt: v => `${v.toFixed(1)}%`, color: analysisData.onDRB > 70 ? 'text-positive' : 'text-negative' },
+            ].filter(s => s.val != null)
+            if (stats.length === 0) return null
+            return (
+              <div className={styles.statBand}>
+                <div className={styles.statBandLabel}>Defensa</div>
+                <div className={styles.statGrid} style={{ gridTemplateColumns: `repeat(${stats.length}, 1fr)` }}>
+                  {stats.map(s => (
+                    <div key={s.label} className="p-3 text-center">
+                      <div className="text-xs text-acb-500 uppercase tracking-wider mb-1">{s.label}</div>
+                      <div className={`text-lg font-semibold font-mono ${s.color}`}>{s.fmt(s.val)}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
+          })()}
+          </section>
+        )
+      })()}
+
+      {/* No Data Found */}
+      {selectedPlayers.length > 0 && !currentLineupData && !loading && (
+        <div className={styles.noticeLine} role="status">
+          <AlertTriangle className="h-5 w-5 shrink-0" aria-hidden="true" />
+          <div>
+            <p className="font-medium text-acb-800">Sin datos disponibles</p>
+            <p className="text-sm text-acb-700">
+              {selectedPlayers.length === 4
+                ? "Los datos para combinaciones de 4 jugadores no están calculados. Selecciona 1, 2, 3 o 5 jugadores."
+                : selectedPlayers.length === 5
+                  ? "Esta alineación de 5 puede no haber jugado suficientes minutos juntos."
+                  : selectedPlayers.length > 2
+                    ? "Esta combinación de jugadores puede no haber jugado suficientes minutos juntos."
+                    : "Esta combinación de jugadores puede no tener suficiente tamaño de muestra."}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Team Overview Table */}
+      {allPlayersData.length > 0 && (
+        <section className={styles.sheet} aria-labelledby="team-on-off-title">
+          <div className={styles.sectionHeader}>
+            <div>
+              <h2 id="team-on-off-title">Resumen On/Off del equipo</h2>
+              <p>Ranking con un mínimo de {MIN_ON_OFF_MINUTES} minutos en pista.</p>
+            </div>
+            <button
+              onClick={() => setShowAllPlayers(!showAllPlayers)}
+              className={styles.secondaryButton}
+            >
+              {showAllPlayers ? 'Mostrar menos' : 'Mostrar todos'}
+              {showAllPlayers ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+          </div>
+
+          <div className={styles.tableFrame} tabIndex={0} aria-label="Impacto On/Off de la plantilla">
+            <table className="data-table">
+              <thead>
+                <tr className="text-xs uppercase tracking-wider border-b border-acb-200">
+                  <th className="data-table-head data-table-identity data-table-sticky data-table-sticky-head data-col-player bg-acb-50" rowSpan={2}>Jugador</th>
+                  <th colSpan={2} className="data-table-group bg-acb-50">Rating</th>
+                  <th colSpan={2} className="data-table-group bg-acb-50">Neto</th>
+                  <th
+                    className="data-table-head data-table-number data-col-number bg-accent-50 text-accent-700 cursor-pointer hover:bg-acb-100 transition-colors"
+                    rowSpan={2}
+                    aria-sort={sortConfig.key === 'netDiff' ? (sortConfig.direction === 'desc' ? 'descending' : 'ascending') : 'none'}
+                  >
+                    <button type="button" className="w-full flex items-center justify-end gap-1" onClick={() => handleSort('netDiff')}>
+                      Impacto
+                      {sortConfig.key === 'netDiff' && (
+                        sortConfig.direction === 'desc'
+                          ? <ChevronDown className="w-3 h-3" />
+                          : <ChevronUp className="w-3 h-3" />
+                      )}
+                    </button>
+                  </th>
+                  <th colSpan={4} className="data-table-group bg-acb-50">Ataque</th>
+                  <th colSpan={3} className="data-table-group bg-acb-50">Defensa</th>
+                  <th className="data-table-head data-table-number data-col-games bg-acb-50" rowSpan={2}>Min</th>
+                </tr>
+                <tr className="text-xs text-acb-600 uppercase tracking-wider">
+                  <SortableHeader label="ORtg" title="Diff ORtg On−Off" sortKey="deltaORtg" current={sortConfig} onSort={handleSort} />
+                  <SortableHeader label="DRtg" title="Diff DRtg On−Off" sortKey="deltaDRtg" current={sortConfig} onSort={handleSort} />
+                  <SortableHeader label="On" sortKey="onNetRtg" current={sortConfig} onSort={handleSort} />
+                  <SortableHeader label="Off" sortKey="offNetRtg" current={sortConfig} onSort={handleSort} />
+                  <SortableHeader label="eFG" title="Diff eFG% On−Off (pp)" sortKey="deltaEFG" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
+                  <SortableHeader label="PER" title="Diff PER% On−Off (pp)" sortKey="deltaTOV" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
+                  <SortableHeader label="RO" title="Diff RO% On−Off (pp)" sortKey="deltaORB" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
+                  <SortableHeader label="AST" title="Diff AST% On−Off (pp)" sortKey="deltaAST" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
+                  <SortableHeader label="eFG" title="Diff eFG% rival On−Off (pp)" sortKey="deltaOppEFG" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
+                  <SortableHeader label="PER" title="Diff PER% rival On−Off (pp)" sortKey="deltaOppTOV" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
+                  <SortableHeader label="RD" title="Diff RD% On−Off (pp)" sortKey="deltaDRB" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-acb-100">
+                {(showAllPlayers ? rankedPlayersData : rankedPlayersData.slice(0, 8)).map((player) => (
+                  <tr
+                    key={player.key}
+                    className={`data-table-row cursor-pointer ${
+                      selectedPlayers.includes(player.key) ? 'bg-accent-50' : ''
+                    }`}
+                    onClick={() => toggleSinglePlayer(player.key)}
+                  >
+                    <td className="data-table-cell data-table-identity data-table-sticky data-col-player">
+                      <button
+                        type="button"
+                        className="flex items-center gap-2 text-left"
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          toggleSinglePlayer(player.key)
+                        }}
+                      >
+                        {getPlayerPhoto(playerPhotos, player.id, selectedSeason) && (
+                          <img src={getPlayerPhoto(playerPhotos, player.id, selectedSeason)} alt="" className="w-6 h-6 rounded-full object-cover object-top" />
+                        )}
+                        {player.name}
+                      </button>
+                    </td>
+                    {(() => {
+                      const ortgD = (player.onORtg ?? 0) - (player.offORtg ?? 0)
+                      return (
+                        <td className={`data-table-cell data-table-number data-col-number ${ortgD > 0 ? 'text-positive' : ortgD < 0 ? 'text-negative' : 'text-acb-500'}`}>
+                          {ortgD > 0 ? '+' : ''}{ortgD.toFixed(1)}
+                        </td>
+                      )
+                    })()}
+                    {(() => {
+                      const drtgD = (player.onDRtg ?? 0) - (player.offDRtg ?? 0)
+                      return (
+                        <td className={`data-table-cell data-table-number data-col-number ${drtgD < 0 ? 'text-positive' : drtgD > 0 ? 'text-negative' : 'text-acb-500'}`}>
+                          {drtgD > 0 ? '+' : ''}{drtgD.toFixed(1)}
+                        </td>
+                      )
+                    })()}
+                    <td className={`data-table-cell data-table-number data-col-number ${
+                      player.onNetRtg > 0 ? 'text-positive' : 'text-negative'
+                    }`}>
+                      {player.onNetRtg > 0 ? '+' : ''}{player.onNetRtg?.toFixed(1)}
+                    </td>
+                    <td className="data-table-cell data-table-number data-col-number text-acb-500">
+                      {player.offNetRtg > 0 ? '+' : ''}{player.offNetRtg?.toFixed(1)}
+                    </td>
+                    <td className={`data-table-cell data-table-number data-col-number font-semibold ${
+                      player.netDiff > 2 ? 'text-positive' :
+                      player.netDiff < -2 ? 'text-negative' : 'text-acb-500'
+                    }`}>
+                      {player.netDiff > 0 ? '+' : ''}{player.netDiff?.toFixed(1)}
+                    </td>
+                    {(() => {
+                      const d = (player.onEFG ?? 0) - (player.offEFG ?? 0)
+                      return <td className={`data-table-cell data-table-number data-col-number ${d > 0 ? 'text-positive' : d < 0 ? 'text-negative' : 'text-acb-500'}`}>{d > 0 ? '+' : ''}{d.toFixed(1)}</td>
+                    })()}
+                    {(() => {
+                      const d = (player.onTOV ?? 0) - (player.offTOV ?? 0)
+                      return <td className={`data-table-cell data-table-number data-col-number ${d < 0 ? 'text-positive' : d > 0 ? 'text-negative' : 'text-acb-500'}`}>{d > 0 ? '+' : ''}{d.toFixed(1)}</td>
+                    })()}
+                    {(() => {
+                      const d = (player.onORB ?? 0) - (player.offORB ?? 0)
+                      return <td className={`data-table-cell data-table-number data-col-number ${d > 0 ? 'text-positive' : d < 0 ? 'text-negative' : 'text-acb-500'}`}>{d > 0 ? '+' : ''}{d.toFixed(1)}</td>
+                    })()}
+                    {(() => {
+                      const d = (player.onAST ?? 0) - (player.offAST ?? 0)
+                      return <td className={`data-table-cell data-table-number data-col-number ${d > 0 ? 'text-positive' : d < 0 ? 'text-negative' : 'text-acb-500'}`}>{d > 0 ? '+' : ''}{d.toFixed(1)}</td>
+                    })()}
+                    {(() => {
+                      const d = (player.onOppEFG ?? 0) - (player.offOppEFG ?? 0)
+                      return <td className={`data-table-cell data-table-number data-col-number ${d < 0 ? 'text-positive' : d > 0 ? 'text-negative' : 'text-acb-500'}`}>{d > 0 ? '+' : ''}{d.toFixed(1)}</td>
+                    })()}
+                    {(() => {
+                      const d = (player.onOppTOV ?? 0) - (player.offOppTOV ?? 0)
+                      return <td className={`data-table-cell data-table-number data-col-number ${d > 0 ? 'text-positive' : d < 0 ? 'text-negative' : 'text-acb-500'}`}>{d > 0 ? '+' : ''}{d.toFixed(1)}</td>
+                    })()}
+                    {(() => {
+                      const d = (player.onDRB ?? 0) - (player.offDRB ?? 0)
+                      return <td className={`data-table-cell data-table-number data-col-number ${d > 0 ? 'text-positive' : d < 0 ? 'text-negative' : 'text-acb-500'}`}>{d > 0 ? '+' : ''}{d.toFixed(1)}</td>
+                    })()}
+                    <td className="data-table-cell data-table-number data-col-games text-xs text-acb-400">
+                      {player.onMin?.toFixed(0)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
+      {/* Legend */}
+      <div className={styles.legendBand} aria-label="Leyenda de rendimiento">
+        <PerformanceMark tone="elite" label="Élite" />
+        <PerformanceMark tone="good" label="Bueno" />
+        <PerformanceMark tone="neutral" label="Medio" />
+        <PerformanceMark tone="mid" label="Debajo de la media" />
+        <PerformanceMark tone="low" label="Bajo" />
+        <PerformanceMark tone="small" label="Muestra reducida" />
+      </div>
+
+      {/* On/Off Explanation */}
+      <aside className={styles.methodPanel} aria-labelledby="lineup-method-title">
+        <h2 id="lineup-method-title" className="flex items-center gap-2">
+          <Info className="w-4 h-4" />
+          Cómo interpretar las estadísticas On/Off
+        </h2>
+        <div>
+          <p className={styles.methodIntro}>
+            El análisis <strong>On/Off</strong> describe cómo rinde el equipo cuando un jugador está en pista frente a sus minutos fuera.
+          </p>
+          <div className={styles.definitionGrid}>
+            <div>
+              <strong>En cancha</strong>
+              <p className="text-xs">Estadísticas del equipo durante los minutos que el jugador o combinación seleccionada está jugando.</p>
+            </div>
+            <div>
+              <strong>Fuera de cancha</strong>
+              <p className="text-xs">Estadísticas del equipo durante los minutos que el jugador o combinación no está en pista.</p>
+            </div>
+            <div>
+              <strong>Impacto (Diff)</strong>
+              <p className="text-xs">La diferencia observada entre On y Off. No aísla el efecto individual del jugador.</p>
+            </div>
+          </div>
+          <ul className={styles.noteList}>
+            <li><strong>Eficiencia Ofensiva (ORtg):</strong> Puntos anotados por 100 posesiones. <span className="text-positive">Mayor es mejor</span>. Un Diff positivo significa que el ataque mejora con el jugador.</li>
+            <li><strong>Eficiencia Defensiva (DRtg):</strong> Puntos recibidos por 100 posesiones. <span className="text-positive">Menor es mejor</span>. Un Diff negativo significa que la defensa mejora con el jugador.</li>
+            <li><strong>Eficiencia Neta (NetRtg):</strong> Diferencia entre ORtg y DRtg. Muestra el margen de victoria por 100 posesiones.</li>
+            <li><strong>Impacto:</strong> Diferencia descriptiva entre el Net Rating con el jugador dentro y fuera. Depende también de compañeros, rivales, contexto y tamaño de muestra.</li>
+          </ul>
+        </div>
+      </aside>
+    </LineupToolShell>
+  )
+}
+
+const formatDecimal = (value, unit = '') => {
+  if (!hasNumber(value)) return '—'
+  return `${Number(value).toFixed(1)}${unit}`
+}
+
+const formatSignedDecimal = (value, unit = '') => {
+  if (!hasNumber(value)) return '—'
+  const numericValue = Number(value)
+  return `${numericValue > 0 ? '+' : ''}${numericValue.toFixed(1)}${unit}`
+}
+
+const comparisonDeltaClass = (value, inverse = false) => {
+  if (!hasNumber(value)) return 'text-acb-400'
+  const numericValue = Number(value)
+  if (numericValue === 0) return 'text-acb-500'
+  const isGood = inverse ? numericValue < 0 : numericValue > 0
+  return isGood ? 'text-positive' : 'text-negative'
+}
+
+const PerformanceMark = ({ tone = 'neutral', label }) => {
+  const toneClass = {
+    elite: styles.performanceElite,
+    good: styles.performanceGood,
+    mid: styles.performanceMid,
+    low: styles.performanceLow,
+    small: styles.performanceSmall,
+  }[tone] || ''
+
+  return (
+    <span className={`${styles.performanceMark} ${toneClass}`}>
+      <span className={styles.performanceDot} aria-hidden="true" />
+      <span>{label}</span>
+    </span>
+  )
+}
+
+const ExclusionComparisonCard = ({ data, focalName, excludedName, onClear }) => {
+  const attackStats = [
+    { label: 'eFG%', value: data.without.eFG, unit: '%' },
+    { label: 'PER%', value: data.without.TOV, unit: '%' },
+    { label: 'AST%', value: data.without.AST, unit: '%' },
+  ].filter(stat => hasNumber(stat.value))
+
+  const defenseStats = [
+    { label: 'DRtg', value: data.without.DRtg },
+    { label: 'eFG%', value: data.without.oppEFG, unit: '%' },
+    { label: 'RD%', value: data.without.DRB, unit: '%' },
+  ].filter(stat => hasNumber(stat.value))
+
+  return (
+    <section className={styles.sheet}>
+      <div className={styles.navyHeader}>
+        <div>
+        <h3 className="font-semibold text-white text-lg">Rendimiento de {focalName} sin {excludedName}</h3>
+        <p className="text-acb-200 text-sm">
+          {focalName} sin {excludedName} • {formatDecimal(data.without.min)} min sin
+          {hasNumber(data.together.min) && ` • ${formatDecimal(data.together.min)} min juntos`}
+        </p>
+        </div>
+      </div>
+
+      <div className={styles.scoreStrip}>
+        <div className={styles.scoreCell}>
+          <span className={styles.scoreLabel}>Ef. Ofensiva</span>
+          <span className={`${styles.scoreValue} text-acb-800`}>
+            {formatDecimal(data.without.ORtg)}
+          </span>
+        </div>
+        <div className={styles.scoreCell}>
+          <span className={styles.scoreLabel}>Ef. Defensiva</span>
+          <span className={`${styles.scoreValue} text-acb-800`}>
+            {formatDecimal(data.without.DRtg)}
+          </span>
+        </div>
+        <div className={styles.scoreCell}>
+          <span className={styles.scoreLabel}>Ef. Neta</span>
+          <span className={`${styles.scoreValue} text-acb-800`}>
+            {formatSignedDecimal(data.without.netRtg)}
+          </span>
+        </div>
+        <div className={styles.scoreCell}>
+          <span className={styles.scoreLabel}>Impacto</span>
+          <span className={`${styles.scoreValue} ${comparisonDeltaClass(data.impact.netRtg)}`}>
+            {formatSignedDecimal(data.impact.netRtg)}
+          </span>
+        </div>
+      </div>
+
+      <div className={styles.comparisonStrip}>
+          <div>
+            <span className={styles.scoreLabel}>Sin {excludedName}</span>
+            <div className="font-mono font-semibold text-acb-700">
+              {formatSignedDecimal(data.without.netRtg)}
+            </div>
+          </div>
+          <div>
+            <span className={styles.scoreLabel}>Juntos</span>
+            <div className="font-mono font-semibold text-acb-700">
+              {formatSignedDecimal(data.together.netRtg)}
+            </div>
+          </div>
+          <div>
+            <span className={styles.scoreLabel}>Diff Sin−Juntos</span>
+            <div className={`font-mono font-semibold ${comparisonDeltaClass(data.impact.netRtg)}`}>
+              {formatSignedDecimal(data.impact.netRtg)}
+            </div>
+          </div>
+      </div>
+
+      {attackStats.length > 0 && (
+        <div className={styles.statBand}>
+          <div className={styles.statBandLabel}>Ataque</div>
+          <div className={styles.statGrid} style={{ gridTemplateColumns: `repeat(${attackStats.length}, 1fr)` }}>
+            {attackStats.map(stat => (
+              <div key={stat.label} className="p-3 text-center">
+                <div className="text-xs text-acb-500 uppercase tracking-wider mb-1">{stat.label}</div>
+                <div className="text-lg font-semibold font-mono text-acb-700">{formatDecimal(stat.value, stat.unit)}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {defenseStats.length > 0 && (
+        <div className={styles.statBand}>
+          <div className={styles.statBandLabel}>Defensa</div>
+          <div className={styles.statGrid} style={{ gridTemplateColumns: `repeat(${defenseStats.length}, 1fr)` }}>
+            {defenseStats.map(stat => (
+              <div key={stat.label} className="p-3 text-center">
+                <div className="text-xs text-acb-500 uppercase tracking-wider mb-1">{stat.label}</div>
+                <div className="text-lg font-semibold font-mono text-acb-700">
+                  {formatDecimal(stat.value, stat.unit)}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className={styles.returnRow}>
+        <button type="button" onClick={onClear} className={styles.returnButton}>
+          Volver al On/Off general
+        </button>
+      </div>
+    </section>
+  )
+}
+
+// Stat Row Component for the individual player table
+const StatRow = ({ label, onValue, offValue, inverse = false, highlight = false }) => {
+  const hasValues = hasNumber(onValue) && hasNumber(offValue)
+  const diff = hasValues ? Number(onValue) - Number(offValue) : null
+
+  // For inverse stats (TOV%, DRtg), negative diff is good (player reduces the bad stat)
+  // For normal stats (eFG%, ORtg), positive diff is good (player increases the good stat)
+  const isGood = hasValues && (inverse ? diff < 0 : diff > 0)
+
+  const getIndicator = (val, threshold, inv) => {
+    const adjusted = inv ? threshold - val : val - threshold
+    if (adjusted > 5) return { tone: 'elite', label: 'Élite' }
+    if (adjusted > 2) return { tone: 'good', label: 'Bueno' }
+    if (adjusted > -2) return { tone: 'neutral', label: 'Medio' }
+    if (adjusted > -5) return { tone: 'mid', label: 'Debajo' }
+    return { tone: 'low', label: 'Bajo' }
+  }
+
+  const indicator = hasValues ? getIndicator(diff, 0, inverse) : null
+
+  return (
+    <tr className={`data-table-row ${highlight ? 'bg-acb-50' : ''}`}>
+      <td className={`data-table-cell ${highlight ? 'font-semibold' : ''}`}>
+        {label}
+      </td>
+      <td className="data-table-cell text-center font-mono tabular-nums">
+        <span className="font-medium text-acb-700">{hasNumber(onValue) ? Number(onValue).toFixed(1) : '—'}</span>
+      </td>
+      <td className="data-table-cell text-center font-mono tabular-nums text-acb-500">
+        {hasNumber(offValue) ? Number(offValue).toFixed(1) : '—'}
+      </td>
+      <td className="data-table-cell text-center font-mono tabular-nums">
+        <span className={`font-medium ${!hasValues ? 'text-acb-400' : isGood ? 'text-positive' : diff < 0 || diff > 0 ? 'text-negative' : 'text-acb-500'}`}>
+          {hasValues ? `${diff > 0 ? '+' : ''}${diff.toFixed(1)}` : '—'}
+        </span>
+      </td>
+      <td className="data-table-cell text-center">
+        {indicator ? <PerformanceMark {...indicator} /> : '—'}
+      </td>
+    </tr>
+  )
+}
+
+// Sortable Header Component
+const SortableHeader = ({ label, title, sortKey, current, onSort, highlight = false, thClassName = '' }) => {
+  const isActive = current.key === sortKey
+
+  return (
+    <th
+      className={`data-table-head data-table-number data-col-number hover:bg-acb-100 transition-colors ${
+        highlight ? 'bg-accent-50' : ''
+      } ${isActive ? 'text-accent-600' : ''} ${thClassName}`}
+      aria-sort={isActive ? (current.direction === 'desc' ? 'descending' : 'ascending') : 'none'}
+      title={title}
+    >
+      <button
+        type="button"
+        className="w-full flex items-center justify-end gap-1"
+        onClick={() => onSort(sortKey)}
+        aria-label={title ? `${title}. Ordenar` : undefined}
+      >
+        {label}
+        {isActive && (
+          current.direction === 'desc'
+            ? <ChevronDown className="w-3 h-3" />
+            : <ChevronUp className="w-3 h-3" />
+        )}
+      </button>
+    </th>
+  )
+}

@@ -1,0 +1,268 @@
+{
+  "team": {
+    "name": "Unicaja",
+    "seasonLabel": "2025–26",
+    "path": "/equipos/perfil/unicaja?temporada=2026",
+    "axes": [
+      {
+        "key": "ortg",
+        "label": "Rating Ofensivo",
+        "value": 52.77777777777778
+      },
+      {
+        "key": "pace",
+        "label": "Ritmo",
+        "value": 25
+      },
+      {
+        "key": "threeRate",
+        "label": "Dependencia 3P",
+        "value": 80.55555555555556
+      },
+      {
+        "key": "threePct",
+        "label": "Eficiencia 3P",
+        "value": 61.111111111111114
+      },
+      {
+        "key": "ts",
+        "label": "Eficiencia de Tiro",
+        "value": 36.111111111111114
+      },
+      {
+        "key": "astRate",
+        "label": "Ratio de Asistencias",
+        "value": 97.22222222222223
+      },
+      {
+        "key": "orbPct",
+        "label": "Rebote Ofensivo",
+        "value": 52.77777777777778
+      },
+      {
+        "key": "tovRate",
+        "label": "Cuidado de Balón",
+        "value": 63.888888888888886
+      }
+    ],
+    "compactZones": {
+      "stats": {
+        "Zona (Restringida)": {
+          "att": 459,
+          "made": 327,
+          "efg": 71.2
+        },
+        "Zona no restringida": {
+          "att": 495,
+          "made": 230,
+          "efg": 46.5
+        },
+        "Triple Esquina Derecha": {
+          "att": 102,
+          "made": 42,
+          "efg": 61.8
+        },
+        "Triple Esquina Izquierda": {
+          "att": 82,
+          "made": 33,
+          "efg": 60.4
+        },
+        "Media Distancia Esquina Derecha": {
+          "att": 59,
+          "made": 25,
+          "efg": 42.4
+        },
+        "Media Distancia Esquina Izquierda": {
+          "att": 61,
+          "made": 20,
+          "efg": 32.8
+        },
+        "Triple Codo Derecha": {
+          "att": 270,
+          "made": 90,
+          "efg": 50
+        },
+        "Triple Codo Izquierda": {
+          "att": 255,
+          "made": 99,
+          "efg": 58.2
+        },
+        "Media Distancia Codo Derecha": {
+          "att": 44,
+          "made": 20,
+          "efg": 45.5
+        },
+        "Media Distancia Codo Izquierda": {
+          "att": 50,
+          "made": 22,
+          "efg": 44
+        },
+        "Media Distancia Centro": {
+          "att": 69,
+          "made": 24,
+          "efg": 34.8
+        },
+        "Triple Centro": {
+          "att": 305,
+          "made": 99,
+          "efg": 48.7
+        }
+      },
+      "leagueEfg": {
+        "Zona (Restringida)": 70.3,
+        "Zona no restringida": 43.4,
+        "Triple Esquina Derecha": 58,
+        "Triple Esquina Izquierda": 58.8,
+        "Media Distancia Esquina Derecha": 36.3,
+        "Media Distancia Esquina Izquierda": 34.3,
+        "Triple Codo Derecha": 50.6,
+        "Triple Codo Izquierda": 52.7,
+        "Media Distancia Codo Derecha": 38.7,
+        "Media Distancia Codo Izquierda": 39.8,
+        "Media Distancia Centro": 40.4,
+        "Triple Centro": 51
+      }
+    },
+    "reference": {
+      "type": "season",
+      "source": "teams.json",
+      "observations": 18,
+      "seasons": [
+        2026
+      ]
+    }
+  },
+  "player": {
+    "name": "Marcelinho Huertas",
+    "team": "Lenovo Tenerife",
+    "seasonLabel": "2023–24",
+    "path": "/jugadores/perfil/marcelinho-huertas?temporada=2024",
+    "position": "Base",
+    "role": "General en la Pista",
+    "roleDescription": "Creador de alto volumen que encuentra a sus compañeros y protege el balón",
+    "axes": [
+      {
+        "label": "Anotación",
+        "value": 95.6
+      },
+      {
+        "label": "Eficiencia",
+        "value": 66.6
+      },
+      {
+        "label": "Volumen",
+        "value": 99.4
+      },
+      {
+        "label": "Freq. 3P",
+        "value": 23.3
+      },
+      {
+        "label": "Creación",
+        "value": 99.8
+      },
+      {
+        "label": "Rebote",
+        "value": 24.2
+      },
+      {
+        "label": "Defensa Interior",
+        "value": 7.1
+      },
+      {
+        "label": "Defensa Perímetro",
+        "value": 38.4
+      }
+    ]
+  },
+  "lineups": {
+    "name": "UCAM Murcia",
+    "seasonLabel": "2025–26",
+    "path": "/alineaciones/rankings?temporada=2026&equipo=murcia&categoria=trios",
+    "minimumMinutes": 120,
+    "metricLabel": "Impacto",
+    "metricShort": "IMPACTO",
+    "best": [
+      {
+        "rank": 1,
+        "players": [
+          "D. DeJulius",
+          "D. Cacok",
+          "J. Radebaugh"
+        ],
+        "minutes": 146.3,
+        "impact": 21.2,
+        "net": 25.4,
+        "ortg": 126.1,
+        "drtg": 100.7
+      },
+      {
+        "rank": 2,
+        "players": [
+          "D. DeJulius",
+          "H. Sant-Roos",
+          "D. Cacok"
+        ],
+        "minutes": 178.1,
+        "impact": 17.8,
+        "net": 22,
+        "ortg": 123.5,
+        "drtg": 101.4
+      },
+      {
+        "rank": 3,
+        "players": [
+          "H. Sant-Roos",
+          "D. Cacok",
+          "J. Radebaugh"
+        ],
+        "minutes": 133.8,
+        "impact": 17.2,
+        "net": 22.1,
+        "ortg": 122.1,
+        "drtg": 100
+      }
+    ],
+    "worst": [
+      {
+        "rank": 1,
+        "players": [
+          "E. Cate",
+          "T. Nakic",
+          "J. Radebaugh"
+        ],
+        "minutes": 147.3,
+        "impact": -18.2,
+        "net": -10.1,
+        "ortg": 110.5,
+        "drtg": 120.7
+      },
+      {
+        "rank": 2,
+        "players": [
+          "D. DeJulius",
+          "J. Radebaugh",
+          "K. Martin"
+        ],
+        "minutes": 141.1,
+        "impact": -12.5,
+        "net": -5,
+        "ortg": 113.2,
+        "drtg": 118.2
+      },
+      {
+        "rank": 3,
+        "players": [
+          "E. Cate",
+          "H. Sant-Roos",
+          "J. Radebaugh"
+        ],
+        "minutes": 189.6,
+        "impact": -10.9,
+        "net": -3.2,
+        "ortg": 111.9,
+        "drtg": 115.1
+      }
+    ]
+  }
+}

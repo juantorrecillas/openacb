@@ -1,0 +1,524 @@
+import { useState, useMemo, useEffect } from 'react'
+import { ArrowUp, ArrowDown, Search, Filter } from 'lucide-react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { statTitle } from '../utils/statLabels'
+import { getPlayerDisplayName, getPlayerSearchText } from '../utils/playerNames'
+import PlayerToolShell, { playerToolStyles } from '../components/PlayerToolShell'
+import { getPercentileBadgeClass } from '../utils/percentileColors'
+import { buildPlayerProfilePath } from '../routing/paths'
+import { parseRouteQuery, serializeRouteQuery, withQuery } from '../routing/query'
+
+function seasonLabel(s) {
+  return `${s - 1}-${String(s).slice(-2)}`
+}
+
+function playerProfileUrl(player, season) {
+  const pathname = buildPlayerProfilePath(player, getPlayerDisplayName(player))
+  const search = serializeRouteQuery('playerProfile', {
+    temporada: season,
+    equipo: player.teamId,
+  }, { strict: false })
+  return withQuery(pathname, search)
+}
+
+function fmtVal(v, key) {
+  if (v == null) return '-'
+  if (typeof v === 'string') return v
+  if (isNaN(v)) return '-'
+  if (key === 'games' || key === 'wins' || key === 'losses') return String(v)
+  if (['ptsT','rebT','orebT','drebT','astT','stlT','blkT','tovT','foulsT','fg3M','fgmTot','ftM'].includes(key))
+    return String(Math.round(v))
+  if (['fgPct','fg2Pct','fg3Pct','ftPct','efgPct','tsPct','fg3Rate'].includes(key))
+    return `${Number(v).toFixed(1)}%`
+  return Number(v).toFixed(1)
+}
+
+// rank → percentile (rank 1 → 100, rank n → 0). undefined for n <= 1.
+function rankToPercentile(rank, n) {
+  if (rank == null || n == null || n <= 1) return null
+  return Math.round(((n - rank) / (n - 1)) * 100)
+}
+
+const POSITION_ORDER = ['Base', 'Escolta', 'Alero', 'Ala-pívot', 'Pívot']
+const DEFAULT_SHOW = 25
+const RANK_KEYS = ['pts','reb','oreb','dreb','ast','stl','blk','fgPct','efgPct','tsPct','fg2Pct','fg3Pct','ftPct','ptsT','rebT','orebT','drebT','astT','stlT','blkT']
+
+// ─── Column sets ───────────────────────────────────────────────
+const basicCols = [
+  { key: 'playerDisplay', label: 'Jugador', left: true,  rank: false },
+  { key: 'team',          label: 'Equipo',  left: true,  rank: false },
+  { key: 'position',      label: 'Pos',     left: true,  rank: false,  title: 'Posición' },
+  { key: 'games',         label: 'PJ',      left: false, rank: false,  title: 'Partidos jugados' },
+  { key: 'wins',          label: 'V',       left: false, rank: false,  title: 'Victorias' },
+  { key: 'losses',        label: 'D',       left: false, rank: false,  title: 'Derrotas' },
+  { key: 'clutchMin',     label: 'Min',     left: false, rank: false,  title: 'Minutos totales en clutch' },
+  { key: 'clutchMpg',     label: 'MPP',     left: false, rank: false,  title: 'Minutos por partido' },
+  { key: 'pts',           label: 'Pts',     left: false, rank: true,   inverse: false, title: 'Puntos por partido' },
+  { key: 'fgmPg',         label: 'TCA',     left: false, rank: false,  title: 'Tiros de campo anotados por partido' },
+  { key: 'fgaPg',         label: 'TCI',     left: false, rank: false,  title: 'Tiros de campo intentados por partido' },
+  { key: 'fgPct',         label: 'TC%',     left: false, rank: true,   inverse: false, title: 'Porcentaje de tiro de campo' },
+  { key: 'fg3mPg',        label: '3PA',     left: false, rank: false,  title: 'Triples anotados por partido' },
+  { key: 'fg3aPg',        label: '3PI',     left: false, rank: false,  title: 'Triples intentados por partido' },
+  { key: 'fg3Pct',        label: '3P%',     left: false, rank: true,   inverse: false, title: 'Porcentaje de triple' },
+  { key: 'ftmPg',         label: 'TLA',     left: false, rank: false,  title: 'Tiros libres anotados por partido' },
+  { key: 'ftaPg',         label: 'TLI',     left: false, rank: false,  title: 'Tiros libres intentados por partido' },
+  { key: 'ftPct',         label: 'TL%',     left: false, rank: true,   inverse: false, title: 'Porcentaje de tiro libre' },
+  { key: 'oreb',          label: 'RO',      left: false, rank: true,   inverse: false, title: 'Rebotes ofensivos por partido' },
+  { key: 'dreb',          label: 'RD',      left: false, rank: true,   inverse: false, title: 'Rebotes defensivos por partido' },
+  { key: 'reb',           label: 'Reb',     left: false, rank: true,   inverse: false, title: 'Rebotes totales por partido' },
+  { key: 'ast',           label: 'Ast',     left: false, rank: true,   inverse: false, title: 'Asistencias por partido' },
+  { key: 'stl',           label: 'Rob',     left: false, rank: true,   inverse: false, title: 'Robos por partido' },
+  { key: 'blk',           label: 'Tap',     left: false, rank: true,   inverse: false, title: 'Tapones por partido' },
+  { key: 'tov',           label: 'Pér',     left: false, rank: true,   inverse: true,  title: 'Pérdidas por partido' },
+  { key: 'fouls',         label: 'Fal',     left: false, rank: true,   inverse: true,  title: 'Faltas por partido' },
+]
+
+const advancedCols = [
+  { key: 'playerDisplay', label: 'Jugador',   left: true,  rank: false },
+  { key: 'team',          label: 'Equipo',    left: true,  rank: false },
+  { key: 'position',      label: 'Pos',       left: true,  rank: false,  title: 'Posición' },
+  { key: 'games',         label: 'PJ',        left: false, rank: false,  title: 'Partidos jugados' },
+  { key: 'efgPct',        label: 'eFG%',      left: false, rank: true,   inverse: false, title: 'Porcentaje de tiro efectivo' },
+  { key: 'tsPct',         label: 'TS%',       left: false, rank: true,   inverse: false, title: 'Eficiencia global de tiro (True Shooting)' },
+  { key: 'fg2Pct',        label: '2P%',       left: false, rank: true,   inverse: false, title: 'Porcentaje de tiro de dos puntos' },
+  { key: 'fg3Pct',        label: '3P%',       left: false, rank: true,   inverse: false, title: 'Porcentaje de triple' },
+  { key: 'ftPct',         label: 'TL%',       left: false, rank: true,   inverse: false, title: 'Porcentaje de tiro libre' },
+  { key: 'fg3Rate',       label: '3PAr',      left: false, rank: false,  title: 'Tasa de triple (triples intentados / tiros intentados)' },
+  { key: 'fg2Apg',        label: 'T2Int/G',   left: false, rank: false,  title: 'Intentos de dos puntos por partido' },
+  { key: 'fg3Apg',        label: '3PInt/G',   left: false, rank: false,  title: 'Intentos de triple por partido' },
+  { key: 'ftApg',         label: 'TLInt/G',   left: false, rank: false,  title: 'Intentos de tiro libre por partido' },
+]
+
+const absolutesCols = [
+  { key: 'playerDisplay', label: 'Jugador',   left: true,  rank: false },
+  { key: 'team',          label: 'Equipo',    left: true,  rank: false },
+  { key: 'position',      label: 'Pos',       left: true,  rank: false,  title: 'Posición' },
+  { key: 'games',         label: 'PJ',        left: false, rank: false,  title: 'Partidos jugados' },
+  { key: 'clutchMin',     label: 'Min',       left: false, rank: false,  title: 'Minutos totales en clutch' },
+  { key: 'ptsT',          label: 'Pts',       left: false, rank: true,   inverse: false, title: 'Puntos totales en clutch' },
+  { key: 'orebT',         label: 'RO',        left: false, rank: true,   inverse: false, title: 'Rebotes ofensivos totales' },
+  { key: 'drebT',         label: 'RD',        left: false, rank: true,   inverse: false, title: 'Rebotes defensivos totales' },
+  { key: 'rebT',          label: 'Reb',       left: false, rank: true,   inverse: false, title: 'Rebotes totales' },
+  { key: 'astT',          label: 'Ast',       left: false, rank: true,   inverse: false, title: 'Asistencias totales' },
+  { key: 'stlT',          label: 'Rob',       left: false, rank: true,   inverse: false, title: 'Robos totales' },
+  { key: 'blkT',          label: 'Tap',       left: false, rank: true,   inverse: false, title: 'Tapones totales' },
+  { key: 'tovT',          label: 'Pér',       left: false, rank: true,   inverse: true,  title: 'Pérdidas totales' },
+  { key: 'foulsT',        label: 'Fal',       left: false, rank: true,   inverse: true,  title: 'Faltas totales' },
+  { key: 'fg3M',          label: '3PM',       left: false, rank: false,  title: 'Triples anotados (total temporada)' },
+  { key: 'fgmTot',        label: 'TC tot.',   left: false, rank: false,  title: 'Tiros de campo anotados (total temporada)' },
+  { key: 'ftM',           label: 'TLA',       left: false, rank: false,  title: 'Tiros libres anotados (total temporada)' },
+]
+
+export default function ClutchStats({ teams, players = [], playerBio = {}, loadClutchForSeason, clutchCache, loadingClutch }) {
+  const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  const availableSeasons = useMemo(
+    () => [...new Set(teams.map(t => t.season))].sort((a, b) => b - a),
+    [teams]
+  )
+
+  const [sortKey, setSortKey]               = useState('pts')
+  const [sortDir, setSortDir]               = useState('desc')
+  const [search, setSearch]                 = useState('')
+  const [showAll, setShowAll]               = useState(false)
+
+  const parsedQuery = parseRouteQuery('playerClutch', searchParams)
+  const requestedSeason = parsedQuery.values.temporada
+  const selectedSeason = availableSeasons.includes(requestedSeason)
+    ? requestedSeason
+    : (availableSeasons[0] || 2026)
+  const minGames = parsedQuery.values['min-partidos'] || 3
+  const routeViewMode = parsedQuery.values.vista || 'basic'
+  const viewMode = routeViewMode === 'absolutes' ? 'absolutos' : routeViewMode
+
+  useEffect(() => {
+    if (selectedSeason) loadClutchForSeason(selectedSeason)
+  }, [selectedSeason, loadClutchForSeason])
+
+  const isLoading = loadingClutch[selectedSeason] || false
+  const rawPlayers = useMemo(() => clutchCache[selectedSeason]?.players || [], [clutchCache, selectedSeason])
+
+  const playerLookup = useMemo(() => {
+    const map = {}
+    players.forEach(p => {
+      const id = String(p.licenseId)
+      map[`${id}::${p.season}::${p.team}`] = p
+      if (!map[id] || p.season === selectedSeason) map[id] = p
+    })
+    return map
+  }, [players, selectedSeason])
+
+  const teamOptions = useMemo(() => {
+    const byId = new Map()
+    rawPlayers.forEach(player => {
+      if (player.teamId && player.team) byId.set(player.teamId, player.team)
+    })
+    return [...byId.entries()]
+      .map(([teamId, name]) => ({ teamId, name }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'es'))
+  }, [rawPlayers])
+
+  const enriched = useMemo(() => {
+    const num = v => (v == null || v === 'NA') ? null : Number(v)
+    return rawPlayers.map(p => {
+      const bio = playerLookup[`${p.licenseId}::${selectedSeason}::${p.team}`] || playerLookup[String(p.licenseId)] || playerBio[String(p.licenseId)]
+      const playerAbbrev = bio?.playerAbbrev || null
+      const playerFull   = bio?.playerFull   || p.nick || null
+      const position     = bio?.position     || null
+
+      const g = p.games || 1
+
+      // derived per-game shooting stats
+      const fgmPg  = num((p.fg2M + p.fg3M) / g)
+      const fgaPg  = num((p.fg2A + p.fg3A) / g)
+      const fg3mPg = num(p.fg3M / g)
+      const fg3aPg = num(p.fg3A / g)
+      const fg2mPg = num(p.fg2M / g)
+      const fg2aPg = num(p.fg2A / g)
+      const ftmPg  = num(p.ftM / g)
+      const ftaPg  = num(p.ftA / g)
+
+      // fgPct from R, or derive if missing
+      const fgPct = p.fgPct != null
+        ? num(p.fgPct)
+        : (p.fg2A + p.fg3A) > 0
+          ? Math.round((p.fg2M + p.fg3M) / (p.fg2A + p.fg3A) * 1000) / 10
+          : null
+
+      // tsPct (requires total pts, not per-game)
+      const fga = (p.fg2A || 0) + (p.fg3A || 0)
+      const tsPct = p.ptsT != null && fga + (p.ftA || 0) > 0
+        ? Math.round(p.ptsT / (2 * (fga + 0.44 * (p.ftA || 0))) * 1000) / 10
+        : null
+
+      const fg3Rate = fga > 0 ? Math.round((p.fg3A || 0) / fga * 1000) / 10 : null
+      // legacy efficiency keys used by advancedCols
+      const fg2Apg = num((p.fg2A || 0) / g)
+      const fg3Apg = num((p.fg3A || 0) / g)
+      const ftApg  = num((p.ftA  || 0) / g)
+
+      // total FGM for Absolutos tab
+      const fgmTot = (p.fg2M || 0) + (p.fg3M || 0)
+
+      return {
+        ...p,
+        playerFull,
+        playerAbbrev,
+        playerDisplay: getPlayerDisplayName(bio || { playerFull, playerAbbrev, nick: p.nick }),
+        position,
+        fgmPg, fgaPg, fgPct,
+        fg3mPg, fg3aPg,
+        fg2mPg, fg2aPg,
+        ftmPg, ftaPg,
+        tsPct, fg3Rate,
+        fg2Apg, fg3Apg, ftApg,
+        fgmTot,
+      }
+    })
+  }, [rawPlayers, playerLookup, playerBio, selectedSeason])
+
+  const allPositions = useMemo(() => {
+    const present = new Set(enriched.map(p => p.position).filter(Boolean))
+    return POSITION_ORDER.filter(pos => present.has(pos))
+  }, [enriched])
+
+  const hasSeasonData = Object.prototype.hasOwnProperty.call(clutchCache, selectedSeason)
+  const requestedTeamFilter = parsedQuery.values.equipo || ''
+  const teamFilter = !hasSeasonData || teamOptions.some(option => option.teamId === requestedTeamFilter)
+    ? requestedTeamFilter
+    : ''
+  const requestedPositionFilter = parsedQuery.values.posicion || ''
+  const positionFilter = !hasSeasonData || allPositions.includes(requestedPositionFilter)
+    ? requestedPositionFilter
+    : ''
+  const canonicalQuery = {
+    temporada: selectedSeason,
+    'min-partidos': minGames,
+    equipo: teamFilter || undefined,
+    posicion: positionFilter || undefined,
+    vista: routeViewMode,
+  }
+  const canonicalSearch = serializeRouteQuery('playerClutch', canonicalQuery)
+  const currentSearch = searchParams.toString()
+
+  useEffect(() => {
+    if (currentSearch !== canonicalSearch) setSearchParams(canonicalSearch, { replace: true })
+  }, [canonicalSearch, currentSearch, setSearchParams])
+
+  useEffect(() => {
+    setShowAll(false)
+  }, [selectedSeason, minGames, teamFilter, positionFilter, search, viewMode])
+
+  const updateQuery = updates => {
+    const nextSearch = serializeRouteQuery('playerClutch', { ...canonicalQuery, ...updates })
+    if (nextSearch !== currentSearch) setSearchParams(nextSearch)
+  }
+
+  const filtered = useMemo(() => {
+    return enriched.filter(p => {
+      if ((p.games || 0) < minGames) return false
+      if (teamFilter && p.teamId !== teamFilter) return false
+      if (positionFilter && p.position !== positionFilter) return false
+      if (search) {
+        const q = search.toLowerCase()
+        if (!getPlayerSearchText(p).includes(q) && !p.team?.toLowerCase().includes(q)) return false
+      }
+      return true
+    })
+  }, [enriched, minGames, teamFilter, positionFilter, search])
+
+  const withRanks = useMemo(() => {
+    const copy = filtered.map(p => ({ ...p }))
+    RANK_KEYS.forEach(key => {
+      const sorted = [...copy]
+        .filter(p => p[key] != null)
+        .sort((a, b) => (b[key] || 0) - (a[key] || 0))
+      sorted.forEach((p, i) => {
+        const orig = copy.find(x => x.licenseId === p.licenseId && x.team === p.team)
+        if (orig) orig[`${key}Rank`] = i + 1
+      })
+    })
+    // inverse: lower is better
+    ;['tov', 'fouls', 'tovT', 'foulsT'].forEach(key => {
+      const sorted = [...copy].filter(p => p[key] != null).sort((a, b) => (a[key] || 0) - (b[key] || 0))
+      sorted.forEach((p, i) => {
+        const orig = copy.find(x => x.licenseId === p.licenseId && x.team === p.team)
+        if (orig) orig[`${key}Rank`] = i + 1
+      })
+    })
+    return copy
+  }, [filtered])
+
+  const sorted = useMemo(() => {
+    return [...withRanks].sort((a, b) => {
+      const av = a[sortKey] ?? (sortDir === 'desc' ? -Infinity : Infinity)
+      const bv = b[sortKey] ?? (sortDir === 'desc' ? -Infinity : Infinity)
+      if (typeof av === 'string') return sortDir === 'desc' ? bv.localeCompare(av) : av.localeCompare(bv)
+      return sortDir === 'desc' ? bv - av : av - bv
+    })
+  }, [withRanks, sortKey, sortDir])
+
+  const cols = viewMode === 'basic' ? basicCols : viewMode === 'advanced' ? advancedCols : absolutesCols
+  const n = sorted.length
+  const displayed = showAll ? sorted : sorted.slice(0, DEFAULT_SHOW)
+
+  const handleSort = (key) => {
+    if (sortKey === key) setSortDir(d => d === 'desc' ? 'asc' : 'desc')
+    else { setSortKey(key); setSortDir('desc') }
+  }
+
+  const nonSortable = new Set(['playerDisplay', 'team', 'position'])
+
+  return (
+    <PlayerToolShell
+      activeTool="clutch"
+      title="Estadísticas clutch"
+    >
+
+      {/* Controls */}
+      <div className={playerToolStyles.controlBand}>
+        <div className={playerToolStyles.controlRow}>
+          {/* Season */}
+          <div className="flex items-center gap-2">
+            <label htmlFor="clutch-season" className="field-label">Temporada</label>
+            <select
+              id="clutch-season"
+              value={selectedSeason}
+              onChange={e => updateQuery({ temporada: Number(e.target.value) })}
+              className="form-control"
+            >
+              {availableSeasons.map(s => <option key={s} value={s}>{seasonLabel(s)}</option>)}
+            </select>
+          </div>
+
+          {/* View mode */}
+          <div className="segmented-control" role="group" aria-label="Vista estadística">
+            {[['basic','Básico'],['advanced','Avanzado'],['absolutos','Absolutos']].map(([mode, label]) => (
+              <button
+                key={mode}
+                aria-pressed={viewMode === mode}
+                onClick={() => {
+                  updateQuery({ vista: mode === 'absolutos' ? 'absolutes' : mode })
+                  setSortKey(mode === 'basic' ? 'pts' : mode === 'advanced' ? 'efgPct' : 'ptsT')
+                  setSortDir('desc')
+                }}
+                className="segmented-option"
+              >{label}</button>
+            ))}
+          </div>
+
+          {/* Team filter */}
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4 text-acb-400" />
+            <label htmlFor="clutch-team" className="sr-only">Equipo</label>
+            <select
+              id="clutch-team"
+              value={teamFilter}
+              onChange={e => updateQuery({ equipo: e.target.value || undefined })}
+              className="form-control"
+            >
+              <option value="">Todos los equipos</option>
+              {teamOptions.map(team => <option key={team.teamId} value={team.teamId}>{team.name}</option>)}
+            </select>
+          </div>
+
+          {/* Position filter */}
+          {allPositions.length > 0 && (
+            <div>
+              <label htmlFor="clutch-position" className="sr-only">Posición</label>
+              <select
+                id="clutch-position"
+                value={positionFilter}
+                onChange={e => updateQuery({ posicion: e.target.value || undefined })}
+                className="form-control"
+              >
+                <option value="">Todas las posiciones</option>
+                {allPositions.map(pos => <option key={pos} value={pos}>{pos}</option>)}
+              </select>
+            </div>
+          )}
+
+          {/* Min games */}
+          <div className="flex items-center gap-2">
+            <label htmlFor="clutch-min-games" className="field-label">Mín. PJ clutch</label>
+            <select
+              id="clutch-min-games"
+              value={minGames}
+              onChange={e => updateQuery({ 'min-partidos': Number(e.target.value) })}
+              className="form-control"
+            >
+              {[1,3,5,10].map(v => <option key={v} value={v}>{v}+</option>)}
+            </select>
+          </div>
+
+          {/* Search */}
+          <div className="relative min-w-[220px] flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-acb-400" />
+            <input
+              id="clutch-search"
+              aria-label="Buscar jugador"
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Buscar jugador..."
+              className="form-control pl-9"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className={playerToolStyles.resultBar}>
+        Mostrando {displayed.length} de {n} jugador{n !== 1 ? 'es' : ''} · Mín. {minGames} partido{minGames !== 1 ? 's' : ''} clutch · {seasonLabel(selectedSeason)}
+      </div>
+
+      {/* Table */}
+      <section className={playerToolStyles.dataSection} aria-label="Resultados clutch">
+        <div className={playerToolStyles.tableFrame} tabIndex={0} aria-label="Tabla de estadísticas clutch">
+          <table className="data-table min-w-full">
+            <thead>
+              <tr className="bg-acb-50 border-b border-acb-200">
+                <th className="data-table-head data-table-number data-table-sticky data-table-sticky-head data-col-rank bg-acb-50">#</th>
+                {cols.map(col => (
+                  <th
+                    key={col.key}
+                    onClick={() => !nonSortable.has(col.key) && handleSort(col.key)}
+                    onKeyDown={(e) => !nonSortable.has(col.key) && (e.key === 'Enter' || e.key === ' ') && handleSort(col.key)}
+                    tabIndex={!nonSortable.has(col.key) ? 0 : undefined}
+                    aria-sort={!nonSortable.has(col.key) ? (sortKey === col.key ? (sortDir === 'desc' ? 'descending' : 'ascending') : 'none') : undefined}
+                    title={col.title || statTitle(col.label)}
+                    className={`data-table-head
+                      ${col.left ? 'text-left' : 'data-table-number'}
+                      ${col.key === 'playerDisplay' ? 'data-table-sticky-after-rank data-table-sticky-head data-col-player bg-acb-50' : col.key === 'team' ? 'data-col-team' : col.key === 'position' ? 'data-col-position' : col.key === 'games' ? 'data-col-games' : 'data-col-number'}
+                      ${!nonSortable.has(col.key) ? 'cursor-pointer hover:bg-acb-100' : ''}
+                      ${sortKey === col.key ? 'bg-acb-100' : ''}`}
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      {col.label}
+                      {sortKey === col.key && (
+                        sortDir === 'desc'
+                          ? <ArrowDown className="w-3 h-3" />
+                          : <ArrowUp className="w-3 h-3" />
+                      )}
+                    </span>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {isLoading ? (
+                <tr><td colSpan={cols.length + 1} className="py-12 text-center text-acb-400">Cargando datos...</td></tr>
+              ) : sorted.length === 0 ? (
+                <tr><td colSpan={cols.length + 1} className="py-12 text-center text-acb-400">No hay jugadores con {minGames}+ partidos clutch.</td></tr>
+              ) : displayed.map((p, i) => (
+                <tr
+                  key={`${p.licenseId}-${selectedSeason}-${p.team}`}
+                  onClick={() => p.licenseId && navigate(playerProfileUrl(p, selectedSeason))}
+                  onKeyDown={(e) => {
+                    if (p.licenseId && (e.key === 'Enter' || e.key === ' ')) {
+                      e.preventDefault()
+                      navigate(playerProfileUrl(p, selectedSeason))
+                    }
+                  }}
+                  tabIndex={p.licenseId ? 0 : undefined}
+                  role={p.licenseId ? 'link' : undefined}
+                  aria-label={p.licenseId ? `Abrir perfil de ${getPlayerDisplayName(p)}` : undefined}
+                  className="data-table-row border-b border-acb-100 cursor-pointer"
+                >
+                  <td className="data-table-cell data-table-number data-table-sticky data-col-rank text-acb-400">{i + 1}</td>
+                  {cols.map(col => {
+                    const v = p[col.key]
+                    const rankKey = col.rank ? `${col.key}Rank` : null
+                    const rank = rankKey ? p[rankKey] : null
+                    const percentile = rankToPercentile(rank, n)
+
+                    return (
+                      <td
+                        key={col.key}
+                        className={`data-table-cell
+                          ${col.left ? '' : 'data-table-number'}
+                          ${col.key === 'playerDisplay' ? 'data-table-identity data-table-sticky-after-rank data-col-player' : col.key === 'team' ? 'data-col-team' : col.key === 'position' ? 'data-col-position' : col.key === 'games' ? 'data-col-games' : 'data-col-number'}
+                          ${col.key === 'team' ? 'text-acb-600' : ''}
+                          ${col.key === 'position' ? 'text-acb-500 text-xs' : ''}`}
+                      >
+                        {percentile != null ? (
+                          <div className="data-table-value">
+                            <span className="text-acb-700">{fmtVal(v, col.key)}</span>
+                            <span className={`data-table-badge ${getPercentileBadgeClass(percentile)}`}>
+                              {percentile}%
+                            </span>
+                          </div>
+                        ) : (
+                          <span className={col.left ? 'text-acb-700' : 'font-mono text-acb-700'}>
+                            {v != null ? fmtVal(v, col.key) : '-'}
+                          </span>
+                        )}
+                      </td>
+                    )
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {!isLoading && n > DEFAULT_SHOW && (
+          <div className="px-4 py-3 bg-acb-50 border-t border-acb-200 text-sm text-acb-500 text-center">
+            {showAll ? (
+              <button onClick={() => setShowAll(false)} className="text-acb-600 hover:text-acb-900 underline">
+                Mostrar menos
+              </button>
+            ) : (
+              <>
+                Mostrando los primeros {DEFAULT_SHOW} jugadores.{' '}
+                <button onClick={() => setShowAll(true)} className="text-acb-600 hover:text-acb-900 underline">
+                  Mostrar todos ({n})
+                </button>
+              </>
+            )}
+          </div>
+        )}
+      </section>
+    </PlayerToolShell>
+  )
+}
