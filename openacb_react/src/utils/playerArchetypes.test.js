@@ -34,23 +34,27 @@ function archetype(overrides) {
 }
 
 describe('shooting archetypes', () => {
-  test('requires top-quartile rate and at least 20 attempts', () => {
+  test('reserves francotirador for elite accuracy over at least 40 attempts', () => {
     const shooter = {
       threeRatePct: 75,
-      fg3PctPct: 70,
-      fga3: 20,
+      fg3PctPct: 75,
+      fga3: 40,
     }
     expect(archetype(shooter)).toBe('Francotirador')
     expect(archetype({ ...shooter, threeRatePct: 74.9 })).not.toBe('Francotirador')
-    expect(archetype({ ...shooter, fga3: 19 })).not.toBe('Francotirador')
+    expect(archetype({ ...shooter, fga3: 39 })).not.toBe('Francotirador')
+    expect(archetype({ ...shooter, fg3PctPct: 74.9 })).not.toBe('Francotirador')
   })
 
-  test('separates elite, spot-up, inefficient, and off-dribble shooting', () => {
+  test('separates elite accuracy, reception, volume, and self-created threes', () => {
     const volume = { threeRatePct: 80, fga3: 50 }
-    expect(archetype({ ...volume, fg3PctPct: 70 })).toBe('Francotirador')
-    expect(archetype({ ...volume, fg3PctPct: 69, assistedFgm3: 0.80 })).toBe('Especialista spot-up')
-    expect(archetype({ ...volume, fg3PctPct: 34.9 })).toBe('Tirador Ineficiente')
-    expect(archetype({ ...volume, fg3PctPct: 70, assistedFgm3: 0.59 })).toBe('Tirador tras Bote')
+    expect(archetype({ ...volume, fg3PctPct: 75 })).toBe('Francotirador')
+    expect(archetype({ ...volume, fg3PctPct: 74.9, assistedFgm3: 0.80 })).toBe('Catch and Shoot')
+    expect(archetype({ ...volume, fg3PctPct: 35, assistedFgm3: 0.75 })).toBe('Catch and Shoot')
+    expect(archetype({ ...volume, fg3PctPct: 34.9 })).toBe('Tirador Exterior')
+    expect(archetype({ ...volume, fg3PctPct: 75, assistedFgm3: 0.69 })).toBe('Tirador tras Bote')
+    expect(archetype({ ...volume, fg3PctPct: 60, assistedFgm3: 0.69 })).toBe('Tirador tras Bote')
+    expect(archetype({ ...volume, fg3PctPct: 59.9, assistedFgm3: 0.69 })).toBe('Tirador Exterior')
   })
 
   test('separates efficient 3&d from lower-efficiency defensive shooting', () => {
@@ -62,7 +66,8 @@ describe('shooting archetypes', () => {
       assistedFgm3: 0.80,
     }
     expect(archetype({ ...defender, fg3PctPct: 60 })).toBe('3&D')
-    expect(archetype({ ...defender, fg3PctPct: 60, assistedFgm3: 0.59 })).toBe('Creador 3&D')
+    expect(archetype({ ...defender, fg3PctPct: 60, assistedFgm3: 0.69 })).toBe('Creador 3&D')
+    expect(archetype({ ...defender, fg3PctPct: 60, assistedFgm3: 0.70 })).toBe('3&D')
     expect(archetype({ ...defender, fg3PctPct: 59.9 })).toBe('Defensor spot-up')
   })
 
@@ -139,6 +144,15 @@ describe('playmaking archetypes', () => {
     expect(archetype({ ...big, astPctPosPct: 90, astToRatioPosPct: 59.9 })).not.toBe('Interior Creador')
     expect(archetype({ ...big, astPctPosPct: 90, astToRatioPosPct: null })).not.toBe('Interior Creador')
     expect(archetype({ ...big, astPctPct: 99, astPctPosPct: null })).not.toBe('Interior Creador')
+  })
+
+  test('requires league-wide creation to label a high-scoring center a creator', () => {
+    const center = {
+      position: 'Pívot', ppgPct: 85, usgPct: 65,
+      astPctPosPct: 90, astToRatioPosPct: 70,
+    }
+    expect(archetype({ ...center, astPctPct: 69.9 })).not.toBe('Interior Creador')
+    expect(archetype({ ...center, astPctPct: 70 })).toBe('Interior Creador')
   })
 
   test('reserves interior creator for centers', () => {
@@ -330,6 +344,17 @@ describe('big-man specialist coverage', () => {
     expect(archetype({ ...center, assistedFgm: 0.3 })).toBe('Creador de Tiros Interior')
   })
 
+  test('recognizes elite passing from a scoring center with less dominant rebounding', () => {
+    const center = {
+      position: 'Pívot', ppgPct: 85, usgPct: 75, mpg: 21,
+      astPctPct: 70, astPctPosPct: 95, astToRatioPosPct: 60,
+      trbPctPosPct: 65, blkPctPosPct: 20, threeRatePct: 10,
+    }
+    expect(archetype(center)).toBe('Pívot Moderno Estrella')
+    expect(archetype({ ...center, astPctPosPct: 94.9 })).not.toBe('Pívot Moderno Estrella')
+    expect(archetype({ ...center, astToRatioPosPct: 59.9 })).not.toBe('Pívot Moderno Estrella')
+  })
+
   test('recognizes a center blocking specialist without requiring strong rebounding', () => {
     const center = { position: 'Pívot', mpg: 14, trbPctPosPct: 20, blkPctPosPct: 80 }
     expect(archetype(center)).toBe('Intimidador Interior')
@@ -455,7 +480,7 @@ describe('center scoring and rebounding styles', () => {
     const center = { position: 'Pívot', trbPctPosPct: 85, orbPctPosPct: 50 }
     expect(archetype({ ...center, blkPctPosPct: 85 })).toBe('Ancla')
     expect(archetype({ ...center, blkPctPosPct: 72 })).toBe('Pívot de Rol')
-    expect(archetype({ ...center, astPctPosPct: 95 })).toBe('Interior Creador')
+    expect(archetype({ ...center, astPctPosPct: 95, astToRatioPosPct: 60 })).toBe('Interior Creador')
   })
 })
 
@@ -568,8 +593,8 @@ describe('rotation fallbacks', () => {
       ppg: 9,
       usg: 18,
       threeRatePct: 75,
-      fg3PctPct: 70,
-      fga3: 20,
+      fg3PctPct: 75,
+      fga3: 40,
     })).toBe('Francotirador')
   })
 })
@@ -587,9 +612,9 @@ describe('exported player regressions', () => {
     [2026, /Pustovyi/i, 'Finalizador Interior'],
     [2026, /Diakite/i, 'Pívot Anotador Versátil'],
     [2026, /Itan Majkl Hap/i, 'Anotador en el Poste'],
-    [2025, /Tomic/i, 'Anotador en el Poste'],
+    [2025, /Tomic/i, 'Pívot Moderno Estrella'],
     [2024, /Hernangómez/i, 'Anotador en el Poste'],
-    [2026, /Cacok/i, 'Finalizador Interior'],
+    [2026, /Cacok/i, 'Pívot Reboteador Finalizador'],
     [2026, /Geben/i, 'Pívot Anotador Versátil'],
     [2024, /Vesely/i, 'Pívot Anotador Versátil'],
     [2026, /Birgander/i, 'Interior Creador'],
@@ -597,16 +622,37 @@ describe('exported player regressions', () => {
     [2026, /Youssoupha Birima Fall/i, 'Aspiradora'],
     [2026, /Kravish/i, 'Interior Creador'],
     [2026, /Krutwig/i, 'Interior Creador'],
-    [2026, /Golden/i, 'Interior Creador'],
+    [2026, /Golden/i, 'Jugador de Rol'],
     [2026, /Neal Omar Sako/i, 'Aspiradora'],
     [2026, /Nzosa/i, 'Intimidador Interior'],
     [2026, /Labeyrie/i, 'Interior con Tiro'],
     [2024, /Llovet/i, 'Aspiradora'],
     [2026, /Tavares/i, 'Ancla'],
     [2026, /Burjanadze/i, 'Jugador de Rol'],
+    [2026, /Reyes Abad/i, 'Francotirador'],
+    [2026, /Van Beck/i, 'Tirador tras Bote'],
+    [2026, /Frisch/i, 'Catch and Shoot'],
+    [2026, /Okoye/i, 'Tirador Exterior'],
+    [2026, /Giedraitis/i, '3&D'],
   ])('recognizes the %i %s profile as %s', (season, name, expected) => {
     const player = qualified.find(record => record.season === season && name.test(record.playerFull || ''))
     expect(player).toBeDefined()
+    expect(classifyArchetype(player, null).name).toBe(expected)
+  })
+
+  test.each([
+    [2023, 'Pívot Moderno Estrella'],
+    [2024, 'Pívot Moderno Estrella'],
+    [2025, 'Pívot Moderno Estrella'],
+    [2026, 'Pívot Moderno'],
+  ])('classifies Tomic as a scoring playmaker in the %i regular season', (season, expected) => {
+    const player = playersByStage.find(record => (
+      record.season === season && record.competitionStage === 'regular'
+      && /Tomic/i.test(record.playerFull || '')
+    ))
+    expect(player).toBeDefined()
+    expect(player.astPctPosPct).toBeGreaterThanOrEqual(95)
+    expect(player.astToRatioPosPct).toBeGreaterThanOrEqual(60)
     expect(classifyArchetype(player, null).name).toBe(expected)
   })
 
@@ -754,8 +800,20 @@ describe('exported player regressions', () => {
         : player.fg3PctPct
       if (name === 'Francotirador') {
         expect(player.threeRatePct).toBeGreaterThanOrEqual(75)
+        expect(player.fga3).toBeGreaterThanOrEqual(40)
+        expect(shootingAccuracyPct).toBeGreaterThanOrEqual(75)
+      }
+      if (name === 'Tirador tras Bote' || name === 'Catch and Shoot' || name === 'Tirador Exterior') {
+        expect(player.threeRatePct).toBeGreaterThanOrEqual(75)
         expect(player.fga3).toBeGreaterThanOrEqual(20)
-        expect(shootingAccuracyPct).toBeGreaterThanOrEqual(70)
+        if (name === 'Tirador tras Bote') {
+          expect(shootingAccuracyPct).toBeGreaterThanOrEqual(60)
+          expect(player.assistedFgm3).toBeLessThan(0.70)
+        }
+        if (name === 'Catch and Shoot') {
+          expect(shootingAccuracyPct).toBeGreaterThanOrEqual(35)
+          expect(player.assistedFgm3).toBeGreaterThanOrEqual(0.75)
+        }
       }
       if (name === '3&D' || name === 'Creador 3&D') {
         expect(player.threeRatePct).toBeGreaterThanOrEqual(75)

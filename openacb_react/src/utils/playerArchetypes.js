@@ -68,7 +68,7 @@ export function classifyArchetype(player, bio) {
     : null
 
   const isSelfCreator = astdFgm != null && astdFgm < 0.40
-  const isOffDribble3 = astdFgm3 != null && astdFgm3 < 0.60
+  const isOffDribble3 = astdFgm3 != null && astdFgm3 < 0.70
   const isSpotUp3 = astdFgm3 != null && astdFgm3 >= 0.75
 
   const isHighVolume = usg >= 80
@@ -76,6 +76,10 @@ export function classifyArchetype(player, bio) {
   const isEfficient = ts >= 75
   const isPlaymaker = ast >= 75
   const isRebounder = trb >= 80
+  const isElitePassingCenter = isCenterPos && astPos != null && astPos >= 95
+    && astToPos != null && astToPos >= 60
+  const isModernCenter = isScorer && isCenterPos && ast >= 70
+    && (trb >= 80 || isElitePassingCenter)
   const isBestiaEnLaZona = isRebounder && blk >= 80 && ts >= 85 && ppg > 75 && isBigPos
   const isRimProtector = blk >= 75
   const isPerimDefender = stl >= 80
@@ -92,9 +96,9 @@ export function classifyArchetype(player, bio) {
   const isStretchThreeVolume = player.threeRatePct != null
     && thr >= (isCenterPos ? 25 : 50)
     && fga3 >= 20
-  const isEliteThreeAccuracy = fg3 >= 70
+  const isEliteThreeAccuracy = fg3 >= 75
   const isViableThreeAccuracy = fg3 >= 60
-  const isVeryPoorThreeAccuracy = fg3 < 35
+  const isReceptionThreeAccuracy = fg3 >= 35
   // Zone aggregates are absent before 2020-21. Null individual zones mean zero attempts
   // only when the aggregates exist. Assisted twos avoid contamination from assisted threes.
   const hasShotZones = Number.isFinite(player.freqAllMid) && Number.isFinite(player.freqAllThree)
@@ -137,9 +141,10 @@ export function classifyArchetype(player, bio) {
     && astToPos >= 60
     && apg >= 1.5
 
-  // Passing centers need strong position-relative creation and reliable assist-to-turnover play.
+  // Scoring centers also need strong league-wide creation to outrank their scoring role.
   if (isCenterPos && astPos != null && astPos >= 85
-    && astToPos != null && astToPos >= 60 && !isScorer && usg < 80) {
+    && astToPos != null && astToPos >= 60 && !isScorer && usg < 80
+    && (ppg < 80 || ast >= 70)) {
     return {
       name: 'Interior Creador',
       desc: 'Interior con visión de juego excepcional para su posición que facilita el ataque',
@@ -415,34 +420,32 @@ export function classifyArchetype(player, bio) {
     }
   }
 
-  if (!isScorer && !isCenterPos && ast < 65 && isHighThreeVolume) {
-    if (isVeryPoorThreeAccuracy) {
-      return {
-        name: 'Tirador Ineficiente',
-        desc: 'Concentra muchos tiros en el perímetro con un porcentaje muy bajo',
-        color: 'text-negative-700 bg-negative-50 border-negative-200',
-      }
-    }
-    if (isEliteThreeAccuracy && isOffDribble3) {
+  if (!isScorer && !isCenterPos && !isStrongDefender && ast < 65 && isHighThreeVolume) {
+    if (isViableThreeAccuracy && isOffDribble3) {
       return {
         name: 'Tirador tras Bote',
-        desc: 'Genera y convierte su propio tiro exterior con eficiencia',
+        desc: 'Genera una parte importante de sus tiros exteriores tras bote',
         color: 'text-sand-700 bg-sand-50 border-sand-200',
       }
     }
-    if (isEliteThreeAccuracy) {
+    if (isEliteThreeAccuracy && fga3 >= 40) {
       return {
         name: 'Francotirador',
         desc: 'Especialista exterior de alto volumen y eficiencia',
         color: 'text-sand-700 bg-sand-50 border-sand-200',
       }
     }
-    if (isSpotUp3) {
+    if (isSpotUp3 && isReceptionThreeAccuracy) {
       return {
-        name: 'Especialista spot-up',
-        desc: 'Finaliza tras pase con alto volumen exterior y eficiencia intermedia',
+        name: 'Catch and Shoot',
+        desc: 'Busca el triple tras pase y concentra ahí gran parte de sus tiros',
         color: 'text-sand-700 bg-sand-50 border-sand-200',
       }
+    }
+    return {
+      name: 'Tirador Exterior',
+      desc: 'Concentra una parte elevada de sus tiros en el triple',
+      color: 'text-sand-700 bg-sand-50 border-sand-200',
     }
   }
 
@@ -526,7 +529,7 @@ export function classifyArchetype(player, bio) {
     }
   }
 
-  if (isScorer && trb >= 80 && ast >= 70 && mpg >= 20 && isCenterPos) {
+  if (isModernCenter && mpg >= 20) {
     return {
       name: 'Pívot Moderno Estrella',
       desc: 'Anota en la pintura, rebotea y habilita a sus compañeros con volumen de estrella',
@@ -534,7 +537,7 @@ export function classifyArchetype(player, bio) {
     }
   }
 
-  if (isScorer && trb >= 80 && ast >= 70 && isCenterPos) {
+  if (isModernCenter) {
     return {
       name: 'Pívot Moderno',
       desc: 'Anota en la pintura, rebotea y habilita a sus compañeros',
