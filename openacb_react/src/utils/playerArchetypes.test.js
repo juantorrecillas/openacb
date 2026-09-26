@@ -202,12 +202,12 @@ describe('playmaking archetypes', () => {
 
   test('gives elite organizers the General role regardless of scoring or defense', () => {
     const guard = {
-      position: 'Base', astPctPct: 95, astToRatioPosPct: 60,
+      position: 'Base', astPctPct: 95, astToRatioPosPct: 55,
       usgPct: 80, ppgPct: 65, mpg: 22,
     }
     expect(archetype(guard)).toBe('General en la Pista')
     expect(archetype({ ...guard, stlPctPct: 90 })).toBe('General en la Pista')
-    expect(archetype({ ...guard, astToRatioPosPct: 59.9, stlPctPct: 90 })).toBe('Creador de Juego Defensivo')
+    expect(archetype({ ...guard, astToRatioPosPct: 54.9, stlPctPct: 90 })).toBe('Creador de Juego Defensivo')
   })
 
   test('reserves Motor Ofensivo for high-scoring point guards with elite passing', () => {
@@ -721,7 +721,9 @@ describe('exported player regressions', () => {
     [2026, /Hugo Benitez/i, 'General en la Pista'],
     [2026, /Kendrick.*Perry/i, 'General en la Pista'],
     [2026, /Campazzo/i, 'General en la Pista'],
+    [2025, /Campazzo/i, 'General en la Pista'],
     [2026, /Roberts-Russell/i, 'General en la Pista'],
+    [2026, /Dominik.*Mavra/i, 'General en la Pista'],
     [2026, /Raul.*Neto/i, 'Creador de Juego Defensivo'],
     [2026, /Costa Martínez/i, 'Creador de Juego'],
     [2026, /Rubio Vives/i, 'Base Todoterreno Élite'],

@@ -208,7 +208,7 @@ export function classifyArchetype(player, bio) {
     }
   }
 
-  if (ast >= 95 && isHighVolume && isControlledPointGuard) {
+  if (isPointGuard && ast >= 95 && isHighVolume && astToPos != null && astToPos >= 55) {
     return {
       name: 'General en la Pista',
       desc: 'Creador de alto volumen que encuentra a sus compañeros y protege el balón',
