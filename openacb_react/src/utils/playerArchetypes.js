@@ -76,6 +76,7 @@ export function classifyArchetype(player, bio) {
   const isEfficient = ts >= 75
   const isPlaymaker = ast >= 75
   const isRebounder = trb >= 80
+  const isBestiaEnLaZona = isRebounder && blk >= 80 && ts >= 85 && ppg > 75 && isBigPos
   const isRimProtector = blk >= 75
   const isPerimDefender = stl >= 80
   const isStrongDefender = isPerimDefender || isRimProtector
@@ -87,9 +88,31 @@ export function classifyArchetype(player, bio) {
 
   // shooting roles require both a high rate and a stable attempt sample
   const isHighThreeVolume = thr >= 75 && fga3 >= 20
+  // stretch bigs can create spacing with a smaller share of three-point attempts
+  const isStretchThreeVolume = player.threeRatePct != null
+    && thr >= (isCenterPos ? 25 : 50)
+    && fga3 >= 20
   const isEliteThreeAccuracy = fg3 >= 70
   const isViableThreeAccuracy = fg3 >= 60
   const isVeryPoorThreeAccuracy = fg3 < 35
+  // Zone aggregates are absent before 2020-21. Null individual zones mean zero attempts
+  // only when the aggregates exist. Assisted twos avoid contamination from assisted threes.
+  const hasShotZones = Number.isFinite(player.freqAllMid) && Number.isFinite(player.freqAllThree)
+    && Number.isFinite(player.fgaAllMid) && Number.isFinite(player.fgaAllThree)
+  const assistedTwos = Number.isFinite(player.assistedFgm2)
+    && player.assistedFgm2 >= 0 && player.assistedFgm2 <= 1 ? player.assistedFgm2 : null
+  const paintFrequency = hasShotZones ? (player.freqRim ?? 0) + (player.freqShortMid ?? 0) : null
+  const outsideFrequency = hasShotZones ? (player.freqLongMid ?? 0) + player.freqAllThree : null
+  const longMidAttempts = hasShotZones ? (player.fgaLongMid ?? 0) : 0
+  const threeAttempts = hasShotZones ? player.fgaAllThree : 0
+  const outsideAttempts = longMidAttempts + threeAttempts
+  const hasOutsideAccuracy = (longMidAttempts === 0 || Number.isFinite(player.fgpctLongMid))
+    && (threeAttempts === 0 || Number.isFinite(player.fgpctAllThree))
+  const outsideEfg = outsideAttempts > 0 && hasOutsideAccuracy
+    ? (longMidAttempts * (player.fgpctLongMid ?? 0)
+      + 1.5 * threeAttempts * (player.fgpctAllThree ?? 0)) / outsideAttempts
+    : null
+  const isScoringCenter = isCenterPos && ppg >= 70 && (usg >= 60 || isEfficient)
   const scoringEfficiency = ts >= 65
     ? 'buena eficiencia anotadora'
     : ts < 35
@@ -114,8 +137,9 @@ export function classifyArchetype(player, bio) {
     && astToPos >= 60
     && apg >= 1.5
 
-  // passing centers are exceptional relative to their exact listed position
-  if (isCenterPos && astPos != null && astPos >= 90 && !isScorer && usg < 80 && trb >= 50) {
+  // Passing centers need strong position-relative creation and reliable assist-to-turnover play.
+  if (isCenterPos && astPos != null && astPos >= 85
+    && astToPos != null && astToPos >= 60 && !isScorer && usg < 80) {
     return {
       name: 'Interior Creador',
       desc: 'Interior con visión de juego excepcional para su posición que facilita el ataque',
@@ -199,6 +223,16 @@ export function classifyArchetype(player, bio) {
     return {
       name: 'Creador de Tiros-Organizador',
       desc: 'Creador de alto octanaje que también habilita a sus compañeros',
+      color: 'text-gold-700 bg-gold-50 border-gold-200',
+    }
+  }
+
+  // Give scoring centers with proven range their own label before generic perimeter scorers.
+  if (isScoringCenter && paintFrequency >= 25 && outsideFrequency >= 25
+    && outsideAttempts >= 20 && outsideEfg >= 45) {
+    return {
+      name: 'Pívot Anotador Versátil',
+      desc: 'Pívot con volumen anotador y una amenaza eficiente de media distancia o triple',
       color: 'text-gold-700 bg-gold-50 border-gold-200',
     }
   }
@@ -356,14 +390,6 @@ export function classifyArchetype(player, bio) {
     }
   }
 
-  if (isScorer && thr < 20 && !isRimProtector && stl > 30) {
-    return {
-      name: 'Finalizador Interior',
-      desc: 'Anotador agresivo atacando el aro',
-      color: 'text-gold-700 bg-gold-50 border-gold-200',
-    }
-  }
-
   // shooting and 3&d roles precede generic defensive labels
   if (!isScorer && isPerimeterRole && isHighThreeVolume && isStrongDefender) {
     if (isViableThreeAccuracy && isOffDribble3) {
@@ -421,9 +447,9 @@ export function classifyArchetype(player, bio) {
   }
 
   // qualified shooting centers stay in the stretch-big taxonomy
-  const isStretchCenter = isCenterPos && isHighThreeVolume && isViableThreeAccuracy && !isScorer
+  const isStretchCenter = isCenterPos && isStretchThreeVolume && isViableThreeAccuracy && !isScorer
   const isStretchPowerForward = isPFPos
-    && isHighThreeVolume
+    && isStretchThreeVolume
     && isViableThreeAccuracy
     && trb >= 50
     && blk < 60
@@ -516,6 +542,54 @@ export function classifyArchetype(player, bio) {
     }
   }
 
+  // Keep the existing rim-protecting center role ahead of both rebound-and-finish roles.
+  if (isCenterPos && isBestiaEnLaZona) {
+    return {
+      name: 'Bestia en la Zona',
+      desc: 'Domina la zona con rebotes y protección de aro, anotando con eficiencia',
+      color: 'text-gold-700 bg-gold-50 border-gold-200',
+    }
+  }
+
+  // Elite scorers and rebounders without Bestia-level interior defense get a distinct role.
+  if (isCenterPos && ppg > 85 && trb > 90 && blk < 80 && ts >= 75
+    && paintFrequency != null && paintFrequency >= 65 && player.fgm2 >= 20) {
+    return {
+      name: 'Reboteador dominante en la zona',
+      desc: 'Pívot de anotación y rebote de élite que domina la pintura',
+      color: 'text-gold-700 bg-gold-50 border-gold-200',
+    }
+  }
+
+  // Paint beasts pair strong center rebounding with efficient, high-volume interior scoring.
+  if (isCenterPos && ppg >= 75 && trb >= 80 && ts >= 75
+    && paintFrequency != null && paintFrequency >= 65 && player.fgm2 >= 20) {
+    return {
+      name: 'Pívot Reboteador Finalizador',
+      desc: 'Pívot que combina rebote de élite con finalización eficiente en la pintura',
+      color: 'text-gold-700 bg-gold-50 border-gold-200',
+    }
+  }
+
+  // Paint concentration and unassisted twos approximate post creation; no play-type data is available.
+  if (isScoringCenter && !isRimProtector && paintFrequency >= 65
+    && player.fgm2 >= 20 && assistedTwos != null) {
+    if (assistedTwos < 0.60) {
+      return {
+        name: 'Anotador en el Poste',
+        desc: 'Interior que genera gran parte de sus canastas de dos en la pintura',
+        color: 'text-gold-700 bg-gold-50 border-gold-200',
+      }
+    }
+    if (player.freqRim >= 40) {
+      return {
+        name: 'Finalizador Interior',
+        desc: 'Anota cerca del aro y finaliza mayoritariamente tras asistencia',
+        color: 'text-gold-700 bg-gold-50 border-gold-200',
+      }
+    }
+  }
+
   if (isScorer && isRebounder && blk < 70 && thr < 40 && isBigPos && isSelfCreator) {
     return {
       name: 'Creador de Tiros Interior',
@@ -532,6 +606,17 @@ export function classifyArchetype(player, bio) {
     }
   }
 
+  // Preserve the older finishing rule where shot zones cannot support the finer center split.
+  if ((isScorer || (isCenterPos && ppg >= 75 && isEfficient))
+    && thr < 20 && !isRimProtector && (isCenterPos || stl > 30)
+    && (!isCenterPos || !hasShotZones)) {
+    return {
+      name: 'Finalizador Interior',
+      desc: 'Anotador agresivo atacando el aro',
+      color: 'text-gold-700 bg-gold-50 border-gold-200',
+    }
+  }
+
   if (isCenterPos && trb >= 85 && blk >= 85 && !isScorer) {
     return {
       name: 'Ancla',
@@ -540,7 +625,7 @@ export function classifyArchetype(player, bio) {
     }
   }
 
-  if (isRebounder && blk >= 80 && ts >= 85 && ppg > 75 && isBigPos) {
+  if (!isCenterPos && isBestiaEnLaZona) {
     return {
       name: 'Bestia en la Zona',
       desc: 'Domina la zona con rebotes y protección de aro, anotando con eficiencia',
@@ -564,7 +649,7 @@ export function classifyArchetype(player, bio) {
     }
   }
 
-  if (blk >= 90 && !isScorer && isBigPos) {
+  if (blk >= (isCenterPos ? 80 : 90) && !isScorer && isBigPos) {
     return {
       name: 'Intimidador Interior',
       desc: 'Presencia defensiva cerca del aro con tapones',
@@ -612,7 +697,11 @@ export function classifyArchetype(player, bio) {
     }
   }
 
-  if ((isRebounder || (isCenterPos && trb >= 72)) && orb >= 70 && !isScorer && isBigPos) {
+  // Centers must excel in total rebounding or be an elite offensive-rebound specialist.
+  const isEliteReboundingBig = isCenterPos
+    ? trbPos != null && ((trb >= 80 && orb >= 70) || (trb >= 50 && orb >= 90))
+    : trb >= 75 && orb >= 70
+  if (isEliteReboundingBig && !isScorer && isBigPos) {
     return {
       name: 'Aspiradora',
       desc: 'Dominador del rebote ofensivo y defensivo',
@@ -625,6 +714,14 @@ export function classifyArchetype(player, bio) {
       name: 'Pívot de Rol',
       desc: 'Cumple su función de protector del aro y reboteador',
       color: 'text-plum-700 bg-plum-50 border-plum-200',
+    }
+  }
+
+  if (isCenterPos && trbPos != null && trb >= 60 && player.usgPct != null && usg < 60 && !isScorer) {
+    return {
+      name: 'Pívot Reboteador',
+      desc: 'Pívot que aporta rebote con una carga ofensiva moderada',
+      color: 'text-sand-700 bg-sand-50 border-sand-200',
     }
   }
 
