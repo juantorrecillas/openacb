@@ -208,6 +208,14 @@ export function classifyArchetype(player, bio) {
     }
   }
 
+  if (isPointGuard && ppg >= 85 && ast >= 97 && usg >= 90 && mpg >= 20) {
+    return {
+      name: 'Motor Ofensivo',
+      desc: 'Base con alto volumen anotador que también genera muchas oportunidades para sus compañeros',
+      color: 'text-gold-700 bg-gold-50 border-gold-200',
+    }
+  }
+
   if (ast >= 95 && isHighVolume && ppg >= 70 && trb < 80 && isControlledPointGuard) {
     return {
       name: 'General en la Pista',

@@ -190,6 +190,18 @@ describe('playmaking archetypes', () => {
     })).toBe('Creador de Tiros-Organizador')
   })
 
+  test('reserves Motor Ofensivo for high-scoring point guards with elite passing', () => {
+    const guard = {
+      position: 'Base', astPctPct: 97, astToRatioPosPct: 60,
+      usgPct: 90, ppgPct: 85, trbPctPct: 40, mpg: 25,
+    }
+    expect(archetype(guard)).toBe('Motor Ofensivo')
+    expect(archetype({ ...guard, astToRatioPosPct: 20 })).toBe('Motor Ofensivo')
+    expect(archetype({ ...guard, ppgPct: 84.9 })).toBe('General en la Pista')
+    expect(archetype({ ...guard, astPctPct: 96.9 })).toBe('General en la Pista')
+    expect(archetype({ ...guard, usgPct: 89.9 })).toBe('General en la Pista')
+  })
+
   test('uses position-appropriate labels for combo guards and forwards', () => {
     expect(archetype({
       position: 'Escolta',
@@ -654,6 +666,35 @@ describe('exported player regressions', () => {
     expect(player.astPctPosPct).toBeGreaterThanOrEqual(95)
     expect(player.astToRatioPosPct).toBeGreaterThanOrEqual(60)
     expect(classifyArchetype(player, null).name).toBe(expected)
+  })
+
+  test.each([2020, 2021, 2022, 2023, 2024, 2025, 2026])(
+    'recognizes Huertas as Motor Ofensivo in the %i regular season', season => {
+      const player = playersByStage.find(record => (
+        record.season === season && record.competitionStage === 'regular'
+        && /Huertas/i.test(record.playerFull || '')
+      ))
+      expect(player).toBeDefined()
+      expect(classifyArchetype(player, null).name).toBe('Motor Ofensivo')
+    },
+  )
+
+  test.each([
+    [2017, /McConnell/i],
+    [2025, /Brandon.*Taylor/i],
+  ])('recognizes other %i high-scoring playmakers as Motor Ofensivo', (season, name) => {
+    const player = playersByStage.find(record => (
+      record.season === season && record.competitionStage === 'regular'
+      && name.test(record.playerFull || '')
+    ))
+    expect(player).toBeDefined()
+    expect(classifyArchetype(player, null).name).toBe('Motor Ofensivo')
+  })
+
+  test('keeps a lower-scoring, controlled playmaker as General en la Pista', () => {
+    const bassas = qualified.find(player => player.season === 2026 && /Bassas/i.test(player.playerFull || ''))
+    expect(bassas).toBeDefined()
+    expect(classifyArchetype(bassas, null).name).toBe('General en la Pista')
   })
 
   test('classifies Aaron Doornekamp in 2022-23 from corrected midrank percentiles', () => {
