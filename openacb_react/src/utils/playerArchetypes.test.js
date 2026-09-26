@@ -190,6 +190,26 @@ describe('playmaking archetypes', () => {
     })).toBe('Creador de Tiros-Organizador')
   })
 
+  test('reserves shot creator for bases at or above the scoring cutoff', () => {
+    const guard = {
+      position: 'Base', astPctPct: 90, astToRatioPosPct: 40,
+      usgPct: 85, trbPctPct: 40, mpg: 22,
+    }
+    expect(archetype({ ...guard, ppgPct: 80 })).toBe('Creador de Tiros-Organizador')
+    expect(archetype({ ...guard, ppgPct: 79.9 })).toBe('Creador de Juego')
+    expect(archetype({ ...guard, ppgPct: 79.9, stlPctPct: 90 })).toBe('Creador de Juego Defensivo')
+  })
+
+  test('gives elite organizers the General role regardless of scoring or defense', () => {
+    const guard = {
+      position: 'Base', astPctPct: 95, astToRatioPosPct: 60,
+      usgPct: 80, ppgPct: 65, mpg: 22,
+    }
+    expect(archetype(guard)).toBe('General en la Pista')
+    expect(archetype({ ...guard, stlPctPct: 90 })).toBe('General en la Pista')
+    expect(archetype({ ...guard, astToRatioPosPct: 59.9, stlPctPct: 90 })).toBe('Creador de Juego Defensivo')
+  })
+
   test('reserves Motor Ofensivo for high-scoring point guards with elite passing', () => {
     const guard = {
       position: 'Base', astPctPct: 97, astToRatioPosPct: 60,
@@ -695,6 +715,27 @@ describe('exported player regressions', () => {
     const bassas = qualified.find(player => player.season === 2026 && /Bassas/i.test(player.playerFull || ''))
     expect(bassas).toBeDefined()
     expect(classifyArchetype(bassas, null).name).toBe('General en la Pista')
+  })
+
+  test.each([
+    [2026, /Hugo Benitez/i, 'General en la Pista'],
+    [2026, /Kendrick.*Perry/i, 'General en la Pista'],
+    [2026, /Campazzo/i, 'General en la Pista'],
+    [2026, /Roberts-Russell/i, 'General en la Pista'],
+    [2026, /Raul.*Neto/i, 'Creador de Juego Defensivo'],
+    [2026, /Costa Martínez/i, 'Creador de Juego'],
+    [2026, /Rubio Vives/i, 'Base Todoterreno Élite'],
+    [2026, /De Julius/i, 'Creador de Tiros-Organizador'],
+    [2026, /Bell-Haynes/i, 'Creador de Tiros-Organizador'],
+    [2026, /Livingston/i, 'Creador de Tiros-Organizador'],
+    [2024, /Kendrick.*Perry/i, 'General en la Pista'],
+  ])('classifies the %i regular-season %s as %s', (season, name, expected) => {
+    const player = playersByStage.find(record => (
+      record.season === season && record.competitionStage === 'regular'
+      && record.qualified && name.test(record.playerFull || '')
+    ))
+    expect(player).toBeDefined()
+    expect(classifyArchetype(player, null).name).toBe(expected)
   })
 
   test('classifies Aaron Doornekamp in 2022-23 from corrected midrank percentiles', () => {

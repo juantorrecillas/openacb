@@ -200,14 +200,6 @@ export function classifyArchetype(player, bio) {
     }
   }
 
-  if (isPlaymaker && isPerimDefender && usg >= 75 && ppg >= 75 && blk < 50 && !isRebounder && isSelfCreator) {
-    return {
-      name: 'Creador de Tiros Polivalente',
-      desc: 'Creador de juego y anotador con defensa perimetral de alto nivel',
-      color: 'text-sage-700 bg-sage-50 border-sage-200',
-    }
-  }
-
   if (isPointGuard && ppg >= 85 && ast >= 97 && usg >= 90 && mpg >= 20) {
     return {
       name: 'Motor Ofensivo',
@@ -216,7 +208,7 @@ export function classifyArchetype(player, bio) {
     }
   }
 
-  if (ast >= 95 && isHighVolume && ppg >= 70 && trb < 80 && isControlledPointGuard) {
+  if (ast >= 95 && isHighVolume && isControlledPointGuard) {
     return {
       name: 'General en la Pista',
       desc: 'Creador de alto volumen que encuentra a sus compañeros y protege el balón',
@@ -232,7 +224,7 @@ export function classifyArchetype(player, bio) {
     }
   }
 
-  if (ast >= 80 && isHighVolume && ppg >= 75 && trb < 80 && mpg >= 20 && isGuardPos) {
+  if (ast >= 80 && isHighVolume && ppg >= 80 && trb < 80 && mpg >= 20 && isGuardPos) {
     return {
       name: 'Creador de Tiros-Organizador',
       desc: 'Creador de alto octanaje que también habilita a sus compañeros',
@@ -323,7 +315,8 @@ export function classifyArchetype(player, bio) {
     }
   }
 
-  if (isPointGuard && ast >= 75 && usg < 80 && !isScorer) {
+  // High-usage playmakers just below the scoring-creator cutoff still need a creation role.
+  if (isPointGuard && ast >= 75 && !isScorer && (usg < 80 || (ppg >= 75 && mpg >= 20))) {
     if (isControlledPointGuard) {
       return {
         name: 'Organizador Puro',
