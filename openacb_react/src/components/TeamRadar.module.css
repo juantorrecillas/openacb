@@ -1,0 +1,13 @@
+.radar { display: block; width: 100%; max-width: 600px; margin: 8px auto 0; overflow: visible; --radar-ink: #334e68; --radar-grid: #d9e2ec; --radar-mid: #829ab1; --radar-paper: #fff; }
+.dark { --radar-ink: #d9e2ec; --radar-grid: #334e68; --radar-mid: #9fb3c8; --radar-paper: #102a43; }
+.grid { fill: none; stroke: var(--radar-grid); stroke-width: 1; }
+.median { fill: none; stroke: var(--radar-mid); stroke-width: 1.3; stroke-dasharray: 4 4; }
+.area { fill: var(--radar-color); fill-opacity: .12; stroke: var(--radar-color); stroke-width: 1.75; stroke-linejoin: round; }
+.point { fill: var(--radar-color); stroke: var(--radar-paper); stroke-width: 1.5; }
+.label { fill: var(--radar-ink); font: 500 14px Inter, sans-serif; }
+.value { fill: var(--radar-color); font: 600 15px 'JetBrains Mono', monospace; }
+.scale { fill: var(--radar-mid); font: 10px 'JetBrains Mono', monospace; paint-order: stroke; stroke: var(--radar-paper); stroke-width: 3px; }
+@media (max-width: 639px) {
+  .label { font-size: 18px; }
+  .value { font-size: 20px; }
+}
