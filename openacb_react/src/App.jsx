@@ -2,6 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import { Routes, Route, useLocation, Link, Navigate } from 'react-router-dom'
 import { Analytics } from '@vercel/analytics/react'
 import SiteHeader from './components/SiteHeader'
+import { getPageMetadata, updatePageMetadata } from './seo/metadata.js'
 import { BarChart3, Target, Users, TrendingUp, Percent, Trophy, Info, UserCircle, GitCompareArrows, Fingerprint, Activity, Crown, Flame, Scale, Sparkles } from 'lucide-react'
 import {
   ROUTE_MANIFEST,
@@ -203,25 +204,6 @@ function App() {
   const dataRequestsRef = useRef({})
 
   useEffect(() => {
-    const route = routeMatch?.route
-    document.title = activeTab === 'home'
-      ? 'OpenACB - Estadística Avanzada de la Liga Endesa'
-      : `${route?.title || route?.label || 'Página no encontrada'} | openACB`
-
-    let description = document.querySelector('meta[name="description"]')
-    if (route?.description) {
-      if (!description) {
-        description = document.createElement('meta')
-        description.name = 'description'
-        document.head.appendChild(description)
-      }
-      description.content = route.description
-    } else {
-      description?.remove()
-    }
-  }, [activeTab, routeMatch?.route])
-
-  useEffect(() => {
     window.scrollTo({ top: 0, left: 0 })
   }, [location.pathname])
 
@@ -341,6 +323,11 @@ function App() {
   const canonicalResolution = canonicalMatch
     ? resolveCanonicalEntityLocation(location, routingContext)
     : null
+
+  const entityNotFound = ['not-found', 'ambiguous'].includes(canonicalResolution?.status)
+  useEffect(() => {
+    updatePageMetadata(getPageMetadata(location.pathname, { notFound: entityNotFound }))
+  }, [location.pathname, entityNotFound])
 
   const loadShotsForSeason = useCallback(async (season) => {
     if (shotsCache[season]) return shotsCache[season]

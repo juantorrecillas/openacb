@@ -1,5 +1,7 @@
 {
+  "buildCommand": "npm run build",
+  "cleanUrls": true,
   "rewrites": [
-    { "source": "/(.*)", "destination": "/" }
+    { "source": "/(.*)", "destination": "/app" }
   ]
 }

@@ -172,6 +172,31 @@ Aplicación web interactiva con 13 páginas organizadas en 5 secciones:
 - Cartas de Tiro: todos los tiros de un jugador o equipo presentados de diversas formas
 - Líderes por Zona: mejores anotadores por zona de la cancha
 
+## SEO y apariencia en buscadores
+
+El frontend define los títulos y descripciones en
+`openacb_react/src/routing/manifest.js`. Al ejecutar `npm run build` desde
+`openacb_react`, el paso `postbuild` genera HTML con metadatos específicos para
+las 18 páginas principales, además de `robots.txt` y `sitemap.xml`. Vercel sirve
+esos archivos con URLs sin extensión; los enlaces a jugadores, equipos y URLs
+antiguas siguen entrando por el shell de React (`app.html`), que no lleva una
+canónica de portada. React actualiza los metadatos al navegar y marca las páginas
+inexistentes como `noindex`.
+
+Las URLs canónicas omiten los filtros de la interfaz (incluida la temporada) para
+concentrar la indexación en cada herramienta. Los perfiles de entidades conservan
+su ruta propia. El sitemap incluye las páginas principales; no enumera perfiles
+individuales ni combinaciones de filtros. Los gráficos y tablas siguen necesitando
+JavaScript: este paso genera metadatos estáticos, no prerenderiza el contenido.
+
+Después de desplegar, comprobar que `/robots.txt` devuelve texto y `/sitemap.xml`
+devuelve XML. En [Google Search Console](https://search.google.com/search-console),
+verificar la propiedad `openacb.com`, enviar `https://openacb.com/sitemap.xml` e
+inspeccionar la portada y las páginas principales con la prueba de URL publicada.
+Comprobar el HTML renderizado y solicitar su indexación. Google decide el texto
+del resultado y necesita volver a rastrear las páginas para reflejar cambios;
+las descripciones no garantizan un snippet concreto ni una posición determinada.
+
 ## Archivos de Datos Generados
 
 | Archivo                         | Descripción                                         |

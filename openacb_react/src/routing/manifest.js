@@ -37,6 +37,8 @@ export const ROUTE_MANIFEST = Object.freeze([
   route({
     id: 'home', sectionId: 'home', navGroupId: 'home', tabId: 'home',
     label: 'Inicio', patterns: ['/'], legacyPatterns: [], build: () => buildHomePath(),
+    title: 'OpenACB - Estadística avanzada ACB y Liga Endesa',
+    description: 'Estadísticas avanzadas de la ACB y la Liga Endesa. Compara jugadores y equipos, explora cartas de tiro y analiza quintetos y datos On/Off gratis en OpenACB.',
   }),
   route({
     id: 'teamStats', sectionId: 'equipos', navGroupId: 'equipos', tabId: 'teams',
@@ -49,32 +51,44 @@ export const ROUTE_MANIFEST = Object.freeze([
     id: 'teamProfile', sectionId: 'equipos', navGroupId: 'equipos', tabId: 'fingerprint',
     label: 'Perfil de Equipo', patterns: ['/equipos/perfil', '/equipos/perfil/:teamId'],
     legacyPatterns: ['/perfil-equipo', '/perfil-equipo/:season/:team'],
+    title: 'Perfil de equipo ACB: estadísticas y estilo de juego',
+    description: 'Explora el perfil de los equipos de la Liga Endesa: fortalezas, debilidades, ritmo, eficiencia y evolución de sus estadísticas avanzadas.',
     build: params => buildTeamProfilePath(params.teamId),
   }),
   route({
     id: 'teamComparison', sectionId: 'equipos', navGroupId: 'herramientas', tabId: 'matchup',
     label: 'Cara a Cara', patterns: ['/equipos/comparar', '/equipos/comparar/:teamAId/:teamBId'],
     legacyPatterns: ['/matchup-equipos', '/matchup-equipos/:season/:teamA/:teamB'],
+    title: 'Comparar equipos ACB: estadísticas cara a cara',
+    description: 'Compara dos equipos de la ACB por temporada: ataque, defensa, ritmo y métricas avanzadas para analizar sus diferencias en la Liga Endesa.',
     build: params => buildTeamComparisonPath(params.teamAId, params.teamBId),
   }),
   route({
     id: 'fourFactors', sectionId: 'equipos', navGroupId: 'equipos', tabId: 'factors',
     label: 'Four Factors', patterns: ['/equipos/cuatro-factores'], legacyPatterns: ['/cuatro-factores'],
+    title: 'Four Factors ACB: los cuatro factores del baloncesto',
+    description: 'Analiza los cuatro factores de los equipos ACB: eficiencia de tiro, pérdidas, rebote ofensivo y tiros libres, con datos de la Liga Endesa.',
     build: () => buildFourFactorsPath(),
   }),
   route({
     id: 'teamQuarters', sectionId: 'equipos', navGroupId: 'equipos', tabId: 'quarters',
     label: 'Rendimiento por Cuarto', patterns: ['/equipos/cuartos'], navigation: false,
+    title: 'Estadísticas ACB por cuarto: ritmo y rendimiento',
+    description: 'Consulta el rendimiento de los equipos de la ACB en cada cuarto del partido y compara su ritmo, ataque y defensa por temporada.',
     build: () => buildTeamQuartersPath(),
   }),
   route({
     id: 'teamClutch', sectionId: 'equipos', navGroupId: 'equipos', tabId: 'teamClutch',
     label: 'Clutch por Equipo', patterns: ['/equipos/clutch'], navigation: false,
+    title: 'Estadísticas clutch de equipos ACB: finales ajustados',
+    description: 'Compara el rendimiento de los equipos ACB en finales ajustados: balance de victorias, puntos y estadísticas de tiro en situaciones clutch.',
     build: () => buildTeamClutchPath(),
   }),
   route({
     id: 'games', sectionId: 'partidos', navGroupId: 'equipos', tabId: 'gameflow',
     label: 'Análisis de Partido', patterns: ['/partidos', '/partidos/:game'], legacyPatterns: ['/flujo-partido'],
+    title: 'Análisis de partidos ACB: marcador y jugadas',
+    description: 'Explora los partidos de la Liga Endesa con la evolución del marcador y el detalle de sus jugadas para analizar cómo se decidió cada encuentro.',
     build: params => buildGamesPath(params.game ?? params.gameId, params.name),
   }),
   route({
@@ -96,17 +110,23 @@ export const ROUTE_MANIFEST = Object.freeze([
     id: 'playerSimilarity', sectionId: 'jugadores', navGroupId: 'herramientas', tabId: 'similarity',
     label: 'Similitud', patterns: ['/jugadores/similitud', '/jugadores/similitud/:player'],
     legacyPatterns: ['/similitud', '/similitud/:licenseId/:season'],
+    title: 'Jugadores similares ACB: compara perfiles estadísticos',
+    description: 'Encuentra jugadores de la ACB con perfiles estadísticos similares y compara su producción, eficiencia y estilo de juego por temporada.',
     build: params => buildPlayerSimilarityPath(params.player ?? params.licenseId, params.name),
   }),
   route({
     id: 'playerComparison', sectionId: 'jugadores', navGroupId: 'herramientas', tabId: 'comparison',
     label: 'Comparar Jugadores', patterns: ['/jugadores/comparar', '/jugadores/comparar/:playerA/:playerB'],
     legacyPatterns: ['/comparar', '/comparar/:aId/:aSeason/:bId/:bSeason'],
+    title: 'Comparar jugadores ACB: estadísticas y rendimiento',
+    description: 'Compara dos jugadores de la ACB con sus estadísticas, métricas avanzadas y perfiles de rendimiento en distintas temporadas de la Liga Endesa.',
     build: params => buildPlayerComparisonPath(params.playerA, params.playerB, params.names),
   }),
   route({
     id: 'playerClutch', sectionId: 'jugadores', navGroupId: 'jugadores', tabId: 'clutch',
     label: 'Estadísticas Clutch', patterns: ['/jugadores/clutch'], legacyPatterns: ['/estadisticas-clutch'],
+    title: 'Estadísticas clutch de jugadores ACB: finales ajustados',
+    description: 'Consulta las estadísticas de los jugadores ACB en finales ajustados y compara su anotación y eficiencia en situaciones clutch de la Liga Endesa.',
     build: () => buildPlayerClutchPath(),
   }),
   route({
@@ -141,11 +161,15 @@ export const ROUTE_MANIFEST = Object.freeze([
     id: 'zoneLeaders', sectionId: 'tiro', navGroupId: 'tiro', tabId: 'zoneleaders',
     label: 'Líderes por Zona', patterns: ['/tiro/lideres'],
     legacyPatterns: ['/lideres-zona', '/lideres-zona/:season/:metric'],
+    title: 'Líderes de tiro ACB por zona: anotación y eficiencia',
+    description: 'Descubre qué jugadores de la ACB destacan en cada zona de la cancha y compara su volumen de anotación y eficiencia de tiro por temporada.',
     build: () => buildZoneLeadersPath(),
   }),
   route({
     id: 'about', sectionId: 'info', navGroupId: 'about', tabId: 'about',
     label: 'Info', patterns: ['/info'], legacyPatterns: [], build: () => buildAboutPath(),
+    title: 'Sobre OpenACB: datos, métricas y código abierto',
+    description: 'Conoce OpenACB, el proyecto gratuito de estadísticas avanzadas de la Liga Endesa. Consulta el origen de los datos, las métricas y el código abierto.',
   }),
 ])
 
