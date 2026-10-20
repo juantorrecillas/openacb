@@ -487,7 +487,7 @@ function TeamTrendChart({ teams, selectedTeam, selectedSeason, trendStat, onTren
       ) : (
         <div className={profileStyles.trendChart}>
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={history} margin={{ top: 8, right: 12, bottom: 2, left: 0 }}>
+            <LineChart data={history} margin={{ top: 8, right: 24, bottom: 2, left: 0 }}>
               <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" vertical={false} />
               <XAxis
                 dataKey="seasonText"
