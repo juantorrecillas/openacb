@@ -56,6 +56,7 @@ load_pipeline_modules <- function(base_dir = PIPELINE_BASE_DIR) {
   source(file.path(base_dir, "etl/10_team_logos.R"))
   source(file.path(base_dir, "etl/11_player_photos.R"))
   source(file.path(base_dir, "etl/12_player_positions.R"))
+  source(file.path(base_dir, "etl/14_player_impact.R"))
 
   # Load export modules
   old_export_options <- options(
@@ -196,7 +197,7 @@ run_season_pipeline <- function(
 #' Run pipeline for multiple seasons, then cross-season steps and export
 #'
 #' @param season_ids Vector of season IDs (default: all available)
-#' @param run_cross_season Run steps 10-12 (logos, photos, bio) after all seasons (default: TRUE)
+#' @param run_cross_season Run steps 10-12 (logos, photos, bio) and 14 (player impact) after all seasons (default: TRUE)
 #' @param run_export Run export to React after all seasons (default: TRUE)
 #' @param ... Additional arguments passed to run_season_pipeline
 #'
@@ -236,6 +237,10 @@ run_full_pipeline <- function(season_ids = NULL, run_cross_season = TRUE, run_ex
 
     cat("\n[12] Generating player bio data\n")
     generate_player_bio(seasons = season_ids)
+
+    # pooled model over all seasons, needs player stats from step 07
+    cat("\n[14] Estimating player impact (RAPM + box prior)\n")
+    calculate_player_impact(season_ids = season_ids)
   }
 
   # Export to React
@@ -347,6 +352,7 @@ if (interactive()) {
   cat("  generate_team_logos()               - Team logos (cross-season)\n")
   cat("  generate_player_photos()            - Player photos (cross-season)\n")
   cat("  generate_player_bio()               - Player bio data (cross-season)\n")
+  cat("  calculate_player_impact()           - Player impact, RAPM + box prior (cross-season)\n")
   cat("\n")
   cat("Export:\n")
   cat("  export_team_identities()            - Export stable team identities\n")

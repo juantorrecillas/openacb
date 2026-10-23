@@ -22,7 +22,8 @@ OpenACB2.0/
 │   │   ├── 10_team_logos.R
 │   │   ├── 11_player_photos.R
 │   │   ├── 12_player_positions.R
-│   │   └── 13_clutch_stats.R
+│   │   ├── 13_clutch_stats.R
+│   │   └── 14_player_impact.R
 │   ├── runners/                      # Scripts de ejecución
 │   │   ├── run_pipeline.R            # Pipeline completo para una o todas las temporadas
 │   │   ├── update.R                  # Actualización semanal rápida (temporada actual)
@@ -89,7 +90,7 @@ Las herramientas seleccionan por defecto la temporada más reciente disponible.
 La similitud de jugadores requiere al menos 10 partidos y 10 minutos por partido;
 por eso sus resultados tardan en aparecer al comienzo de una temporada.
 
-El backend procesa los datos en 13 pasos:
+El backend procesa los datos en 14 pasos:
 
 ### 01_scrape.R - Descarga de datos
 
@@ -119,6 +120,15 @@ Analiza todas las combinaciones de jugadores: individuales, parejas, tríos y qu
 
 Minutos jugados con tracking del paso 3, estadísticas por partido y totales, percentiles vs liga y métricas de eficiencia individuales.
 
+Incluye también métricas de impacto adaptadas de la NBA:
+
+- **PER** (Hollinger): ajustado al ritmo de cada equipo y reescalado para que la media de la liga, ponderada por minutos, sea 15.
+- **Game Score** (Hollinger): media por partido.
+- **Win Shares** (método de Basketball Reference): ofensivas (`ows`), defensivas (`dws`), totales (`ws`) y por 40 minutos (`ws40`). Se adaptan a la ACB en tres puntos:
+  - Los puntos por victoria salen de un exponente pitagórico estimado con datos ACB (10,3 en 2017-2026, frente a ~14 en la NBA).
+  - La defensa usa los datos del rival mientras el jugador está en pista.
+  - Las posesiones y el DRtg individual (`drtg`) se reajustan para que los jugadores de cada equipo sumen lo mismo que el equipo. Así, las Win Shares de un equipo se aproximan a sus victorias.
+
 ### 08_game_flow.R - Evolución del marcador
 
 Calcula la evolución del marcador a lo largo de cada partido.
@@ -142,6 +152,17 @@ Scrapea el HTML de acb.com para extraer información básica sobre cada jugador:
 ### 13_clutch_stats.R - Estadísticas clutch
 
 Calcula estadísticas de equipos y jugadores en situaciones clutch: últimos 5 minutos del 4º cuarto o prórroga con diferencia de puntos ≤ 5. Incluye balance de victorias/derrotas en esos partidos, puntos anotados y encajados de media, y estadísticas de tiro en esos momentos.
+
+### 14_player_impact.R - Impacto de jugador (tipo LEBRON/EPM)
+
+Paso entre temporadas, posterior al 07. Estima el impacto de cada jugador en puntos por 100 posesiones respecto a un jugador medio (`impact` = `o_impact` + `d_impact`):
+
+- Divide cada partido en tramos con los mismos 10 jugadores en pista. Los tiros libres se asignan al quinteto que estaba en pista cuando se cometió la falta.
+- Ajuste por suerte: los puntos de triple y de tiro libre se sustituyen por el porcentaje esperado del tirador, regresado a la media de la liga.
+- Prior de boxscore centrado por posición: los pesos se estiman dentro del propio modelo.
+- Regresión ridge que agrupa todas las temporadas. La penalización se elige por validación cruzada por partidos.
+
+También guarda el RAPM sin prior (`rapm`) y el componente de boxscore (`box`) para comparar. En temporadas en curso el índice se apoya casi por completo en el prior.
 
 ## Frontend
 
@@ -205,6 +226,8 @@ las descripciones no garantizan un snippet concreto ni una posición determinada
 | `PbP_adjustedData{año}.Rds`  | PBP comprimido con tracking de jugadores             |
 | `TeamAdvancedStats{año}.csv` | Ratings, cuatro factores y métricas avanzadas       |
 | `ShotChartData{año}.csv`     | Coordenadas, zonas, distancias y resultados de tiros |
+| `PlayerStats{año}.csv`       | Estadísticas de jugador, incluidos PER, Game Score y Win Shares |
+| `PlayerImpact{año}.csv`      | Impacto de jugador (RAPM + prior de boxscore)        |
 | `lineups-{año}.json`         | Análisis completo de quintetos                      |
 | `shots-{año}.json`           | Datos de tiro para el frontend                       |
 | `gameflow-{año}.json`        | Evolución de marcador por partido                   |

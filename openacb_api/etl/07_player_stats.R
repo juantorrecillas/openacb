@@ -5,12 +5,24 @@
 # - Basic boxscore stats (points, rebounds, assists, etc.)
 # - Minutes played (calculated from PBP on-court tracking)
 # - Possessions
+# - Impact metrics (PER, Game Score, Win Shares)
 # - Percentile rankings
 # Usage: calculate_player_stats(2025) or calculate_all_player_stats()º
 # =============================================================================
 
 library(dplyr)
 library(tidyr)
+
+# impact metric constants (per, game score, win shares)
+GAME_MINUTES           <- 40    # fiba regulation length (nba formulas assume 48)
+PER_LEAGUE_AVERAGE     <- 15    # per is rescaled so the minutes-weighted league mean is 15
+PER_FTA_POSS_WEIGHT    <- 0.44  # hollinger's share of fta that end a possession
+PYTHAG_EXPONENT        <- 10.3  # acb estimate, see estimate_pythag_exponent(2017:2026)
+WS_MARGINAL_COEF       <- 4 / PYTHAG_EXPONENT       # league ppg share worth one win (nba: 0.32)
+WS_OFF_REPLACEMENT     <- 1 - WS_MARGINAL_COEF / 4  # replacement offense, share of league ppp (nba: 0.92)
+WS_DEF_REPLACEMENT     <- 1 + WS_MARGINAL_COEF / 4  # replacement defense, share of league ppp (nba: 1.08)
+WS_ASSIST_POSS_SHARE   <- 0.3   # passer share of an assisted possession, as in points_produced
+DRTG_INDIVIDUAL_WEIGHT <- 0.2   # oliver: weight of individual stops vs the on-court team defense
 
 # preserve missingness when a source metric is unavailable
 sum_known <- function(x) {
@@ -43,6 +55,169 @@ filter_player_stint_events <- function(df, pista_col, match_ids) {
   on_court <- df[[pista_col]] == 1
   df %>%
     filter(id_match %in% match_ids, .env$on_court)
+}
+
+# reproduce PYTHAG_EXPONENT: regress log(w/l) on log(pf/pa) over team-seasons
+estimate_pythag_exponent <- function(season_ids, data_dir = "./data") {
+  team_seasons <- bind_rows(lapply(season_ids, function(sid) {
+    read.csv(file.path(data_dir, "processed", paste0("TeamAdvancedStats", sid, ".csv")),
+             encoding = "UTF-8", stringsAsFactors = FALSE)
+  })) %>%
+    filter(wins > 0, losses > 0)
+
+  fit <- lm(log(wins / losses) ~ 0 + log(ppg / opp_ppg), data = team_seasons)
+  unname(coef(fit)[1])
+}
+
+# league totals that scale per and win shares (one row)
+calculate_league_factors <- function(df, minutes_summary) {
+  df %>%
+    filter(!is.na(team.team_actual_name)) %>%
+    summarise(
+      pts = sum(puntos, na.rm = TRUE),
+      fgm = sum(T2A + T3A, na.rm = TRUE),
+      fga = sum(T2I + T3I, na.rm = TRUE),
+      ftm = sum(T1A, na.rm = TRUE),
+      fta = sum(T1I, na.rm = TRUE),
+      ft_trips = sum(FT_trip, na.rm = TRUE),
+      orb = sum(reb_of, na.rm = TRUE),
+      drb = sum(reb_def, na.rm = TRUE),
+      ast = sum(asistencias, na.rm = TRUE),
+      tov = sum(perdida, na.rm = TRUE),
+      pf = sum(falta, na.rm = TRUE),
+      team_games = n_distinct(id_match, team.team_actual_name)
+    ) %>%
+    mutate(
+      # same possession estimate as team stats and the on-court splits
+      poss = fga + ft_trips + tov - orb,
+      team_minutes = sum(minutes_summary$total_minutes) / 5,
+      pace = poss / team_minutes * GAME_MINUTES,
+      ppp = pts / poss,
+      ppg = pts / team_games,
+
+      # hollinger per constants
+      vop = pts / (fga - orb + tov + PER_FTA_POSS_WEIGHT * fta),
+      drb_share = drb / (drb + orb),
+      ast_factor = (2 / 3) - (0.5 * (ast / fgm)) / (2 * (fgm / ftm))
+    )
+}
+
+# team context for per (assist share) and win shares (pace)
+calculate_team_factors <- function(df, minutes_summary) {
+  team_minutes <- minutes_summary %>%
+    group_by(team) %>%
+    summarise(team_minutes = sum(total_minutes) / 5, .groups = "drop")
+
+  df %>%
+    filter(!is.na(team.team_actual_name)) %>%
+    group_by(team = team.team_actual_name) %>%
+    summarise(
+      tm_fgm = sum(T2A + T3A, na.rm = TRUE),
+      tm_ast = sum(asistencias, na.rm = TRUE),
+      tm_poss = sum(T2I + T3I + FT_trip + perdida - reb_of, na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    left_join(team_minutes, by = "team") %>%
+    mutate(tm_pace = tm_poss / team_minutes * GAME_MINUTES)
+}
+
+# hollinger game score per game (linear, so season totals / games is the game average)
+add_game_score <- function(player_stats) {
+  player_stats %>%
+    mutate(
+      gmsc = ifelse(games > 0,
+                    (points + 0.4 * fgm - 0.7 * fga - 0.4 * (fta - ftm) +
+                       0.7 * oreb + 0.3 * dreb + steals + 0.7 * assists +
+                       0.7 * blocks - 0.4 * fouls - turnovers) / games,
+                    NA_real_)
+    )
+}
+
+# hollinger per: per-minute linear weights, pace-adjusted, rescaled to a league mean of 15
+# needs team columns tm_ast, tm_fgm, tm_pace; the inline weights are hollinger's published ones
+add_per <- function(player_stats, league) {
+  player_stats <- player_stats %>%
+    mutate(
+      tm_ast_share = tm_ast / tm_fgm,
+      per_value = fgm3 +
+        (2 / 3) * assists +
+        (2 - league$ast_factor * tm_ast_share) * fgm +
+        ftm * 0.5 * (1 + (1 - tm_ast_share) + (2 / 3) * tm_ast_share) -
+        league$vop * turnovers -
+        league$vop * league$drb_share * (fga - fgm) -
+        # (0.44 + 0.56 * drb share) is hollinger's chance a missed ft ends the possession
+        league$vop * PER_FTA_POSS_WEIGHT * (0.44 + 0.56 * league$drb_share) * (fta - ftm) +
+        league$vop * (1 - league$drb_share) * dreb +
+        league$vop * league$drb_share * oreb +
+        league$vop * steals +
+        league$vop * league$drb_share * blocks -
+        fouls * (league$ftm / league$pf - PER_FTA_POSS_WEIGHT * (league$fta / league$pf) * league$vop),
+      uper = ifelse(total_minutes > 0, per_value / total_minutes, NA_real_),
+      aper = uper * league$pace / tm_pace
+    )
+
+  # minutes-weighted league mean of the pace-adjusted value
+  has_aper <- is.finite(player_stats$aper)
+  lg_aper <- sum(player_stats$aper[has_aper] * player_stats$total_minutes[has_aper]) /
+    sum(player_stats$total_minutes[has_aper])
+
+  player_stats %>%
+    mutate(per = aper * PER_LEAGUE_AVERAGE / lg_aper)
+}
+
+# win shares (bbref method) with the acb pythagorean slope and on-court defense
+# needs team column tm_pace and the *_on columns from the on-court splits
+add_win_shares <- function(player_stats, league) {
+  player_stats %>%
+    # possessions used: assisted makes split the possession like points_produced splits the points
+    mutate(
+      ws_off_poss_raw = fga + ft_trips + turnovers - missed_fg_off_reb +
+        WS_ASSIST_POSS_SHARE * (assists - assisted_fgm)
+    ) %>%
+    # team turnovers/rebounds have no player and some offensive rebounds follow a block,
+    # so rescale players to add up to their team's possessions
+    group_by(team) %>%
+    mutate(ws_off_poss = ws_off_poss_raw * tm_poss / sum(ws_off_poss_raw, na.rm = TRUE)) %>%
+    ungroup() %>%
+    mutate(
+      # points over replacement worth one win for this team
+      marginal_ppw = WS_MARGINAL_COEF * league$ppg * (tm_pace / league$pace),
+
+      # offense: points produced vs replacement on the possessions used
+      ows = (points_produced - WS_OFF_REPLACEMENT * league$ppp * ws_off_poss) / marginal_ppw,
+
+      # defense: oliver stops, with on-court opponent totals instead of season team totals
+      dor_share = opp_oreb_on / (opp_oreb_on + team_dreb_on),
+      dfg = opp_fgm_on / opp_fga_on,
+      fm_weight = (dfg * (1 - dor_share)) / (dfg * (1 - dor_share) + (1 - dfg) * dor_share),
+      opp_ft_pct_on = ifelse(opp_fta_on > 0, opp_ftm_on / opp_fta_on, 0),
+      stops_individual = steals + blocks * fm_weight * (1 - 1.07 * dor_share) + dreb * (1 - fm_weight),
+      stops_shared = ((opp_fga_on - opp_fgm_on - team_blocks_on) * fm_weight * (1 - 1.07 * dor_share) +
+                        (opp_turnovers_on - team_steals_on)) / 5 +
+        ifelse(team_fouls_on > 0, fouls / team_fouls_on, 0) * opp_ft_trips_on * (1 - opp_ft_pct_on)^2,
+      def_poss = opp_poss_on / 5,
+      stop_pct = (stops_individual + stops_shared) / def_poss,
+      on_court_drtg = 100 * opp_points / opp_poss_on,
+      opp_pts_per_scoring_poss = opp_points /
+        (opp_fgm_on + (1 - (1 - opp_ft_pct_on)^2) * opp_ft_trips_on),
+      drtg_gap = 100 * opp_pts_per_scoring_poss * (1 - stop_pct) - on_court_drtg
+    ) %>%
+    # team defensive rebounds have no player, so stops are undercounted; centre the
+    # individual gap within each team so player drtg adds up to the on-court defense
+    group_by(team) %>%
+    mutate(
+      drtg_gap = drtg_gap - weighted.mean(drtg_gap[is.finite(drtg_gap)], def_poss[is.finite(drtg_gap)])
+    ) %>%
+    ungroup() %>%
+    mutate(
+      drtg = on_court_drtg + DRTG_INDIVIDUAL_WEIGHT * drtg_gap,
+      dws = def_poss * (WS_DEF_REPLACEMENT * league$ppp - drtg / 100) / marginal_ppw,
+
+      ws = ows + dws,
+      ws40 = ifelse(total_minutes > 0, ws / total_minutes * GAME_MINUTES, NA_real_)
+    ) %>%
+    # tiny samples can divide by zero; report them as missing
+    mutate(across(c(drtg, ows, dws, ws, ws40), ~ ifelse(is.finite(.x), .x, NA_real_)))
 }
 
 #' Calculate minutes played from play-by-play data
@@ -482,6 +657,9 @@ calculate_player_stats <- function(season_id,
         team_assists_on = sum(asistencias, na.rm = TRUE),
         team_oreb_on = sum(reb_of, na.rm = TRUE),
         team_dreb_on = sum(reb_def, na.rm = TRUE),
+        team_steals_on = sum(recuperacion, na.rm = TRUE),
+        team_blocks_on = sum(tapon, na.rm = TRUE),
+        team_fouls_on = sum(falta, na.rm = TRUE),
         team_poss_on = sum(T2I + T3I + FT_trip + perdida - reb_of, na.rm = TRUE),
         team_points = sum(2*T2A + 3*T3A + T1A),
         team_ortg = team_points / team_poss_on,
@@ -496,6 +674,7 @@ calculate_player_stats <- function(season_id,
         opp_fgm_on = sum(T2A + T3A, na.rm = TRUE),
         opp_fga2_on = sum(T2I, na.rm = TRUE),
         opp_fta_on = sum(T1I, na.rm = TRUE),
+        opp_ftm_on = sum(T1A, na.rm = TRUE),
         opp_ft_trips_on = sum(FT_trip, na.rm = TRUE),
         opp_turnovers_on = sum(perdida, na.rm = TRUE),
         opp_oreb_on = sum(reb_of, na.rm = TRUE),
@@ -631,6 +810,25 @@ calculate_player_stats <- function(season_id,
                        turnovers / plays * 100,
                        NA)
     )
+
+  # ==========================================================================
+  # CALCULATE IMPACT METRICS (PER, GAME SCORE, WIN SHARES)
+  # ==========================================================================
+
+  cat("→ Calculating impact metrics (PER, Game Score, Win Shares)...\n")
+
+  league_factors <- calculate_league_factors(df, minutes_summary)
+  team_factors <- calculate_team_factors(df, minutes_summary)
+
+  player_stats <- player_stats %>%
+    left_join(team_factors, by = "team") %>%
+    add_game_score() %>%
+    add_per(league_factors) %>%
+    add_win_shares(league_factors)
+
+  cat(sprintf("  League pace: %.1f poss/40 | PPP: %.3f | Points per win: %.1f\n",
+              league_factors$pace, league_factors$ppp,
+              WS_MARGINAL_COEF * league_factors$ppg))
 
   # ==========================================================================
   # CALCULATE ZONE SHOOTING STATS
@@ -1219,6 +1417,8 @@ calculate_player_stats <- function(season_id,
       possessions, poss_pg, ortg, usg,
       # Advanced Rate Stats
       orb_pct, drb_pct, trb_pct, ast_pct, stl_pct, blk_pct, tov_pct, ast_to_ratio,
+      # impact metrics
+      per, gmsc, ows, dws, ws, ws40, drtg,
       # Context Stats
       off_to, second_chance, S_assisted_fgm, S_assisted_fgm2, S_assisted_fgm3,
       # Zone Shooting Stats
