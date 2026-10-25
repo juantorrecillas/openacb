@@ -102,13 +102,21 @@ add_boxscore_columns <- function(df) {
     arrange(order, .by_group = TRUE) %>%
     mutate(
       prev_is_qualifying_foul = lag(type.description %in% c("Personal 2TL", "Personal 3TL"), n = 1, default = FALSE),
+      # older feeds tag bonus fouls "Personal no TL" even when two free throws follow
+      prev_is_no_tl_foul = lag(type.description %in% "Personal no TL", n = 1, default = FALSE),
+      # from each "Falta recibida" until the ball is live again
+      ft_window = cumsum(type.description %in% c("Falta recibida", "Inicio Periodo") |
+                           T2I + T3I + reb_def + reb_of + recuperacion + salto_ganado + salto_perdido > 0)
+    ) %>%
+    group_by(id_match, ft_window, team.team_actual_name) %>%
+    mutate(
       FT_trip = as.integer(
         type.description == "Falta recibida" &
-          prev_is_qualifying_foul
+          (prev_is_qualifying_foul | (prev_is_no_tl_foul & sum(T1I) >= 2))
       )
     ) %>%
     ungroup() %>%
-    select(-prev_is_qualifying_foul)
+    select(-prev_is_qualifying_foul, -prev_is_no_tl_foul, -ft_window)
 
   # MISSED FG FOLLOWED BY OFFENSIVE REBOUND
   df <- df %>%
