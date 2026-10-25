@@ -115,7 +115,11 @@ add_boxscore_columns <- function(df) {
     group_by(id_match) %>%
     arrange(order, .by_group = TRUE) %>%
     mutate(
-      next_is_oreb = lead(reb_of, n = 1, default = 0) == 1,
+      # a blocked miss logs "Tapón Recibido" and "Tapón" before the rebound
+      next_is_oreb = lead(reb_of, n = 1, default = 0) == 1 |
+        (lead(tapon + tapon_rec, n = 1, default = 0) == 1 &
+           lead(tapon + tapon_rec, n = 2, default = 0) == 1 &
+           lead(reb_of, n = 3, default = 0) == 1),
       missed_fg_off_reb = as.integer(
         (T2F == 1 | T3F == 1) & next_is_oreb
       )
