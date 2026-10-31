@@ -69,6 +69,24 @@ const advancedColumns = [
   { key: 'tovPct', label: 'PER%', align: 'right', sortable: true, inverse: true, pctKey: 'tovPctPct', posPctKey: 'tovPctPosPct' },
 ]
 
+// Impact metrics - per, game score and win shares from the box score, impact index from lineups
+const impactColumns = [
+  { key: 'playerFull', label: 'Jugador', align: 'left', sortable: true },
+  { key: 'team', label: 'Equipo', align: 'left', sortable: true },
+  positionCol,
+  { key: 'games', label: 'PJ', align: 'right', sortable: true },
+  { key: 'mpg', label: 'MPP', align: 'right', sortable: true },
+  { key: 'per', label: 'PER-H', align: 'right', sortable: true, highlight: true, pctKey: 'perPct', posPctKey: 'perPosPct' },
+  { key: 'gmsc', label: 'GmSc', align: 'right', sortable: true, pctKey: 'gmscPct', posPctKey: 'gmscPosPct' },
+  { key: 'ows', label: 'OWS', align: 'right', sortable: true },
+  { key: 'dws', label: 'DWS', align: 'right', sortable: true },
+  { key: 'ws', label: 'WS', align: 'right', sortable: true, pctKey: 'wsPct', posPctKey: 'wsPosPct' },
+  { key: 'ws40', label: 'WS/40', align: 'right', sortable: true, pctKey: 'ws40Pct', posPctKey: 'ws40PosPct' },
+  { key: 'oImpact', label: 'Imp. of.', align: 'right', sortable: true },
+  { key: 'dImpact', label: 'Imp. def.', align: 'right', sortable: true },
+  { key: 'impact', label: 'Impacto', align: 'right', sortable: true },
+]
+
 // Miscellaneous stats - contextual variables and play type percentages
 const miscColumns = [
   { key: 'playerFull', label: 'Jugador', align: 'left', sortable: true },
@@ -197,6 +215,7 @@ export default function PlayerStats({ players, playerBio = {} }) {
 
   const columns = viewMode === 'basic' ? basicColumns
     : viewMode === 'advanced' ? advancedColumns
+    : viewMode === 'impact' ? impactColumns
     : viewMode === 'absolutos' ? absolutesColumns
     : viewMode === 'misc' ? miscColumns
     : viewMode === 'frequency' ? frequencyColumns
@@ -413,6 +432,14 @@ export default function PlayerStats({ players, playerBio = {} }) {
       return value.toFixed(1)
     }
 
+    // win shares per 40 minutes, three decimals like ws/48 in the nba
+    if (key === 'ws40') return value.toFixed(3)
+
+    // impact index: points per 100 possessions above an average player
+    if (key === 'impact' || key === 'oImpact' || key === 'dImpact') {
+      return `${value > 0 ? '+' : ''}${value.toFixed(1)}`
+    }
+
     // Per-game stats
     return value.toFixed(1)
   }
@@ -425,6 +452,7 @@ export default function PlayerStats({ players, playerBio = {} }) {
       : `${selectedSeason - 1}-${String(selectedSeason).slice(-2)}`
     const viewStr = viewMode === 'basic' ? 'basico'
       : viewMode === 'advanced' ? 'avanzado'
+      : viewMode === 'impact' ? 'impacto'
       : viewMode === 'absolutos' ? 'absolutos'
       : viewMode === 'misc' ? 'otros'
       : viewMode === 'frequency' ? 'tiro-frecuencia'
@@ -528,6 +556,13 @@ export default function PlayerStats({ players, playerBio = {} }) {
               Avanzado
             </button>
             <button
+              onClick={() => updateQuery({ vista: 'impact' })}
+              aria-pressed={viewMode === 'impact'}
+              className="segmented-option"
+            >
+              Impacto
+            </button>
+            <button
               onClick={() => { updateQuery({ vista: 'absolutes' }); setSortKey('points'); setSortDir('desc') }}
               aria-pressed={viewMode === 'absolutos'}
               className="segmented-option"
@@ -566,7 +601,7 @@ export default function PlayerStats({ players, playerBio = {} }) {
           </div>
 
           {/* Percentile Mode Toggle - only for views with percentiles */}
-          {(viewMode === 'basic' || viewMode === 'advanced' || viewMode === 'misc') && (
+          {(viewMode === 'basic' || viewMode === 'advanced' || viewMode === 'impact' || viewMode === 'misc') && (
             <div className="flex items-center gap-1.5">
               <span className="text-xs text-acb-500">Percentil:</span>
               <div className="segmented-control" role="group" aria-label="Referencia del percentil">
@@ -663,6 +698,12 @@ export default function PlayerStats({ players, playerBio = {} }) {
           Descargar CSV
         </button>
       </div>
+
+      {viewMode === 'impact' && (
+        <div className="text-sm text-acb-500 bg-acb-50 border border-acb-200 rounded-md px-4 py-2">
+          PER-H, GmSc y Win Shares salen del box score de la fase elegida. El impacto se estima con las alineaciones de toda la temporada, playoffs incluidos, por lo que no aparece en la vista de playoffs.
+        </div>
+      )}
 
       {/* Zone data unavailability notice */}
       {(viewMode === 'frequency' || viewMode === 'accuracy' || viewMode === 'defense') && (

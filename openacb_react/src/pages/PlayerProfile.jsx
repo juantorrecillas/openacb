@@ -12,6 +12,7 @@ import {
   formatPlayerProfileTableValue,
   playerProfileAdvancedStatColumns,
   playerProfileBasicStatColumns,
+  playerProfileImpactStatColumns,
 } from '../utils/playerProfileTableColumns'
 import {
   buildPlayerProfilePath,
@@ -36,6 +37,7 @@ function fmt(v, key) {
   if (['offTo', 'secondChance', 'assistedFgm', 'assistedFgm2', 'assistedFgm3'].includes(key))
     return `${(v * 100).toFixed(1)}%`
   if (key === 'astToRatio') return v.toFixed(2)
+  if (key === 'ws40') return v.toFixed(3)
   return v.toFixed(1)
 }
 
@@ -246,8 +248,18 @@ const careerAdvancedCols = [
   ...playerProfileAdvancedStatColumns,
 ]
 
+const careerImpactCols = [
+  { key: 'season', label: 'Temp.', fmtFn: v => seasonLabel(v), left: true },
+  { key: 'team', label: 'Equipo', left: true },
+  { key: 'careerRole', label: 'Rol', fmtFn: v => v.name, left: true },
+  ...playerProfileImpactStatColumns,
+]
+
+// route value of each career tab
+const CAREER_TAB_ROUTE = { basic: 'basico', advanced: 'avanzado', impact: 'impacto' }
+
 function CareerTable({ records, bio, tab = 'basic', onTabChange }) {
-  const cols = tab === 'basic' ? careerBasicCols : careerAdvancedCols
+  const cols = tab === 'advanced' ? careerAdvancedCols : tab === 'impact' ? careerImpactCols : careerBasicCols
   const sorted = [...records]
     .sort((a, b) => b.season - a.season)
     .map(record => ({
@@ -257,7 +269,7 @@ function CareerTable({ records, bio, tab = 'basic', onTabChange }) {
 
   const handleDownload = () => {
     const slug = slugify(records[0]?.player || records[0]?.playerFull)
-    const filename = `${slug}_trayectoria_${tab === 'basic' ? 'basico' : 'avanzado'}.csv`
+    const filename = `${slug}_trayectoria_${CAREER_TAB_ROUTE[tab]}.csv`
     const exportRows = sorted.map(r => {
       const row = {}
       cols.forEach(c => {
@@ -298,6 +310,13 @@ function CareerTable({ records, bio, tab = 'basic', onTabChange }) {
               className="segmented-option"
             >
               Avanzado
+            </button>
+            <button
+              onClick={() => onTabChange?.('impact')}
+              aria-pressed={tab === 'impact'}
+              className="segmented-option"
+            >
+              Impacto
             </button>
           </div>
           <button
@@ -444,6 +463,15 @@ const profileSections = [
       { label: 'ROB%', value: 'stlPct', pctKey: 'stlPctPct', posPctKey: 'stlPctPosPct', fmtKey: 'stlPct' },
       { label: 'TAPP', value: 'bpg', pctKey: 'bpgPct', posPctKey: 'bpgPosPct' },
       { label: 'TAP%', value: 'blkPct', pctKey: 'blkPctPct', posPctKey: 'blkPctPosPct', fmtKey: 'blkPct' },
+    ],
+  },
+  {
+    title: 'Impacto',
+    stats: [
+      { label: 'PER-H', value: 'per', pctKey: 'perPct', posPctKey: 'perPosPct' },
+      { label: 'GmSc', value: 'gmsc', pctKey: 'gmscPct', posPctKey: 'gmscPosPct' },
+      { label: 'WS', value: 'ws', pctKey: 'wsPct', posPctKey: 'wsPosPct' },
+      { label: 'WS/40', value: 'ws40', pctKey: 'ws40Pct', posPctKey: 'ws40PosPct' },
     ],
   },
 ]
@@ -1163,7 +1191,7 @@ export default function PlayerProfile({ players, allPlayers = players, playerPho
   const search = searchParams.toString()
   const query = useMemo(() => parseRouteQuery('playerProfile', search), [search])
   const selectedStage = query.values.fase || 'regular'
-  const careerTab = query.values.tabla === 'avanzado' ? 'advanced' : 'basic'
+  const careerTab = Object.keys(CAREER_TAB_ROUTE).find(tab => CAREER_TAB_ROUTE[tab] === query.values.tabla) || 'basic'
   const radarReference = query.values.radar || 'league'
   const percentileReference = query.values.percentiles || 'league'
   const shootingView = query.values.tiro || 'own'
@@ -1215,7 +1243,7 @@ export default function PlayerProfile({ players, allPlayers = players, playerPho
   const currentValues = useMemo(() => ({
     ...query.values,
     fase: selectedStage,
-    tabla: careerTab === 'advanced' ? 'avanzado' : 'basico',
+    tabla: CAREER_TAB_ROUTE[careerTab],
     radar: radarReference,
     percentiles: percentileReference,
     tiro: shootingView,
@@ -1365,7 +1393,7 @@ export default function PlayerProfile({ players, allPlayers = players, playerPho
             records={playerRecords}
             bio={bio}
             tab={careerTab}
-            onTabChange={tab => updateRoute({ tabla: tab === 'advanced' ? 'avanzado' : 'basico' })}
+            onTabChange={tab => updateRoute({ tabla: CAREER_TAB_ROUTE[tab] })}
           />
 
           {/* Season picker for detail cards */}

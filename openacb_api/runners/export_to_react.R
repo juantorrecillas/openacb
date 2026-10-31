@@ -367,6 +367,24 @@ load_all_player_data <- function(competition_stages = NULL) {
     }
   }
 
+  attach_player_impact(all_players)
+}
+
+#' Add the season-level impact index (step 14) to player rows
+#'
+#' The impact model pools regular season and playoffs, so playoff-only rows
+#' are left empty instead of repeating the full-season value.
+attach_player_impact <- function(all_players) {
+  impact_files <- file.path(SHINY_DATA_DIR, paste0("PlayerImpact", REACT_EXPORT_SEASON_IDS, ".Rds"))
+  impact_files <- impact_files[file.exists(impact_files)]
+  if (nrow(all_players) == 0 || length(impact_files) == 0) return(all_players)
+
+  impact <- dplyr::bind_rows(lapply(impact_files, readRDS))
+  impact <- impact[, c("license_id", "season", "impact", "o_impact", "d_impact")]
+  all_players <- dplyr::left_join(all_players, impact, by = c("license_id", "season"))
+
+  playoff_rows <- all_players$competition_stage %in% "playoffs"
+  all_players[playoff_rows, c("impact", "o_impact", "d_impact")] <- NA_real_
   all_players
 }
 
@@ -486,6 +504,17 @@ export_player_data <- function(all_players, output_name = "players.json") {
         blkPct = pct_val(p$blk_pct, 1),
         tovPct = pct_val(p$tov_pct, 1),
         astToRatio = pct_val(p$ast_to_ratio, 2),
+
+        # impact metrics: per, game score and win shares (step 07), impact index (step 14)
+        per = pct_val(p$per, 1),
+        gmsc = pct_val(p$gmsc, 1),
+        ows = pct_val(p$ows, 2),
+        dws = pct_val(p$dws, 2),
+        ws = pct_val(p$ws, 2),
+        ws40 = pct_val(p$ws40, 3),
+        impact = pct_val(p$impact, 1),
+        oImpact = pct_val(p$o_impact, 1),
+        dImpact = pct_val(p$d_impact, 1),
         # Context stats
         offTo = pct_val(p$off_to, 3),
         secondChance = pct_val(p$second_chance, 3),
@@ -523,6 +552,10 @@ export_player_data <- function(all_players, output_name = "players.json") {
         stlPctPct = pct_val(p$stl_pct_pct, 1),
         blkPctPct = pct_val(p$blk_pct_pct, 1),
         tovPctPct = pct_val(p$tov_pct_pctile, 1),
+        perPct = pct_val(p$per_pct, 1),
+        gmscPct = pct_val(p$gmsc_pct, 1),
+        wsPct = pct_val(p$ws_pct, 1),
+        ws40Pct = pct_val(p$ws40_pct, 1),
 
         # Percentiles — by position (NULL when not available)
         ppgPosPct = pct_val(p$ppg_pos_pct, 1),
@@ -554,6 +587,10 @@ export_player_data <- function(all_players, output_name = "players.json") {
         stlPctPosPct = pct_val(p$stl_pct_pos_pct, 1),
         blkPctPosPct = pct_val(p$blk_pct_pos_pct, 1),
         tovPctPosPct = pct_val(p$tov_pct_pos_pctile, 1),
+        perPosPct = pct_val(p$per_pos_pct, 1),
+        gmscPosPct = pct_val(p$gmsc_pos_pct, 1),
+        wsPosPct = pct_val(p$ws_pos_pct, 1),
+        ws40PosPct = pct_val(p$ws40_pos_pct, 1),
 
         # Zone Shooting Frequency (% of shots from each zone)
         # pct_val: returns NULL for NA so UI can show "N/D" for pre-2021 seasons

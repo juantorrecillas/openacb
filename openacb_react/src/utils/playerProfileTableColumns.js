@@ -36,6 +36,22 @@ export const playerProfileAdvancedStatColumns = [
   { key: 'tovPct', label: 'PER%', suffix: '%' },
 ]
 
+const formatSigned = v => `${v > 0 ? '+' : ''}${v.toFixed(1)}`
+
+export const playerProfileImpactStatColumns = [
+  { key: 'games', label: 'PJ', integer: true },
+  { key: 'mpg', label: 'MPP' },
+  { key: 'per', label: 'PER-H' },
+  { key: 'gmsc', label: 'GmSc' },
+  { key: 'ows', label: 'OWS' },
+  { key: 'dws', label: 'DWS' },
+  { key: 'ws', label: 'WS' },
+  { key: 'ws40', label: 'WS/40', fmtFn: v => v.toFixed(3) },
+  { key: 'oImpact', label: 'Imp. of.', fmtFn: formatSigned },
+  { key: 'dImpact', label: 'Imp. def.', fmtFn: formatSigned },
+  { key: 'impact', label: 'Impacto', fmtFn: formatSigned },
+]
+
 export function formatPlayerProfileTableValue(record, column) {
   const value = record[column.key]
   if (value == null) return '-'

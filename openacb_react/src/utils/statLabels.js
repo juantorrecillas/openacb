@@ -59,6 +59,15 @@ const STAT_TITLES = {
   '% asistidos': 'Porcentaje de tiros anotados asistidos',
   'Dif. aro': 'Diferencia defensiva en el aro',
   'Dif. 3P': 'Diferencia defensiva en triples',
+  'PER-H': 'PER de Hollinger: eficiencia por minuto ajustada al ritmo (media de la liga = 15)',
+  GmSc: 'Game Score por partido',
+  OWS: 'Win Shares ofensivas: victorias aportadas en ataque',
+  DWS: 'Win Shares defensivas: victorias aportadas en defensa',
+  WS: 'Win Shares: victorias aportadas',
+  'WS/40': 'Win Shares por 40 minutos',
+  Impacto: 'Impacto: puntos por 100 posesiones sobre un jugador medio (toda la temporada, playoffs incluidos)',
+  'Imp. of.': 'Impacto ofensivo por 100 posesiones',
+  'Imp. def.': 'Impacto defensivo por 100 posesiones',
 }
 
 export function statTitle(label) {

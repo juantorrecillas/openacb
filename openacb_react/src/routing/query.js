@@ -93,9 +93,10 @@ const ROUTE_QUERY_SCHEMA_DEFINITIONS = {
   playerStats: Object.freeze([
     season('temporada', { allowAll: true }),
     stage,
-    enumField('vista', ['basic', 'advanced', 'absolutes', 'misc', 'frequency', 'accuracy', 'defense'], {
+    enumField('vista', ['basic', 'advanced', 'impact', 'absolutes', 'misc', 'frequency', 'accuracy', 'defense'], {
       basic: 'basico',
       advanced: 'avanzado',
+      impact: 'impacto',
       absolutes: 'absolutos',
       misc: 'otros',
       frequency: 'frecuencia',
