@@ -21,7 +21,6 @@ PYTHAG_EXPONENT        <- 10.3  # acb estimate, see estimate_pythag_exponent(201
 WS_MARGINAL_COEF       <- 4 / PYTHAG_EXPONENT       # league ppg share worth one win (nba: 0.32)
 WS_OFF_REPLACEMENT     <- 1 - WS_MARGINAL_COEF / 4  # replacement offense, share of league ppp (nba: 0.92)
 WS_DEF_REPLACEMENT     <- 1 + WS_MARGINAL_COEF / 4  # replacement defense, share of league ppp (nba: 1.08)
-WS_ASSIST_POSS_SHARE   <- 0.3   # passer share of an assisted possession, as in points_produced
 DRTG_INDIVIDUAL_WEIGHT <- 0.2   # oliver: weight of individual stops vs the on-court team defense
 
 # preserve missingness when a source metric is unavailable
@@ -169,15 +168,10 @@ add_per <- function(player_stats, league) {
 # needs team column tm_pace and the *_on columns from the on-court splits
 add_win_shares <- function(player_stats, league) {
   player_stats %>%
-    # possessions used: assisted makes split the possession like points_produced splits the points
-    mutate(
-      ws_off_poss_raw = fga + ft_trips + turnovers - missed_fg_off_reb +
-        WS_ASSIST_POSS_SHARE * (assists - assisted_fgm)
-    ) %>%
-    # team turnovers/rebounds have no player and some offensive rebounds follow a block,
-    # so rescale players to add up to their team's possessions
+    # team turnovers have no player and offensive rebounds after a missed free throw
+    # are not taken off anyone, so rescale player possessions to the team total
     group_by(team) %>%
-    mutate(ws_off_poss = ws_off_poss_raw * tm_poss / sum(ws_off_poss_raw, na.rm = TRUE)) %>%
+    mutate(ws_off_poss = possessions * tm_poss / sum(possessions, na.rm = TRUE)) %>%
     ungroup() %>%
     mutate(
       # points over replacement worth one win for this team
