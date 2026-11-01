@@ -67,7 +67,7 @@ generate_clutch_stats <- function(
   # correctly classified as clutch even if it pushes the margin to 6.
   clutch <- pbp_scored %>%
     filter(
-      (period == 4 & minute <= 5) | period > 4,
+      (period == 4 & minute < 5) | period > 4,
       abs(pre_score_local - pre_score_visitor) <= 5
     )
 
