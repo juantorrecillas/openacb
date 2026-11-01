@@ -383,6 +383,16 @@ calculate_player_stats <- function(season_id,
 
   cat("  Rows:", format(nrow(df), big.mark = ","), "\n")
 
+  # an assist takes the type of the made shot it follows (same link as assisted_fgm
+  # in 02_clean): 2017-2020 label almost every assist as a 2, plus assists on free throws
+  df <- df %>%
+    group_by(id_match) %>%
+    mutate(
+      asis_t2 = as.integer(asistencias > 0 & lag(T2A, default = 0) > 0),
+      asis_t3 = as.integer(asistencias > 0 & lag(T3A, default = 0) > 0)
+    ) %>%
+    ungroup()
+
   if (!is.null(competition_stage)) {
     valid_stages <- c("regular", "playoffs")
     if (!competition_stage %in% valid_stages) {
