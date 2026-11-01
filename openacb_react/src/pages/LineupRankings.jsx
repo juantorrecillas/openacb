@@ -4,6 +4,7 @@ import { Trophy, TrendingDown, Filter } from 'lucide-react'
 import { statTitle } from '../utils/statLabels'
 import { getPlayerDisplayName } from '../utils/playerNames'
 import LineupToolShell, { lineupToolStyles as styles } from '../components/LineupToolShell'
+import MobileNameRow from '../components/MobileNameRow'
 import { buildPlayerProfilePath } from '../routing/paths'
 import { parseRouteQuery, serializeRouteQuery, withQuery } from '../routing/query'
 
@@ -467,41 +468,44 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
         </div>
 
         {rankedData.length > 0 ? (
-          <div className={styles.tableFrame} tabIndex={0} aria-label="Ranking de alineaciones">
+          <div className={`${styles.tableFrame} mobile-name-frame`} tabIndex={0} aria-label="Ranking de alineaciones">
             <table className="data-table">
               <thead>
-                <tr className="bg-acb-50 text-left text-xs text-acb-600 uppercase tracking-wider">
-                  <th className="data-table-head data-table-number data-table-sticky data-table-sticky-head data-col-rank bg-acb-50">#</th>
-                  <th className="data-table-head data-table-identity data-table-sticky-after-rank data-table-sticky-head data-col-player bg-acb-50">
+                <tr>
+                  <th className="data-table-head data-table-number data-table-sticky data-table-sticky-head data-col-rank mobile-name-hide">#</th>
+                  <th className="data-table-head text-left data-table-sticky-after-rank data-table-sticky-head data-col-player mobile-name-hide">
                     {selectedCategory === 'players' ? 'Jugador' : 'Combinación'}
                   </th>
                   {!hasTeamFilter && (
-                    <th className="data-table-head text-left data-col-team">Equipo</th>
+                    <th className="data-table-head text-left data-col-team mobile-name-hide">Equipo</th>
                   )}
-                  <th className="data-table-head data-table-number data-col-games" title={statTitle('Min')}>Min</th>
-                  <th className="data-table-head data-table-number data-col-number" title={statTitle('ORtg')}>ORtg</th>
-                  <th className="data-table-head data-table-number data-col-number" title={statTitle('DRtg')}>DRtg</th>
-                  <th className="data-table-head data-table-number data-col-number" title={statTitle('Neto')}>Neto</th>
+                  <th className="data-table-head data-table-number" title={statTitle('Min')}>Min</th>
+                  <th className="data-table-head data-table-number" title={statTitle('ORtg')}>ORtg</th>
+                  <th className="data-table-head data-table-number" title={statTitle('DRtg')}>DRtg</th>
+                  <th className="data-table-head data-table-number" title={statTitle('Neto')}>Neto</th>
                   {selectedCategory !== 'lineups' && (
-                    <th className={`data-table-head data-table-number data-col-number ${
-                      (hasTeamFilter || sortByImpact) ? 'bg-accent-50' : ''
-                    }`}>
-                      Impacto
-                    </th>
+                    <th className="data-table-head data-table-number">Impacto</th>
                   )}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-acb-100">
-                {rankedData.map((item, index) => (
-                  <tr key={`${item.team || selectedTeam || 'liga'}-${item.key}`} className="data-table-row">
-                    <td className="data-table-cell data-table-number data-table-sticky data-col-rank text-acb-400">
+              {rankedData.map((item, index) => (
+                <tbody key={`${item.team || selectedTeam || 'liga'}-${item.key}`} className="mobile-name-group">
+                  <MobileNameRow
+                    rank={index + 1}
+                    name={item.displayName}
+                    meta={hasTeamFilter ? null : item.team}
+                    onClick={selectedCategory === 'players' ? () => navigate(playerProfileUrl(item)) : undefined}
+                    wrap={selectedCategory !== 'players'}
+                  />
+                  <tr className="data-table-row">
+                    <td className="data-table-cell data-table-number data-table-sticky data-col-rank text-acb-400 mobile-name-hide">
                       {index + 1}
                     </td>
-                    <td className="data-table-cell data-table-identity data-table-sticky-after-rank data-col-player">
+                    <td className="data-table-cell data-table-identity data-table-sticky-after-rank data-col-player mobile-name-hide">
                       {selectedCategory === 'players' ? (
                         <button
                           type="button"
-                          className="text-left hover:text-accent-600 hover:underline"
+                          className="data-table-link"
                           onClick={() => navigate(playerProfileUrl(item))}
                         >
                           {item.displayName}
@@ -509,34 +513,32 @@ export default function LineupRankings({ teams, loadLineupsForSeason, lineupsCac
                       ) : item.displayName}
                     </td>
                     {!hasTeamFilter && (
-                      <td className="data-table-cell data-col-team text-acb-600">{item.team}</td>
+                      <td className="data-table-cell data-col-team text-acb-600 mobile-name-hide">{item.team}</td>
                     )}
-                    <td className="data-table-cell data-table-number data-col-games text-acb-500">
+                    <td className="data-table-cell data-table-number text-acb-500">
                       {item.onMin?.toFixed(0)}
                     </td>
-                    <td className="data-table-cell data-table-number data-col-number text-acb-700">
+                    <td className="data-table-cell data-table-number">
                       {item.onORtg?.toFixed(1)}
                     </td>
-                    <td className="data-table-cell data-table-number data-col-number text-acb-700">
+                    <td className="data-table-cell data-table-number">
                       {item.onDRtg?.toFixed(1)}
                     </td>
-                    <td className={`data-table-cell data-table-number data-col-number font-semibold ${
+                    <td className={`data-table-cell data-table-number font-semibold ${
                       item.onNetRtg > 5 ? 'text-positive' : item.onNetRtg < -5 ? 'text-negative' : 'text-acb-700'
                     }`}>
                       {item.onNetRtg > 0 ? '+' : ''}{item.onNetRtg?.toFixed(1)}
                     </td>
                     {selectedCategory !== 'lineups' && (
-                      <td className={`data-table-cell data-table-number data-col-number font-semibold ${
-                        (hasTeamFilter || sortByImpact) ? 'bg-accent-50' : ''
-                      } ${
+                      <td className={`data-table-cell data-table-number font-semibold ${
                         item.netDiff > 5 ? 'text-positive' : item.netDiff < -5 ? 'text-negative' : 'text-acb-700'
                       }`}>
                         {item.netDiff > 0 ? '+' : ''}{item.netDiff?.toFixed(1)}
                       </td>
                     )}
                   </tr>
-                ))}
-              </tbody>
+                </tbody>
+              ))}
             </table>
           </div>
         ) : (

@@ -2,6 +2,8 @@ import { useState, useMemo, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import GameAnalysisNav from '../components/GameAnalysisNav'
 import TeamToolShell, { teamToolStyles as styles } from '../components/TeamToolShell'
+import MobileNameRow from '../components/MobileNameRow'
+import SortLabel from '../components/SortLabel'
 import { parseRouteQuery, serializeRouteQuery } from '../routing/query'
 
 function seasonLabel(s) {
@@ -43,7 +45,7 @@ function HeatCell({ value, colorValue, max, isDiff }) {
   const cls = cellColor(colorValue ?? value, max)
   const text = isDiff ? diffText(value) : value.toFixed(1)
   return (
-    <td className={`px-2 py-1.5 text-center text-xs font-mono ${cls}`}>
+    <td className={`data-table-cell data-table-number text-center ${cls}`}>
       {text}
     </td>
   )
@@ -178,10 +180,7 @@ export default function TeamPace({ teams, loadTeamPaceForSeason, teamPaceCache, 
     }
   }
 
-  const sortIcon = (col) => {
-    if (sortCol !== col) return ''
-    return sortDir === 'desc' ? ' \u2193' : ' \u2191'
-  }
+  const ariaSort = col => sortCol === col ? (sortDir === 'desc' ? 'descending' : 'ascending') : 'none'
 
   // selected team detail data
   const teamDetail = useMemo(() => {
@@ -257,62 +256,64 @@ export default function TeamPace({ teams, loadTeamPaceForSeason, teamPaceCache, 
             </div>
             <span className={styles.panelMeta}>{sortedTeams.length} equipos</span>
           </div>
-          <div className={styles.tableFrame} tabIndex={0} aria-label="Rendimiento por cuarto de los equipos">
+          <div className={`${styles.tableFrame} mobile-name-frame`} tabIndex={0} aria-label="Rendimiento por cuarto de los equipos">
             <table className="data-table">
               <thead>
-                <tr className="border-b border-acb-200 bg-acb-50">
+                <tr>
                   <th
                     onClick={() => handleSort('team')}
-                    className="data-table-head data-table-identity data-table-sticky data-table-sticky-head data-col-team bg-acb-50 cursor-pointer hover:text-acb-900"
+                    aria-sort={ariaSort('team')}
+                    className="data-table-head text-left data-table-sticky data-table-sticky-head data-col-team mobile-name-hide"
                   >
-                    Equipo{sortIcon('team')}
+                    <SortLabel direction={sortCol === 'team' && sortDir}>Equipo</SortLabel>
                   </th>
                   {[1, 2, 3, 4].map(q => (
                     <th
                       key={q}
                       onClick={() => handleSort(String(q))}
-                      className="text-center py-2 px-4 text-xs font-semibold text-acb-600 uppercase cursor-pointer hover:text-acb-900 w-20"
+                      aria-sort={ariaSort(String(q))}
+                      className="data-table-head text-center data-col-heat"
                     >
-                      Q{q}{sortIcon(String(q))}
+                      <SortLabel direction={sortCol === String(q) && sortDir}>Q{q}</SortLabel>
                     </th>
                   ))}
                   <th
                     onClick={() => handleSort('total')}
-                    className="text-center py-2 px-4 text-xs font-semibold text-acb-600 uppercase cursor-pointer hover:text-acb-900 w-20"
+                    aria-sort={ariaSort('total')}
+                    className="data-table-head text-center data-col-heat"
                   >
-                    Total{sortIcon('total')}
+                    <SortLabel direction={sortCol === 'total' && sortDir}>Total</SortLabel>
                   </th>
-                  <th className="text-center py-2 px-3 text-xs font-semibold text-acb-600 uppercase w-16">
-                    Mejor
-                  </th>
-                  <th className="text-center py-2 px-3 text-xs font-semibold text-acb-600 uppercase w-16">
-                    Peor
-                  </th>
+                  <th className="data-table-head text-center">Mejor</th>
+                  <th className="data-table-head text-center">Peor</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-acb-100">
-                {sortedTeams.map(t => {
-                  const arr = viewMode === 'diff' ? t.quarters.diff
-                    : viewMode === 'scored' ? t.quarters.scored
-                    : t.quarters.allowed
-                  const total = arr.reduce((s, v) => s + v, 0)
-                  const isSelected = selectedTeam === t.team
-                  const quarterOrder = arr
-                    .map((value, index) => ({ value, quarter: index + 1 }))
-                    .sort((a, b) => viewMode === 'allowed' ? a.value - b.value : b.value - a.value)
-                  const bestQuarter = quarterOrder[0]?.quarter
-                  const worstQuarter = quarterOrder[quarterOrder.length - 1]?.quarter
-                  return (
+              {sortedTeams.map(t => {
+                const arr = viewMode === 'diff' ? t.quarters.diff
+                  : viewMode === 'scored' ? t.quarters.scored
+                  : t.quarters.allowed
+                const total = arr.reduce((s, v) => s + v, 0)
+                const isSelected = selectedTeam === t.team
+                const quarterOrder = arr
+                  .map((value, index) => ({ value, quarter: index + 1 }))
+                  .sort((a, b) => viewMode === 'allowed' ? a.value - b.value : b.value - a.value)
+                const bestQuarter = quarterOrder[0]?.quarter
+                const worstQuarter = quarterOrder[quarterOrder.length - 1]?.quarter
+                const toggleTeam = () => updateState({ teamId: isSelected ? null : teamIdByName.get(t.team) })
+                return (
+                  <tbody key={t.team} className="mobile-name-group">
+                    <MobileNameRow
+                      name={t.team}
+                      onClick={toggleTeam}
+                      className={isSelected ? 'bg-accent-50' : ''}
+                    />
                     <tr
-                      key={t.team}
-                      onClick={() => updateState({ teamId: isSelected ? null : teamIdByName.get(t.team) })}
-                      className={`data-table-row cursor-pointer ${
-                        isSelected ? 'bg-accent-50' : 'hover:bg-acb-50'
-                      }`}
+                      onClick={toggleTeam}
+                      className={`data-table-row cursor-pointer ${isSelected ? 'bg-accent-50' : ''}`}
                     >
-                      <td className="data-table-cell data-table-identity data-table-sticky data-col-team">
+                      <td className="data-table-cell data-table-identity data-table-sticky data-col-team mobile-name-hide">
                         <button
-                          className={styles.tableTeamButton}
+                          className="data-table-link"
                           aria-expanded={isSelected}
                           aria-controls={isSelected ? 'quarter-team-detail' : undefined}
                           onClick={event => {
@@ -328,7 +329,7 @@ export default function TeamPace({ teams, loadTeamPaceForSeason, teamPaceCache, 
                         else colorValue = quarterMeans.allowed[qi] - v
                         return <HeatCell key={qi} value={v} colorValue={colorValue} max={maxDiff} isDiff={viewMode === 'diff'} />
                       })}
-                      <td className={`px-2 py-1.5 text-center text-xs font-mono font-bold ${(() => {
+                      <td className={`data-table-cell data-table-number text-center font-semibold ${(() => {
                         if (viewMode === 'diff') return cellColor(total, maxDiff * 4)
                         const meanTotal = viewMode === 'scored'
                           ? quarterMeans.scored.reduce((a, b) => a + b, 0)
@@ -338,20 +339,20 @@ export default function TeamPace({ teams, loadTeamPaceForSeason, teamPaceCache, 
                       })()}`}>
                         {viewMode === 'diff' ? diffText(total) : total.toFixed(1)}
                       </td>
-                      <td className="text-center text-xs">
-                        <span className="inline-block px-1.5 py-0.5 rounded bg-positive-100 text-positive-700 font-medium">
+                      <td className="data-table-cell text-center">
+                        <span className="inline-block px-1.5 py-px leading-4 rounded bg-positive-100 text-positive-700 font-medium">
                           Q{bestQuarter}
                         </span>
                       </td>
-                      <td className="text-center text-xs">
-                        <span className="inline-block px-1.5 py-0.5 rounded bg-negative-100 text-negative-700 font-medium">
+                      <td className="data-table-cell text-center">
+                        <span className="inline-block px-1.5 py-px leading-4 rounded bg-negative-100 text-negative-700 font-medium">
                           Q{worstQuarter}
                         </span>
                       </td>
                     </tr>
-                  )
-                })}
-              </tbody>
+                  </tbody>
+                )
+              })}
             </table>
           </div>
         </section>
@@ -422,12 +423,12 @@ export default function TeamPace({ teams, loadTeamPaceForSeason, teamPaceCache, 
                 {viewMode === 'diff' ? 'Diferencial' : viewMode === 'scored' ? 'Anotado' : 'Recibido'} por tramo de 2 minutos
               </p>
               <div className="overflow-x-auto">
-                <table className="data-table text-xs">
+                <table className="data-table data-table-fill">
                   <thead>
-                    <tr className="border-b border-acb-200">
-                      <th className="py-1 px-2 text-left text-acb-500 font-medium"></th>
+                    <tr>
+                      <th className="data-table-head text-left"></th>
                       {['0-2', '2-4', '4-6', '6-8', '8-10'].map(s => (
-                        <th key={s} className="py-1 px-2 text-center text-acb-500 font-medium">{s}</th>
+                        <th key={s} className="data-table-head text-center">{s}</th>
                       ))}
                     </tr>
                   </thead>
@@ -435,8 +436,8 @@ export default function TeamPace({ teams, loadTeamPaceForSeason, teamPaceCache, 
                     {[1, 2, 3, 4].map(q => {
                       const qSegments = (teamDetail.segments || []).filter(s => s.q === q)
                       return (
-                        <tr key={q} className="border-b border-acb-50">
-                          <td className="py-1 px-2 font-semibold text-acb-600">Q{q}</td>
+                        <tr key={q}>
+                          <td className="data-table-cell font-semibold text-acb-600">Q{q}</td>
                           {[1, 2, 3, 4, 5].map(seg => {
                             const s = qSegments.find(x => x.seg === seg)
                             const val = s

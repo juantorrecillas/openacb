@@ -254,7 +254,8 @@ describe('latest-season defaults', () => {
     await waitFor(() => expect(loadSeason).toHaveBeenCalledWith(Number(season)))
     expect(screen.getByLabelText('Temporada')).toHaveValue(season)
     expect(screen.getByLabelText('Mín. PJ clutch')).toHaveValue(minimum)
-    expect(screen.queryByText('Jugador Actual') !== null).toBe(showsPlayer)
+    // The name is rendered twice: desktop cell and mobile name line (CSS picks one)
+    expect(screen.queryAllByText('Jugador Actual').length > 0).toBe(showsPlayer)
   })
 
   test('a latest-season similarity link retains the season while awaiting qualified games', async () => {

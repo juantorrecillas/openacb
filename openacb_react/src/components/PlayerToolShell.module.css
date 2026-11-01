@@ -322,28 +322,6 @@
   outline-offset: -2px;
 }
 
-.tableFrame :global(.data-table-head),
-.tableFrame :global(.data-table-group) {
-  color: #334e68;
-}
-
-.tableFrame :global(thead th) {
-  color: #334e68;
-}
-
-.tableFrame :global(thead > tr.bg-acb-50) {
-  background: #d9e2ec;
-  border-bottom-color: #9fb3c8;
-}
-
-.tableFrame :global(thead > tr.bg-acb-50 > th.bg-acb-50) {
-  background: #d9e2ec;
-}
-
-.tableFrame :global(.data-table-row:hover) {
-  background: #f0f4f8;
-}
-
 .emptyState,
 .loadingState {
   display: grid;
@@ -552,6 +530,7 @@
   font-weight: 650;
   letter-spacing: 0.01em;
   text-overflow: ellipsis;
+  vertical-align: middle;
   white-space: nowrap;
 }
 

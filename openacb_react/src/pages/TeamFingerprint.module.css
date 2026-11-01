@@ -473,9 +473,10 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+/* The table runs edge to edge, like the other tables; only the title is inset */
 .metricPane {
   min-width: 0;
-  padding: 18px 20px 20px;
+  padding-top: 18px;
 }
 
 .metricPane + .metricPane {
@@ -484,61 +485,7 @@
 
 .metricTitle {
   margin-bottom: 10px;
-}
-
-.metricTable {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: fixed;
-}
-
-.metricTable th,
-.metricTable td {
-  padding: 7px 5px;
-  border-top: 1px solid #edf1f5;
-  font-size: 0.6875rem;
-  line-height: 1.35;
-}
-
-.metricTable tbody th {
-  width: 42%;
-  padding-left: 0;
-  color: #486581;
-  font-weight: 500;
-  text-align: left;
-}
-
-.metricTable thead th {
-  padding-top: 5px;
-  padding-bottom: 7px;
-  color: #486581;
-  font-size: 0.5625rem;
-  font-weight: 700;
-  text-align: right;
-  text-transform: uppercase;
-  letter-spacing: 0.045em;
-}
-
-.metricTable thead th:first-child {
-  width: 42%;
-  padding-left: 0;
-  text-align: left;
-}
-
-.metricTable td {
-  color: #243b53;
-  font-family: 'JetBrains Mono', Consolas, monospace;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
-.metricTable td:nth-child(3) {
-  color: #486581;
-}
-
-.metricTable td:last-child {
-  width: 48px;
-  padding-right: 0;
+  padding-inline: 20px;
 }
 
 .shotHeader {
@@ -684,10 +631,13 @@
     padding: 16px;
   }
 
-  .radarFigure,
-  .metricPane {
+  .radarFigure {
     padding-right: 14px;
     padding-left: 14px;
+  }
+
+  .metricTitle {
+    padding-inline: 14px;
   }
 
   .shotControls,
@@ -731,11 +681,6 @@
     align-items: flex-start;
     flex-direction: column;
     gap: 3px;
-  }
-
-  .metricTable tbody th,
-  .metricTable thead th:first-child {
-    width: 46%;
   }
 }
 

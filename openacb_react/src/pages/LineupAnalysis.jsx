@@ -4,6 +4,8 @@ import { getPlayerPhoto } from '../utils/playerPhotos'
 import { getPlayerDisplayName as getCanonicalPlayerName } from '../utils/playerNames'
 import { AlertTriangle, Info, X, Search, ChevronDown, ChevronUp } from 'lucide-react'
 import LineupToolShell, { lineupToolStyles as styles } from '../components/LineupToolShell'
+import MobileNameRow from '../components/MobileNameRow'
+import SortLabel from '../components/SortLabel'
 import { normalizeNumericId } from '../routing/identifiers'
 import { buildLineupAnalysisPath } from '../routing/paths'
 import { parseRouteQuery, serializeRouteQuery, withQuery } from '../routing/query'
@@ -678,7 +680,7 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
 
           {/* Stats Table */}
           <div className={styles.tableFrame} tabIndex={0} aria-label="Comparación On/Off de la selección">
-            <table className="data-table table-fixed">
+            <table className="data-table data-table-fill table-fixed">
               <colgroup>
                 <col className="w-[27%]" />
                 <col className="w-[18.25%]" />
@@ -687,7 +689,7 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
                 <col className="w-[18.25%]" />
               </colgroup>
               <thead>
-                <tr className="bg-acb-50 text-left text-xs text-acb-600 uppercase tracking-wider">
+                <tr>
                   <th className="data-table-head text-left">Métrica</th>
                   <th className="data-table-head text-center" title="Rendimiento con la selección en pista">
                     <span className="sm:hidden">On</span><span className="hidden sm:inline">En cancha</span>
@@ -701,10 +703,10 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
                   <th className="data-table-head text-center">Impacto</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-acb-100">
+              <tbody>
                 {/* ATAQUE */}
-                <tr className="bg-acb-50">
-                  <td colSpan={5} className="data-table-group text-left">Ataque</td>
+                <tr className="data-table-section">
+                  <td colSpan={5}>Ataque</td>
                 </tr>
                 <StatRow
                   label="Ef. Ofensiva"
@@ -742,8 +744,8 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
                   diffUnit=" pp"
                 />
                 {/* DEFENSA */}
-                <tr className="bg-acb-50">
-                  <td colSpan={5} className="data-table-group text-left" title="Estadísticas permitidas al rival">Defensa</td>
+                <tr className="data-table-section">
+                  <td colSpan={5} title="Estadísticas permitidas al rival">Defensa</td>
                 </tr>
                 <StatRow
                   label="Ef. Defensiva"
@@ -775,8 +777,8 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
                   diffUnit=" pp"
                 />
                 {/* BALANCE */}
-                <tr className="bg-acb-50">
-                  <td colSpan={5} className="data-table-group text-left">Balance</td>
+                <tr className="data-table-section">
+                  <td colSpan={5}>Balance</td>
                 </tr>
                 <StatRow
                   label="Ef. Neta"
@@ -969,58 +971,49 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
             )}
           </div>
 
-          <div className={styles.tableFrame} tabIndex={0} aria-label="Impacto On/Off de la plantilla">
+          <div className={`${styles.tableFrame} mobile-name-frame`} tabIndex={0} aria-label="Impacto On/Off de la plantilla">
             <table className="data-table">
               <thead>
-                <tr className="text-xs uppercase tracking-wider border-b border-acb-200">
-                  <th className="data-table-head data-table-identity data-table-sticky data-table-sticky-head data-col-player bg-acb-50" rowSpan={2}>Jugador</th>
-                  <th colSpan={2} className="data-table-group bg-acb-50">Rating</th>
-                  <th colSpan={2} className="data-table-group bg-acb-50">Neto</th>
-                  <th
-                    className="data-table-head data-table-number data-col-number bg-accent-50 text-accent-700 cursor-pointer hover:bg-acb-100 transition-colors"
-                    rowSpan={2}
-                    aria-sort={sortConfig.key === 'netDiff' ? (sortConfig.direction === 'desc' ? 'descending' : 'ascending') : 'none'}
-                  >
-                    <button type="button" className="w-full flex items-center justify-end gap-1" onClick={() => handleSort('netDiff')}>
-                      Impacto
-                      {sortConfig.key === 'netDiff' && (
-                        sortConfig.direction === 'desc'
-                          ? <ChevronDown className="w-3 h-3" />
-                          : <ChevronUp className="w-3 h-3" />
-                      )}
-                    </button>
-                  </th>
-                  <th colSpan={4} className="data-table-group bg-acb-50">Ataque</th>
-                  <th colSpan={3} className="data-table-group bg-acb-50">Defensa</th>
-                  <th className="data-table-head data-table-number data-col-games bg-acb-50" rowSpan={2}>Min</th>
+                <tr>
+                  <th className="data-table-head text-left data-table-sticky data-table-sticky-head data-col-player mobile-name-hide" rowSpan={2}>Jugador</th>
+                  <th colSpan={2} className="data-table-group data-table-group-start">Rating</th>
+                  <th colSpan={2} className="data-table-group data-table-group-start">Neto</th>
+                  <SortableHeader label="Impacto" title="Diff Neto On−Off" sortKey="netDiff" current={sortConfig} onSort={handleSort} rowSpan={2} className="data-table-group-start" />
+                  <th colSpan={4} className="data-table-group data-table-group-start">Ataque</th>
+                  <th colSpan={3} className="data-table-group data-table-group-start">Defensa</th>
+                  <th className="data-table-head data-table-number data-table-group-start" rowSpan={2}>Min</th>
                 </tr>
-                <tr className="text-xs text-acb-600 uppercase tracking-wider">
-                  <SortableHeader label="ORtg" title="Diff ORtg On−Off" sortKey="deltaORtg" current={sortConfig} onSort={handleSort} />
+                <tr>
+                  <SortableHeader label="ORtg" title="Diff ORtg On−Off" sortKey="deltaORtg" current={sortConfig} onSort={handleSort} className="data-table-group-start" />
                   <SortableHeader label="DRtg" title="Diff DRtg On−Off" sortKey="deltaDRtg" current={sortConfig} onSort={handleSort} />
-                  <SortableHeader label="On" sortKey="onNetRtg" current={sortConfig} onSort={handleSort} />
+                  <SortableHeader label="On" sortKey="onNetRtg" current={sortConfig} onSort={handleSort} className="data-table-group-start" />
                   <SortableHeader label="Off" sortKey="offNetRtg" current={sortConfig} onSort={handleSort} />
-                  <SortableHeader label="eFG" title="Diff eFG% On−Off (pp)" sortKey="deltaEFG" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
-                  <SortableHeader label="PER" title="Diff PER% On−Off (pp)" sortKey="deltaTOV" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
-                  <SortableHeader label="RO" title="Diff RO% On−Off (pp)" sortKey="deltaORB" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
-                  <SortableHeader label="AST" title="Diff AST% On−Off (pp)" sortKey="deltaAST" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
-                  <SortableHeader label="eFG" title="Diff eFG% rival On−Off (pp)" sortKey="deltaOppEFG" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
-                  <SortableHeader label="PER" title="Diff PER% rival On−Off (pp)" sortKey="deltaOppTOV" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
-                  <SortableHeader label="RD" title="Diff RD% On−Off (pp)" sortKey="deltaDRB" current={sortConfig} onSort={handleSort} thClassName="bg-acb-50" />
+                  <SortableHeader label="eFG" title="Diff eFG% On−Off (pp)" sortKey="deltaEFG" current={sortConfig} onSort={handleSort} className="data-table-group-start" />
+                  <SortableHeader label="PER" title="Diff PER% On−Off (pp)" sortKey="deltaTOV" current={sortConfig} onSort={handleSort} />
+                  <SortableHeader label="RO" title="Diff RO% On−Off (pp)" sortKey="deltaORB" current={sortConfig} onSort={handleSort} />
+                  <SortableHeader label="AST" title="Diff AST% On−Off (pp)" sortKey="deltaAST" current={sortConfig} onSort={handleSort} />
+                  <SortableHeader label="eFG" title="Diff eFG% rival On−Off (pp)" sortKey="deltaOppEFG" current={sortConfig} onSort={handleSort} className="data-table-group-start" />
+                  <SortableHeader label="PER" title="Diff PER% rival On−Off (pp)" sortKey="deltaOppTOV" current={sortConfig} onSort={handleSort} />
+                  <SortableHeader label="RD" title="Diff RD% On−Off (pp)" sortKey="deltaDRB" current={sortConfig} onSort={handleSort} />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-acb-100">
-                {(showAllPlayers || minOnOffMinutes === 0 ? rankedPlayersData : rankedPlayersData.slice(0, 8)).map((player) => (
+              {(showAllPlayers || minOnOffMinutes === 0 ? rankedPlayersData : rankedPlayersData.slice(0, 8)).map((player) => (
+                <tbody key={player.key} className="mobile-name-group">
+                  <MobileNameRow
+                    name={player.name}
+                    onClick={() => toggleSinglePlayer(player.key)}
+                    className={selectedPlayers.includes(player.key) ? 'bg-accent-50' : ''}
+                  />
                   <tr
-                    key={player.key}
                     className={`data-table-row cursor-pointer ${
                       selectedPlayers.includes(player.key) ? 'bg-accent-50' : ''
                     }`}
                     onClick={() => toggleSinglePlayer(player.key)}
                   >
-                    <td className="data-table-cell data-table-identity data-table-sticky data-col-player">
+                    <td className="data-table-cell data-table-identity data-table-sticky data-col-player mobile-name-hide">
                       <button
                         type="button"
-                        className="flex items-center gap-2 text-left"
+                        className="data-table-link flex items-center gap-2"
                         onClick={(event) => {
                           event.stopPropagation()
                           toggleSinglePlayer(player.key)
@@ -1035,7 +1028,7 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
                     {(() => {
                       const ortgD = (player.onORtg ?? 0) - (player.offORtg ?? 0)
                       return (
-                        <td className={`data-table-cell data-table-number data-col-number ${ortgD > 0 ? 'text-positive' : ortgD < 0 ? 'text-negative' : 'text-acb-500'}`}>
+                        <td className={`data-table-cell data-table-number data-table-group-start ${ortgD > 0 ? 'text-positive' : ortgD < 0 ? 'text-negative' : 'text-acb-500'}`}>
                           {ortgD > 0 ? '+' : ''}{ortgD.toFixed(1)}
                         </td>
                       )
@@ -1043,20 +1036,20 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
                     {(() => {
                       const drtgD = (player.onDRtg ?? 0) - (player.offDRtg ?? 0)
                       return (
-                        <td className={`data-table-cell data-table-number data-col-number ${drtgD < 0 ? 'text-positive' : drtgD > 0 ? 'text-negative' : 'text-acb-500'}`}>
+                        <td className={`data-table-cell data-table-number ${drtgD < 0 ? 'text-positive' : drtgD > 0 ? 'text-negative' : 'text-acb-500'}`}>
                           {drtgD > 0 ? '+' : ''}{drtgD.toFixed(1)}
                         </td>
                       )
                     })()}
-                    <td className={`data-table-cell data-table-number data-col-number ${
+                    <td className={`data-table-cell data-table-number data-table-group-start ${
                       player.onNetRtg > 0 ? 'text-positive' : 'text-negative'
                     }`}>
                       {player.onNetRtg > 0 ? '+' : ''}{player.onNetRtg?.toFixed(1)}
                     </td>
-                    <td className="data-table-cell data-table-number data-col-number text-acb-500">
+                    <td className="data-table-cell data-table-number text-acb-500">
                       {player.offNetRtg > 0 ? '+' : ''}{player.offNetRtg?.toFixed(1)}
                     </td>
-                    <td className={`data-table-cell data-table-number data-col-number font-semibold ${
+                    <td className={`data-table-cell data-table-number data-table-group-start font-semibold ${
                       player.netDiff > 2 ? 'text-positive' :
                       player.netDiff < -2 ? 'text-negative' : 'text-acb-500'
                     }`}>
@@ -1064,38 +1057,38 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
                     </td>
                     {(() => {
                       const d = (player.onEFG ?? 0) - (player.offEFG ?? 0)
-                      return <td className={`data-table-cell data-table-number data-col-number ${d > 0 ? 'text-positive' : d < 0 ? 'text-negative' : 'text-acb-500'}`}>{d > 0 ? '+' : ''}{d.toFixed(1)}</td>
+                      return <td className={`data-table-cell data-table-number data-table-group-start ${d > 0 ? 'text-positive' : d < 0 ? 'text-negative' : 'text-acb-500'}`}>{d > 0 ? '+' : ''}{d.toFixed(1)}</td>
                     })()}
                     {(() => {
                       const d = (player.onTOV ?? 0) - (player.offTOV ?? 0)
-                      return <td className={`data-table-cell data-table-number data-col-number ${d < 0 ? 'text-positive' : d > 0 ? 'text-negative' : 'text-acb-500'}`}>{d > 0 ? '+' : ''}{d.toFixed(1)}</td>
+                      return <td className={`data-table-cell data-table-number ${d < 0 ? 'text-positive' : d > 0 ? 'text-negative' : 'text-acb-500'}`}>{d > 0 ? '+' : ''}{d.toFixed(1)}</td>
                     })()}
                     {(() => {
                       const d = (player.onORB ?? 0) - (player.offORB ?? 0)
-                      return <td className={`data-table-cell data-table-number data-col-number ${d > 0 ? 'text-positive' : d < 0 ? 'text-negative' : 'text-acb-500'}`}>{d > 0 ? '+' : ''}{d.toFixed(1)}</td>
+                      return <td className={`data-table-cell data-table-number ${d > 0 ? 'text-positive' : d < 0 ? 'text-negative' : 'text-acb-500'}`}>{d > 0 ? '+' : ''}{d.toFixed(1)}</td>
                     })()}
                     {(() => {
                       const d = (player.onAST ?? 0) - (player.offAST ?? 0)
-                      return <td className={`data-table-cell data-table-number data-col-number ${d > 0 ? 'text-positive' : d < 0 ? 'text-negative' : 'text-acb-500'}`}>{d > 0 ? '+' : ''}{d.toFixed(1)}</td>
+                      return <td className={`data-table-cell data-table-number ${d > 0 ? 'text-positive' : d < 0 ? 'text-negative' : 'text-acb-500'}`}>{d > 0 ? '+' : ''}{d.toFixed(1)}</td>
                     })()}
                     {(() => {
                       const d = (player.onOppEFG ?? 0) - (player.offOppEFG ?? 0)
-                      return <td className={`data-table-cell data-table-number data-col-number ${d < 0 ? 'text-positive' : d > 0 ? 'text-negative' : 'text-acb-500'}`}>{d > 0 ? '+' : ''}{d.toFixed(1)}</td>
+                      return <td className={`data-table-cell data-table-number data-table-group-start ${d < 0 ? 'text-positive' : d > 0 ? 'text-negative' : 'text-acb-500'}`}>{d > 0 ? '+' : ''}{d.toFixed(1)}</td>
                     })()}
                     {(() => {
                       const d = (player.onOppTOV ?? 0) - (player.offOppTOV ?? 0)
-                      return <td className={`data-table-cell data-table-number data-col-number ${d > 0 ? 'text-positive' : d < 0 ? 'text-negative' : 'text-acb-500'}`}>{d > 0 ? '+' : ''}{d.toFixed(1)}</td>
+                      return <td className={`data-table-cell data-table-number ${d > 0 ? 'text-positive' : d < 0 ? 'text-negative' : 'text-acb-500'}`}>{d > 0 ? '+' : ''}{d.toFixed(1)}</td>
                     })()}
                     {(() => {
                       const d = (player.onDRB ?? 0) - (player.offDRB ?? 0)
-                      return <td className={`data-table-cell data-table-number data-col-number ${d > 0 ? 'text-positive' : d < 0 ? 'text-negative' : 'text-acb-500'}`}>{d > 0 ? '+' : ''}{d.toFixed(1)}</td>
+                      return <td className={`data-table-cell data-table-number ${d > 0 ? 'text-positive' : d < 0 ? 'text-negative' : 'text-acb-500'}`}>{d > 0 ? '+' : ''}{d.toFixed(1)}</td>
                     })()}
-                    <td className="data-table-cell data-table-number data-col-games text-xs text-acb-400">
+                    <td className="data-table-cell data-table-number data-table-group-start text-acb-500">
                       {player.onMin?.toFixed(0)}
                     </td>
                   </tr>
-                ))}
-              </tbody>
+                </tbody>
+              ))}
             </table>
           </div>
         </section>
@@ -1317,16 +1310,16 @@ const StatRow = ({ label, onValue, offValue, inverse = false, highlight = false 
 
   return (
     <tr className={`data-table-row ${highlight ? 'bg-acb-50' : ''}`}>
-      <td className={`data-table-cell ${highlight ? 'font-semibold' : ''}`}>
+      <td className={`data-table-cell text-left ${highlight ? 'font-semibold' : ''}`}>
         {label}
       </td>
-      <td className="data-table-cell text-center font-mono tabular-nums">
+      <td className="data-table-cell data-table-number text-center">
         <span className="font-medium text-acb-700">{hasNumber(onValue) ? Number(onValue).toFixed(1) : '—'}</span>
       </td>
-      <td className="data-table-cell text-center font-mono tabular-nums text-acb-500">
+      <td className="data-table-cell data-table-number text-center text-acb-500">
         {hasNumber(offValue) ? Number(offValue).toFixed(1) : '—'}
       </td>
-      <td className="data-table-cell text-center font-mono tabular-nums">
+      <td className="data-table-cell data-table-number text-center">
         <span className={`font-medium ${!hasValues ? 'text-acb-400' : isGood ? 'text-positive' : diff < 0 || diff > 0 ? 'text-negative' : 'text-acb-500'}`}>
           {hasValues ? `${diff > 0 ? '+' : ''}${diff.toFixed(1)}` : '—'}
         </span>
@@ -1339,29 +1332,23 @@ const StatRow = ({ label, onValue, offValue, inverse = false, highlight = false 
 }
 
 // Sortable Header Component
-const SortableHeader = ({ label, title, sortKey, current, onSort, highlight = false, thClassName = '' }) => {
+const SortableHeader = ({ label, title, sortKey, current, onSort, rowSpan, className = '' }) => {
   const isActive = current.key === sortKey
 
   return (
     <th
-      className={`data-table-head data-table-number data-col-number hover:bg-acb-100 transition-colors ${
-        highlight ? 'bg-accent-50' : ''
-      } ${isActive ? 'text-accent-600' : ''} ${thClassName}`}
+      rowSpan={rowSpan}
+      className={`data-table-head data-table-number ${className}`}
       aria-sort={isActive ? (current.direction === 'desc' ? 'descending' : 'ascending') : 'none'}
       title={title}
     >
       <button
         type="button"
-        className="w-full flex items-center justify-end gap-1"
+        className="w-full text-right"
         onClick={() => onSort(sortKey)}
         aria-label={title ? `${title}. Ordenar` : undefined}
       >
-        {label}
-        {isActive && (
-          current.direction === 'desc'
-            ? <ChevronDown className="w-3 h-3" />
-            : <ChevronUp className="w-3 h-3" />
-        )}
+        <SortLabel direction={isActive && current.direction}>{label}</SortLabel>
       </button>
     </th>
   )

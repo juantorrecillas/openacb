@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 import PlayerToolShell, { playerToolStyles } from '../components/PlayerToolShell'
+import MobileNameRow from '../components/MobileNameRow'
 import PlayerCombobox from '../components/PlayerCombobox'
 import { statTitle } from '../utils/statLabels'
 import { getPlayerDisplayName, getPlayerSearchText } from '../utils/playerNames'
@@ -104,7 +105,7 @@ function ScoreBar({ score }) {
       <div className="w-20 h-2 bg-acb-100 rounded-full overflow-hidden">
         <div className={`h-full rounded-full ${color}`} style={{ width: `${score}%` }} />
       </div>
-      <span className="font-mono text-sm text-acb-900 w-12 text-right">{score.toFixed(1)}</span>
+      <span className="font-mono text-acb-900 w-10 text-right">{score.toFixed(1)}</span>
     </div>
   )
 }
@@ -398,47 +399,52 @@ export default function PlayerSimilarity({ players, similarity }) {
               <p>La puntuación resume la cercanía del perfil completo; las columnas muestran los rasgos distintivos del jugador de referencia.</p>
             </div>
           </div>
-          <div className={playerToolStyles.tableFrame} tabIndex={0} aria-label="Tabla de jugadores similares">
+          <div className={`${playerToolStyles.tableFrame} mobile-name-frame`} tabIndex={0} aria-label="Tabla de jugadores similares">
             <table className="data-table">
               <thead>
-                <tr className="border-b border-acb-200 bg-acb-50">
-                  <th className="data-table-head data-table-number data-table-sticky data-table-sticky-head data-col-rank bg-acb-50">#</th>
-                  <th className="data-table-head data-table-identity data-table-sticky-after-rank data-table-sticky-head data-col-player bg-acb-50">Jugador</th>
-                  <th className="data-table-head text-left data-col-team">Equipo</th>
-                  <th className="data-table-head text-left">Temp.</th>
+                <tr>
+                  <th className="data-table-head data-table-number data-table-sticky data-table-sticky-head data-col-rank mobile-name-hide">#</th>
+                  <th className="data-table-head text-left data-table-sticky-after-rank data-table-sticky-head data-col-player mobile-name-hide">Jugador</th>
+                  <th className="data-table-head text-left data-col-team mobile-name-hide">Equipo</th>
+                  <th className="data-table-head text-left mobile-name-hide">Temp.</th>
                   {standoutCols.map(col => (
-                    <th key={col.key} title={statTitle(col.label)} className="data-table-head data-table-number data-col-number text-accent-600">{col.label}</th>
+                    <th key={col.key} title={statTitle(col.label)} className="data-table-head data-table-number">{col.label}</th>
                   ))}
                   <th className="data-table-head data-table-number">Similitud</th>
-                  <th className="data-table-head w-8"></th>
+                  <th className="data-table-head"><span className="sr-only">Abrir perfil</span></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-acb-100">
-                {similarPlayers.map(p => (
+              {similarPlayers.map(p => (
+                <tbody key={`${p.licenseId}_${p.season}_${p.teamId}`} className="mobile-name-group">
+                  <MobileNameRow
+                    rank={p.rank}
+                    name={p.name}
+                    meta={`${p.team} · ${seasonLabel(p.season)}`}
+                    onClick={p._record ? () => navigate(buildProfileUrl(p._record)) : undefined}
+                  />
                   <tr
-                    key={`${p.licenseId}_${p.season}_${p.teamId}`}
                     onClick={() => p._record && navigate(buildProfileUrl(p._record))}
                     onKeyDown={(event) => {
                       if ((event.key === 'Enter' || event.key === ' ') && p._record) navigate(buildProfileUrl(p._record))
                     }}
                     role="link"
                     tabIndex={0}
-                    className="data-table-row cursor-pointer hover:bg-accent-50"
+                    className="data-table-row cursor-pointer"
                   >
-                    <td className="data-table-cell data-table-number data-table-sticky data-col-rank text-acb-400">{p.rank}</td>
-                    <td className="data-table-cell data-table-identity data-table-sticky-after-rank data-col-player">{p.name}</td>
-                    <td className="data-table-cell data-col-team text-acb-600">{p.team}</td>
-                    <td className="data-table-cell text-acb-600">{seasonLabel(p.season)}</td>
+                    <td className="data-table-cell data-table-number data-table-sticky data-col-rank text-acb-400 mobile-name-hide">{p.rank}</td>
+                    <td className="data-table-cell data-table-identity data-table-sticky-after-rank data-col-player mobile-name-hide">{p.name}</td>
+                    <td className="data-table-cell data-col-team text-acb-600 mobile-name-hide">{p.team}</td>
+                    <td className="data-table-cell text-acb-600 mobile-name-hide">{seasonLabel(p.season)}</td>
                     {standoutCols.map(col => (
-                      <td key={col.key} className="data-table-cell data-table-number data-col-number">
+                      <td key={col.key} className="data-table-cell data-table-number">
                         {col.fmt(p._record?.[col.key])}
                       </td>
                     ))}
                     <td className="data-table-cell text-right"><ScoreBar score={p.score} /></td>
                     <td className="data-table-cell text-acb-400"><ArrowRight className="w-4 h-4" /></td>
                   </tr>
-                ))}
-              </tbody>
+                </tbody>
+              ))}
             </table>
           </div>
         </section>

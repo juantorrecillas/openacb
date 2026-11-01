@@ -41,29 +41,116 @@
     @apply bg-acb-800 text-white hover:bg-acb-800;
   }
 
+  /* Data tables: every table in the app shares this look.
+     Columns are as wide as their content, and an empty cell at the end of
+     each row takes any spare width, so the gaps between columns stay even
+     instead of stretching across wide screens. Comparison tables whose
+     columns split the width on purpose add `data-table-fill`. */
   .data-table {
-    @apply w-full text-xs sm:text-sm;
+    @apply w-full border-collapse;
   }
 
-  .data-table th,
-  .data-table td {
-    @apply px-2 py-2;
+  :where(.data-table) :where(th, td) {
+    width: 1px;
+    padding: 0.5rem 0.625rem;
+  }
+
+  .data-table > :is(thead, tbody) > tr::after {
+    content: '';
+    display: table-cell;
+  }
+
+  :where(.data-table-fill) :where(th, td) {
+    width: auto;
+  }
+
+  .data-table-fill > :is(thead, tbody) > tr::after {
+    content: none;
+  }
+
+  /* Header band: one colour for every header row, a light line between
+     a group row and the column labels, a darker line under the header */
+  .data-table > thead > tr {
+    background-color: theme('colors.acb.100');
+    border-bottom: 1px solid theme('colors.acb.200');
+  }
+
+  .data-table > thead > tr:last-child {
+    border-bottom-color: theme('colors.acb.300');
+  }
+
+  .data-table > thead th {
+    font-family: theme('fontFamily.sans');
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    vertical-align: bottom;
+  }
+
+  /* Header labels inside sort buttons (the CSS reset turns uppercase off on buttons) */
+  .data-table > thead th button {
+    text-transform: inherit;
   }
 
   .data-table-head {
-    @apply px-2.5 py-2 text-xs font-semibold uppercase tracking-wider text-acb-600 whitespace-nowrap;
+    @apply text-acb-700;
   }
 
   .data-table-group {
-    @apply px-2.5 py-2 text-center text-xs font-semibold uppercase tracking-wider text-acb-700 whitespace-nowrap;
+    @apply text-center text-acb-700;
+  }
+
+  /* Sortable headers are the ones with aria-sort */
+  .data-table th[aria-sort] {
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 150ms;
+  }
+
+  .data-table th[aria-sort]:hover {
+    background-color: theme('colors.acb.200');
+  }
+
+  .data-table th:is([aria-sort='ascending'], [aria-sort='descending']) {
+    color: theme('colors.acb.900');
+  }
+
+  /* The arrow sits in the cell's right padding, so sorting never
+     changes the column width (see SortLabel) */
+  .data-table-sort-label {
+    position: relative;
+  }
+
+  .data-table-sort-icon {
+    position: absolute;
+    top: 50%;
+    left: 100%;
+    width: 10px;
+    height: 10px;
+    transform: translateY(-50%);
+  }
+
+  /* First column of a group (Ataque, Defensa...): a line down the whole table */
+  .data-table .data-table-group-start {
+    border-left: 1px solid theme('colors.acb.100');
+  }
+
+  .data-table > thead .data-table-group-start {
+    border-left-color: theme('colors.acb.200');
+  }
+
+  /* Label rows inside the body that split it into sections */
+  .data-table-section {
+    background-color: theme('colors.acb.50');
+  }
+
+  .data-table-section > :is(th, td) {
+    @apply text-left font-semibold uppercase tracking-wider text-acb-600 whitespace-nowrap;
   }
 
   .data-table-cell {
-    @apply px-2.5 py-2 text-xs sm:text-sm text-acb-700 whitespace-nowrap;
-  }
-
-  .profile-history-team {
-    @apply px-2 py-2 text-left text-xs sm:text-sm font-sans font-normal text-acb-700 whitespace-nowrap;
+    @apply text-acb-700 whitespace-nowrap;
   }
 
   .data-table-number {
@@ -72,6 +159,10 @@
 
   .data-table-identity {
     @apply text-left font-medium text-acb-900;
+  }
+
+  .data-table-link {
+    @apply text-left hover:text-accent-700 hover:underline;
   }
 
   .data-table-value {
@@ -84,6 +175,13 @@
 
   .data-table-row {
     @apply bg-white hover:bg-acb-50 transition-colors;
+  }
+
+  /* One line between rows. Tables that give each row its own tbody
+     (MobileNameRow) get it from the tbody border. */
+  .data-table > tbody + tbody,
+  .data-table > tbody > tr:not(.mobile-name-row) + tr {
+    border-top: 1px solid theme('colors.acb.100');
   }
 
   .data-table-sticky,
@@ -139,8 +237,10 @@
     left: 0;
   }
 
+  /* Exactly 10rem wide, or the role column (left: 14.5rem) would overlap it */
   .career-sticky-team {
     left: 4.5rem;
+    max-width: 10rem;
   }
 
   .career-sticky-role {
@@ -170,11 +270,6 @@
   .data-col-team {
     width: 10rem;
     min-width: 10rem;
-  }
-
-  .data-col-position {
-    width: 5rem;
-    min-width: 5rem;
   }
 
   .team-roster-col-player {
@@ -214,14 +309,16 @@
     max-width: 14rem;
   }
 
-  .data-col-games {
-    width: 3.5rem;
-    min-width: 3.5rem;
-  }
-
-  .data-col-number {
+  /* Quarter heatmap: every quarter block the same width */
+  .data-col-heat {
     width: 4.5rem;
     min-width: 4.5rem;
+  }
+
+  @media (max-width: 639px) {
+    :where(.data-table) :where(th, td) {
+      padding-inline: 0.5rem;
+    }
   }
 }
 
@@ -351,44 +448,94 @@ body {
 .app-page .text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
 .app-page .text-4xl { font-size: 2.25rem; line-height: 2.5rem; }
 
-.app-page .data-table {
+.app-page .data-table,
+.app-page .data-table :is(th, td) {
   font-size: 0.75rem;
   line-height: 1.125rem;
 }
 
-.app-page .data-table th {
+.app-page .data-table :is(thead th, .data-table-section > *) {
   font-size: 0.65625rem;
   line-height: 0.9375rem;
 }
 
-.app-page .data-table td {
-  font-size: 0.75rem;
-  line-height: 1.125rem;
-}
-
 @media (max-width: 639px) {
-  .team-roster-sticky-position,
-  .team-roster-sticky-archetype,
-  .career-sticky-team,
-  .career-sticky-role {
-    position: static;
-    box-shadow: none;
-  }
-  .team-roster-sticky-player,
-  .career-sticky-season {
-    box-shadow: 1px 0 0 #d9e2ec;
-  }
-  .team-roster-col-player { width: 8.5rem; min-width: 8.5rem; max-width: 8.5rem; }
-  .team-roster-col-position { width: 4.5rem; min-width: 4.5rem; max-width: 4.5rem; }
-  .team-roster-col-archetype { width: 9rem; min-width: 9rem; max-width: 9rem; }
-  .app-page .data-table th { font-size: 0.6875rem; line-height: 0.9375rem; }
-  .app-page .data-table td { font-size: 0.75rem; line-height: 1.125rem; }
+  .app-page .data-table :is(thead th, .data-table-section > *) { font-size: 0.6875rem; }
   .app-page :where(input, select, textarea),
   .app-page :where(input, select, textarea).text-xs,
   .app-page :where(input, select, textarea).text-sm {
     font-size: 1rem;
     line-height: 1.25rem;
   }
+}
+
+/* Mobile tables: each row's name sits on its own line above its stats
+   (MobileNameRow), so it no longer needs a wide sticky column. */
+.mobile-name-row { display: none; }
+/* Its cell already spans every column, so it needs no spare-width cell */
+.data-table > tbody > .mobile-name-row::after { content: none; }
+
+@media (max-width: 639px) {
+  .mobile-name-frame { container-type: inline-size; }
+  .mobile-name-hide { display: none; }
+
+  .mobile-name-row { display: table-row; }
+  .mobile-name-row-link { cursor: pointer; }
+  .app-page .data-table .mobile-name-row > td { padding: 7px 0 0; }
+
+  /* Stays at the left edge while the stats scroll sideways */
+  .mobile-name {
+    position: sticky;
+    left: 0;
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    width: max-content;
+    max-width: 100cqw;
+    padding-inline: 10px;
+    white-space: nowrap;
+  }
+  .mobile-name-rank {
+    color: #829ab1;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+  .mobile-name-rank { flex: none; }
+  /* When the line is too long the meta text is cut first, the name only if it can't fit alone */
+  .mobile-name-player {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #102a43;
+    font-weight: 600;
+  }
+  .mobile-name-meta {
+    flex: 0 1000 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #627d98;
+    font-size: 0.6875rem;
+  }
+
+  /* Long names (lineups) wrap instead of being cut */
+  .mobile-name-wrap {
+    flex-wrap: wrap;
+    white-space: normal;
+  }
+  .mobile-name-wrap .mobile-name-player {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: none;
+  }
+  .mobile-name-wrap .mobile-name-meta { flex-basis: 100%; }
+
+  .app-page .data-table .mobile-name-group > .data-table-row > td { padding-top: 2px; }
+}
+
+@media (max-width: 639px) and (hover: hover) {
+  .mobile-name-group:hover > tr { background-color: #f0f4f8; }
 }
 
 /* utility classes using css variables */

@@ -3,6 +3,7 @@ import { useLocation, useParams, useNavigate, useSearchParams } from 'react-rout
 import { Loader2, GitCompareArrows, Flame, Download, ArrowRight } from 'lucide-react'
 import PlayerToolShell, { playerToolStyles } from '../components/PlayerToolShell'
 import PlayerCombobox from '../components/PlayerCombobox'
+import MobileNameRow from '../components/MobileNameRow'
 import { getPlayerPhoto } from '../utils/playerPhotos'
 import { downloadTableAsCsv } from '../utils/csvDownload'
 import { getPlayerDisplayName, getPlayerSearchText } from '../utils/playerNames'
@@ -257,6 +258,8 @@ const careerImpactCols = [
 
 // route value of each career tab
 const CAREER_TAB_ROUTE = { basic: 'basico', advanced: 'avanzado', impact: 'impacto' }
+// On mobile these columns move into the line above each season's stats
+const CAREER_MOBILE_NAME_KEYS = new Set(['season', 'team', 'careerRole'])
 
 function CareerTable({ records, bio, tab = 'basic', onTabChange }) {
   const cols = tab === 'advanced' ? careerAdvancedCols : tab === 'impact' ? careerImpactCols : careerBasicCols
@@ -329,29 +332,37 @@ function CareerTable({ records, bio, tab = 'basic', onTabChange }) {
           </button>
         </div>
       </div>
-      <div className={playerToolStyles.tableFrame} tabIndex={0} aria-label="Trayectoria del jugador">
+      <div className={`${playerToolStyles.tableFrame} mobile-name-frame`} tabIndex={0} aria-label="Trayectoria del jugador">
         <table className="data-table">
           <thead>
-            <tr className="bg-acb-50 border-b border-acb-200">
+            <tr>
               {cols.map(c => {
                 const stickyClass = c.key === 'season'
-                  ? 'career-sticky-season data-table-sticky-head data-col-season bg-acb-50'
+                  ? 'career-sticky-season data-table-sticky-head data-col-season'
                   : c.key === 'team'
-                    ? 'career-sticky-team data-table-sticky-head data-col-team bg-acb-50'
+                    ? 'career-sticky-team data-table-sticky-head data-col-team'
                     : c.key === 'careerRole'
-                      ? 'career-sticky-role data-table-sticky-head career-col-role bg-acb-50'
+                      ? 'career-sticky-role data-table-sticky-head career-col-role'
                       : ''
                 return (
-                  <th key={c.key} className={`px-3 py-2 text-xs font-semibold text-acb-600 uppercase tracking-wider whitespace-nowrap ${c.left ? 'text-left' : 'text-right'} ${stickyClass}`}>
+                  <th key={c.key} className={`data-table-head ${c.left ? 'text-left' : 'text-right'} ${stickyClass} ${CAREER_MOBILE_NAME_KEYS.has(c.key) ? 'mobile-name-hide' : ''}`}>
                     {c.label}
                   </th>
                 )
               })}
             </tr>
           </thead>
-          <tbody className="divide-y divide-acb-100">
-            {sorted.map(r => (
-              <tr key={`${r.season}-${r.team}`} className="data-table-row">
+          {sorted.map(r => (
+            <tbody key={`${r.season}-${r.team}`} className="mobile-name-group">
+              <MobileNameRow
+                name={seasonLabel(r.season)}
+                meta={(
+                  <>
+                    {r.team} · <span className={archetypeTextClass(r.careerRole.color)}>{r.careerRole.name}</span>
+                  </>
+                )}
+              />
+              <tr className="data-table-row">
                 {cols.map(c => {
                   const display = formatPlayerProfileTableValue(r, c)
                   const stickyClass = c.key === 'season'
@@ -362,12 +373,16 @@ function CareerTable({ records, bio, tab = 'basic', onTabChange }) {
                         ? 'career-sticky-role career-col-role'
                         : ''
                   return (
-                    <td key={c.key} className={`px-3 py-2 whitespace-nowrap ${
-                      c.key === 'careerRole'
-                        ? 'text-left text-acb-700'
-                        : `font-mono ${c.left ? (c.key === 'season' ? 'text-left font-medium text-acb-900' : 'text-left text-acb-700') : 'text-right text-acb-700'}`
-                    } ${stickyClass}`}>
-                      {c.key === 'careerRole' ? (
+                    <td key={c.key} className={`data-table-cell ${
+                      c.key === 'season'
+                        ? 'data-table-identity'
+                        : c.key === 'team'
+                          ? 'text-left text-acb-600'
+                          : c.left ? 'text-left' : 'data-table-number'
+                    } ${stickyClass} ${CAREER_MOBILE_NAME_KEYS.has(c.key) ? 'mobile-name-hide' : ''}`}>
+                      {c.key === 'team' ? (
+                        <span className="block truncate" title={display}>{display}</span>
+                      ) : c.key === 'careerRole' ? (
                         <span
                           className={`${playerToolStyles.roleWord} ${archetypeTextClass(r.careerRole.color)}`}
                           title={`${r.careerRole.name}: ${r.careerRole.desc}`}
@@ -379,8 +394,8 @@ function CareerTable({ records, bio, tab = 'basic', onTabChange }) {
                   )
                 })}
               </tr>
-            ))}
-          </tbody>
+            </tbody>
+          ))}
         </table>
       </div>
     </section>
@@ -794,24 +809,24 @@ function ShootingStatsCard({ player, shotTab = 'own', onShotTabChange }) {
         {shotTab === 'own' ? (
           <table className="data-table">
             <thead>
-              <tr className="bg-acb-100 border-b border-acb-300">
-                <th className="px-3 py-2 text-left text-xs font-semibold text-acb-600 uppercase whitespace-nowrap">Zona</th>
-                <th className="px-3 py-2 text-right text-xs font-semibold text-acb-600 uppercase whitespace-nowrap" title="Frecuencia de tiro">Frec.</th>
-                <th className="px-3 py-2 text-right text-xs font-semibold text-acb-600 uppercase whitespace-nowrap" title="Porcentaje de tiro de campo">TC%</th>
-                <th className="px-3 py-2 text-right text-xs font-semibold text-acb-600 uppercase whitespace-nowrap">Tiros</th>
+              <tr>
+                <th className="data-table-head text-left">Zona</th>
+                <th className="data-table-head data-table-number" title="Frecuencia de tiro">Frec.</th>
+                <th className="data-table-head data-table-number" title="Porcentaje de tiro de campo">TC%</th>
+                <th className="data-table-head data-table-number">Tiros</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-acb-100">
+            <tbody>
               {zones.map(z => {
                 const freq = player[`freq${z.key}`]
                 const fgpct = player[`fgpct${z.key}`]
                 const fga = player[`fga${z.key}`]
                 return (
-                  <tr key={z.key} className="data-table-row border-b border-acb-100">
-                    <td className="px-3 py-2 text-acb-700 whitespace-nowrap">{z.label}</td>
-                    <td className="px-3 py-2 text-right font-mono text-acb-900 whitespace-nowrap">{freq != null ? `${freq.toFixed(1)}%` : '-'}</td>
-                    <td className="px-3 py-2 text-right font-mono text-acb-900 whitespace-nowrap">{fgpct != null ? `${fgpct.toFixed(1)}%` : '-'}</td>
-                    <td className="px-3 py-2 text-right font-mono text-acb-500 whitespace-nowrap">{fga ?? '-'}</td>
+                  <tr key={z.key} className="data-table-row">
+                    <td className="data-table-cell text-left">{z.label}</td>
+                    <td className="data-table-cell data-table-number">{freq != null ? `${freq.toFixed(1)}%` : '-'}</td>
+                    <td className="data-table-cell data-table-number">{fgpct != null ? `${fgpct.toFixed(1)}%` : '-'}</td>
+                    <td className="data-table-cell data-table-number text-acb-500">{fga ?? '-'}</td>
                   </tr>
                 )
               })}
@@ -820,26 +835,26 @@ function ShootingStatsCard({ player, shotTab = 'own', onShotTabChange }) {
         ) : (
           <table className="data-table">
             <thead>
-              <tr className="bg-acb-100 border-b border-acb-300">
-                <th className="px-3 py-2 text-left text-xs font-semibold text-acb-600 uppercase whitespace-nowrap">Zona</th>
-                <th className="px-3 py-2 text-right text-xs font-semibold text-acb-600 uppercase whitespace-nowrap" title="Diferencia en puntos porcentuales respecto al equipo">Diff equipo (pp)</th>
-                <th className="px-3 py-2 text-right text-xs font-semibold text-acb-600 uppercase whitespace-nowrap" title="Porcentaje de tiro permitido al rival">TC% riv.</th>
-                <th className="px-3 py-2 text-right text-xs font-semibold text-acb-600 uppercase whitespace-nowrap">Tiros riv.</th>
+              <tr>
+                <th className="data-table-head text-left">Zona</th>
+                <th className="data-table-head data-table-number" title="Diferencia en puntos porcentuales respecto al equipo">Diff equipo (pp)</th>
+                <th className="data-table-head data-table-number" title="Porcentaje de tiro permitido al rival">TC% riv.</th>
+                <th className="data-table-head data-table-number">Tiros riv.</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-acb-100">
+            <tbody>
               {zones.map(z => {
                 const diff = player[`oppDiff${z.key}`]
                 const fgpct = player[`oppOnFgpct${z.key}`]
                 const fga = player[`oppFga${z.key}`]
                 return (
-                  <tr key={z.key} className="data-table-row border-b border-acb-100">
-                    <td className="px-3 py-2 text-acb-700 whitespace-nowrap">{z.label}</td>
-                    <td className={`px-3 py-2 text-right font-mono font-medium whitespace-nowrap ${diff == null ? 'text-acb-400' : diff < 0 ? 'text-positive' : diff > 0 ? 'text-negative' : 'text-acb-700'}`}>
+                  <tr key={z.key} className="data-table-row">
+                    <td className="data-table-cell text-left">{z.label}</td>
+                    <td className={`data-table-cell data-table-number font-medium ${diff == null ? 'text-acb-400' : diff < 0 ? 'text-positive' : diff > 0 ? 'text-negative' : 'text-acb-700'}`}>
                       {diff != null ? `${diff > 0 ? '+' : ''}${diff.toFixed(1)} pp` : '-'}
                     </td>
-                    <td className="px-3 py-2 text-right font-mono text-acb-900 whitespace-nowrap">{fgpct != null ? `${fgpct.toFixed(1)}%` : '-'}</td>
-                    <td className="px-3 py-2 text-right font-mono text-acb-500 whitespace-nowrap">{fga ?? '-'}</td>
+                    <td className="data-table-cell data-table-number">{fgpct != null ? `${fgpct.toFixed(1)}%` : '-'}</td>
+                    <td className="data-table-cell data-table-number text-acb-500">{fga ?? '-'}</td>
                   </tr>
                 )
               })}
@@ -960,61 +975,62 @@ function OnOffCard({ records, loadLineupsForSeason, lineupsCache, loadingLineups
         <p className="text-sm text-acb-500">No se encontraron datos de alineaciones para este jugador.</p>
       )}
       {hasAnyData && (
-        <div className={playerToolStyles.tableFrame} tabIndex={0} aria-label="Tabla de impacto On/Off">
-          <table className="data-table border-collapse">
+        <div className={`${playerToolStyles.tableFrame} mobile-name-frame`} tabIndex={0} aria-label="Tabla de impacto On/Off">
+          <table className="data-table">
             <thead>
-              <tr className="bg-acb-100 text-xs font-semibold text-acb-700 uppercase border-b border-acb-300">
-                <th className="data-table-sticky data-table-sticky-head data-col-season bg-acb-100 px-2 py-1.5 text-left whitespace-nowrap" rowSpan={2}>Temp.</th>
-                <th className="data-table-sticky-after-season data-table-sticky-head data-col-team bg-acb-100 px-2 py-1.5 text-left whitespace-nowrap" rowSpan={2}>Equipo</th>
-                <th colSpan={3} className="px-2 py-1.5 text-center whitespace-nowrap border-b border-l border-acb-100">Ataque</th>
-                <th colSpan={3} className="px-2 py-1.5 text-center whitespace-nowrap border-b border-l border-acb-100">Defensa</th>
-                <th colSpan={2} className="px-2 py-1.5 text-center whitespace-nowrap border-b border-l border-acb-100">Neto</th>
-                <th className="px-2 py-1.5 text-right whitespace-nowrap border-l border-acb-100" rowSpan={2}>Impacto</th>
-                <th className="px-2 py-1.5 text-right whitespace-nowrap" rowSpan={2}>Min</th>
+              <tr>
+                <th className="data-table-head text-left data-table-sticky data-table-sticky-head data-col-season mobile-name-hide" rowSpan={2}>Temp.</th>
+                <th className="data-table-head text-left data-table-sticky-after-season data-table-sticky-head data-col-team mobile-name-hide" rowSpan={2}>Equipo</th>
+                <th colSpan={3} className="data-table-group data-table-group-start">Ataque</th>
+                <th colSpan={3} className="data-table-group data-table-group-start">Defensa</th>
+                <th colSpan={2} className="data-table-group data-table-group-start">Neto</th>
+                <th className="data-table-head data-table-number data-table-group-start" rowSpan={2}>Impacto</th>
+                <th className="data-table-head data-table-number data-table-group-start" rowSpan={2}>Min</th>
               </tr>
-              <tr className="bg-acb-50 text-xs font-semibold text-acb-600 uppercase border-b border-acb-200">
-                <th className="px-2 py-1.5 text-right whitespace-nowrap border-l border-acb-100">On</th>
-                <th className="px-2 py-1.5 text-right whitespace-nowrap">Off</th>
-                <th className="px-2 py-1.5 text-right whitespace-nowrap">Diff</th>
-                <th className="px-2 py-1.5 text-right whitespace-nowrap border-l border-acb-100">On</th>
-                <th className="px-2 py-1.5 text-right whitespace-nowrap">Off</th>
-                <th className="px-2 py-1.5 text-right whitespace-nowrap">Diff</th>
-                <th className="px-2 py-1.5 text-right whitespace-nowrap border-l border-acb-100">On</th>
-                <th className="px-2 py-1.5 text-right whitespace-nowrap">Off</th>
+              <tr>
+                <th className="data-table-head data-table-number data-table-group-start">On</th>
+                <th className="data-table-head data-table-number">Off</th>
+                <th className="data-table-head data-table-number">Diff</th>
+                <th className="data-table-head data-table-number data-table-group-start">On</th>
+                <th className="data-table-head data-table-number">Off</th>
+                <th className="data-table-head data-table-number">Diff</th>
+                <th className="data-table-head data-table-number data-table-group-start">On</th>
+                <th className="data-table-head data-table-number">Off</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-acb-100">
-              {rows.filter(r => r.found).map(r => {
-                const ortgD = r.onORtg != null && r.offORtg != null ? r.onORtg - r.offORtg : null
-                const drtgD = r.onDRtg != null && r.offDRtg != null ? r.onDRtg - r.offDRtg : null
-                return (
-                  <tr key={`${r.season}-${r.team}`} className="data-table-row border-b border-acb-100">
-                    <td className="data-table-sticky data-col-season bg-white px-2 py-2 font-medium text-acb-900 whitespace-nowrap">{seasonLabel(r.season)}</td>
-                    <td className="profile-history-team data-table-sticky-after-season data-col-team bg-white">{r.team}</td>
-                    <td className="px-2 py-2 text-right font-mono text-acb-700 whitespace-nowrap border-l border-acb-100">{r.onORtg?.toFixed(1) ?? '-'}</td>
-                    <td className="px-2 py-2 text-right font-mono text-acb-500 whitespace-nowrap">{r.offORtg?.toFixed(1) ?? '-'}</td>
-                    <td className={`px-2 py-2 text-right font-mono font-medium whitespace-nowrap ${ortgD == null ? 'text-acb-400' : ortgD > 0 ? 'text-positive' : ortgD < 0 ? 'text-negative' : 'text-acb-500'}`}>
+            {rows.filter(r => r.found).map(r => {
+              const ortgD = r.onORtg != null && r.offORtg != null ? r.onORtg - r.offORtg : null
+              const drtgD = r.onDRtg != null && r.offDRtg != null ? r.onDRtg - r.offDRtg : null
+              return (
+                <tbody key={`${r.season}-${r.team}`} className="mobile-name-group">
+                  <MobileNameRow name={seasonLabel(r.season)} meta={r.team} />
+                  <tr className="data-table-row">
+                    <td className="data-table-cell data-table-identity data-table-sticky data-col-season mobile-name-hide">{seasonLabel(r.season)}</td>
+                    <td className="data-table-cell text-left text-acb-600 data-table-sticky-after-season data-col-team mobile-name-hide">{r.team}</td>
+                    <td className="data-table-cell data-table-number data-table-group-start">{r.onORtg?.toFixed(1) ?? '-'}</td>
+                    <td className="data-table-cell data-table-number text-acb-500">{r.offORtg?.toFixed(1) ?? '-'}</td>
+                    <td className={`data-table-cell data-table-number font-medium ${ortgD == null ? 'text-acb-400' : ortgD > 0 ? 'text-positive' : ortgD < 0 ? 'text-negative' : 'text-acb-500'}`}>
                       {ortgD != null ? `${ortgD > 0 ? '+' : ''}${ortgD.toFixed(1)}` : '-'}
                     </td>
-                    <td className="px-2 py-2 text-right font-mono text-acb-700 whitespace-nowrap border-l border-acb-100">{r.onDRtg?.toFixed(1) ?? '-'}</td>
-                    <td className="px-2 py-2 text-right font-mono text-acb-500 whitespace-nowrap">{r.offDRtg?.toFixed(1) ?? '-'}</td>
-                    <td className={`px-2 py-2 text-right font-mono font-medium whitespace-nowrap ${drtgD == null ? 'text-acb-400' : drtgD < 0 ? 'text-positive' : drtgD > 0 ? 'text-negative' : 'text-acb-500'}`}>
+                    <td className="data-table-cell data-table-number data-table-group-start">{r.onDRtg?.toFixed(1) ?? '-'}</td>
+                    <td className="data-table-cell data-table-number text-acb-500">{r.offDRtg?.toFixed(1) ?? '-'}</td>
+                    <td className={`data-table-cell data-table-number font-medium ${drtgD == null ? 'text-acb-400' : drtgD < 0 ? 'text-positive' : drtgD > 0 ? 'text-negative' : 'text-acb-500'}`}>
                       {drtgD != null ? `${drtgD > 0 ? '+' : ''}${drtgD.toFixed(1)}` : '-'}
                     </td>
-                    <td className="px-2 py-2 text-right font-mono text-acb-700 whitespace-nowrap border-l border-acb-100">
+                    <td className="data-table-cell data-table-number data-table-group-start">
                       {r.onNetRtg != null ? `${r.onNetRtg > 0 ? '+' : ''}${r.onNetRtg.toFixed(1)}` : '-'}
                     </td>
-                    <td className="px-2 py-2 text-right font-mono text-acb-500 whitespace-nowrap">
+                    <td className="data-table-cell data-table-number text-acb-500">
                       {r.offNetRtg != null ? `${r.offNetRtg > 0 ? '+' : ''}${r.offNetRtg.toFixed(1)}` : '-'}
                     </td>
-                    <td className={`px-2 py-2 text-right font-mono whitespace-nowrap border-l border-acb-100 ${diffColor(r.netDiff)}`}>
+                    <td className={`data-table-cell data-table-number font-semibold data-table-group-start ${diffColor(r.netDiff)}`}>
                       {r.netDiff != null ? `${r.netDiff > 0 ? '+' : ''}${r.netDiff.toFixed(1)}` : '—'}
                     </td>
-                    <td className="px-2 py-2 text-right font-mono text-acb-500 whitespace-nowrap">{r.onMin?.toFixed(0) ?? '-'}</td>
+                    <td className="data-table-cell data-table-number text-acb-500 data-table-group-start">{r.onMin?.toFixed(0) ?? '-'}</td>
                   </tr>
-                )
-              })}
-            </tbody>
+                </tbody>
+              )
+            })}
           </table>
         </div>
       )}
@@ -1129,43 +1145,36 @@ function ClutchCard({ records, loadClutchForSeason, clutchCache, loadingClutch }
           <Loader2 className="w-4 h-4 animate-spin mr-2" />Cargando…
         </div>
       ) : (
-        <div className={playerToolStyles.tableFrame} tabIndex={0} aria-label="Tabla de estadísticas clutch">
+        <div className={`${playerToolStyles.tableFrame} mobile-name-frame`} tabIndex={0} aria-label="Tabla de estadísticas clutch">
           <table className="data-table">
             <thead>
-              <tr className="bg-acb-100 border-b border-acb-300">
-                {['Temporada','Equipo','PJ','Pts','Reb','Ast','Rob','Tap','Pér','T2%','3P%','TL%','eFG%','TS%','3PAr'].map(h => (
-                  <th key={h} className={`px-3 py-2 text-xs font-semibold text-acb-700 uppercase tracking-wider whitespace-nowrap ${h === 'Temporada' || h === 'Equipo' ? 'text-left' : 'text-right'} ${h === 'Temporada' ? 'data-table-sticky data-table-sticky-head data-col-season bg-acb-100' : h === 'Equipo' ? 'data-table-sticky-after-season data-table-sticky-head data-col-team bg-acb-100' : ''}`}>{h}</th>
+              <tr>
+                {['Temp.','Equipo','PJ','Pts','Reb','Ast','Rob','Tap','Pér','T2%','3P%','TL%','eFG%','TS%','3PAr'].map(h => (
+                  <th key={h} className={`data-table-head ${h === 'Temp.' || h === 'Equipo' ? 'text-left mobile-name-hide' : 'data-table-number'} ${h === 'Temp.' ? 'data-table-sticky data-table-sticky-head data-col-season' : h === 'Equipo' ? 'data-table-sticky-after-season data-table-sticky-head data-col-team' : ''}`}>{h}</th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-acb-100">
-              {clutchRows.map(r => {
-                const fga    = (r.fg2A || 0) + (r.fg3A || 0)
-                const tsPct  = r.ptsT != null && fga + (r.ftA || 0) > 0
-                  ? r.ptsT / (2 * (fga + 0.44 * (r.ftA || 0))) * 100
-                  : null
-                const fg3Rate = fga > 0 ? (r.fg3A || 0) / fga * 100 : null
-                return (
-                  <tr key={`${r.season}-${r.team}`} className="data-table-row border-b border-acb-100">
-                    <td className="data-table-sticky data-col-season bg-white px-3 py-2 text-left font-medium text-acb-900 whitespace-nowrap">{seasonLabel(r.season)}</td>
-                    <td className="profile-history-team data-table-sticky-after-season data-col-team bg-white">{r.team}</td>
-                    <td className="px-3 py-2 text-right font-mono text-acb-700">{r.games}</td>
-                    <td className="px-3 py-2 text-right font-mono text-acb-700">{fmt(r.pts)}</td>
-                    <td className="px-3 py-2 text-right font-mono text-acb-700">{fmt(r.reb)}</td>
-                    <td className="px-3 py-2 text-right font-mono text-acb-700">{fmt(r.ast)}</td>
-                    <td className="px-3 py-2 text-right font-mono text-acb-700">{fmt(r.stl)}</td>
-                    <td className="px-3 py-2 text-right font-mono text-acb-700">{fmt(r.blk)}</td>
-                    <td className="px-3 py-2 text-right font-mono text-acb-700">{fmt(r.tov)}</td>
-                    <td className="px-3 py-2 text-right font-mono text-acb-700">{fmt(r.fg2Pct, true)}</td>
-                    <td className="px-3 py-2 text-right font-mono text-acb-700">{fmt(r.fg3Pct, true)}</td>
-                    <td className="px-3 py-2 text-right font-mono text-acb-700">{fmt(r.ftPct, true)}</td>
-                    <td className="px-3 py-2 text-right font-mono text-acb-700">{fmt(r.efgPct, true)}</td>
-                    <td className="px-3 py-2 text-right font-mono text-acb-700">{fmt(tsPct, true)}</td>
-                    <td className="px-3 py-2 text-right font-mono text-acb-700">{fmt(fg3Rate, true)}</td>
+            {clutchRows.map(r => {
+              const fga    = (r.fg2A || 0) + (r.fg3A || 0)
+              const tsPct  = r.ptsT != null && fga + (r.ftA || 0) > 0
+                ? r.ptsT / (2 * (fga + 0.44 * (r.ftA || 0))) * 100
+                : null
+              const fg3Rate = fga > 0 ? (r.fg3A || 0) / fga * 100 : null
+              return (
+                <tbody key={`${r.season}-${r.team}`} className="mobile-name-group">
+                  <MobileNameRow name={seasonLabel(r.season)} meta={r.team} />
+                  <tr className="data-table-row">
+                    <td className="data-table-cell data-table-identity data-table-sticky data-col-season mobile-name-hide">{seasonLabel(r.season)}</td>
+                    <td className="data-table-cell text-left text-acb-600 data-table-sticky-after-season data-col-team mobile-name-hide">{r.team}</td>
+                    {[r.games, fmt(r.pts), fmt(r.reb), fmt(r.ast), fmt(r.stl), fmt(r.blk), fmt(r.tov),
+                      fmt(r.fg2Pct, true), fmt(r.fg3Pct, true), fmt(r.ftPct, true), fmt(r.efgPct, true), fmt(tsPct, true), fmt(fg3Rate, true),
+                    ].map((value, i) => (
+                      <td key={i} className="data-table-cell data-table-number">{value}</td>
+                    ))}
                   </tr>
-                )
-              })}
-            </tbody>
+                </tbody>
+              )
+            })}
           </table>
         </div>
       )}

@@ -5,6 +5,7 @@ import { getPlayerPhoto } from '../utils/playerPhotos'
 import { statTitle } from '../utils/statLabels'
 import { getPlayerDisplayName, getPlayerSearchText } from '../utils/playerNames'
 import PlayerToolShell, { playerToolStyles } from '../components/PlayerToolShell'
+import MobileNameRow from '../components/MobileNameRow'
 import PlayerCombobox from '../components/PlayerCombobox'
 import { buildPlayerComparisonPath, buildPlayerProfilePath } from '../routing/paths'
 import { normalizeNumericId, parsePlayerSegment } from '../routing/identifiers'
@@ -372,9 +373,9 @@ function MetricComparison({ playerA, playerB }) {
         <h3 className="font-semibold text-acb-900">Comparación estadística</h3>
       </div>
       <div className={playerToolStyles.tableFrame} tabIndex={0} aria-label="Tabla de comparación estadística">
-        <table className="data-table">
+        <table className="data-table data-table-fill">
           <thead>
-            <tr className="bg-acb-100 border-b border-acb-300">
+            <tr>
               <th className="data-table-head text-left w-[38%]">Métrica</th>
               <th className="data-table-head text-right text-accent-600 w-[22%]">
                 <span className="flex items-center justify-end gap-1">
@@ -382,7 +383,7 @@ function MetricComparison({ playerA, playerB }) {
                   {getPlayerDisplayName(playerA, 'Jugador A')}
                 </span>
               </th>
-              <th className="data-table-head text-center text-acb-500 w-[18%]" title="Jugador A menos jugador B">Diff A−B</th>
+              <th className="data-table-head text-center w-[18%]" title="Jugador A menos jugador B">Diff A−B</th>
               <th className="data-table-head text-right text-info-600 w-[22%]">
                 <span className="flex items-center justify-end gap-1">
                   <span className="w-2 h-2 rounded-full bg-info-500 inline-block" />
@@ -393,10 +394,8 @@ function MetricComparison({ playerA, playerB }) {
           </thead>
           {metricGroups.map(group => (
             <tbody key={group.title}>
-              <tr className="bg-acb-50/70 border-b border-acb-100">
-                <th colSpan={4} className="data-table-group text-left border-t border-acb-100">
-                  {group.title}
-                </th>
+              <tr className="data-table-section">
+                <th colSpan={4}>{group.title}</th>
               </tr>
               {group.metrics.map(metric => {
                 const a = playerA[metric.key]
@@ -407,7 +406,7 @@ function MetricComparison({ playerA, playerB }) {
                 const aWins = diff != null && (metric.lowerIsBetter ? diff < 0 : diff > 0)
                 const barPct = diff != null && metric.scale ? Math.min(100, (Math.abs(diff) / metric.scale) * 100) : 0
                 return (
-                  <tr key={metric.key} className="data-table-row border-b border-acb-100">
+                  <tr key={metric.key} className="data-table-row">
                     <td className="data-table-cell w-[38%]" title={statTitle(metric.label)}>{metric.label}</td>
                     <td className={`data-table-cell data-table-number w-[22%] ${valueColor(a, b, metric, 'a')}`}>
                       {fmt(a, metric.key)}
@@ -507,52 +506,61 @@ function OnOffComparison({ playerA, playerB, loadLineupsForSeason, lineupsCache,
         <div className={playerToolStyles.evidenceMeta}>No se encontraron datos de alineaciones para estos jugadores.</div>
       )}
       {hasAny && (
-        <div className={playerToolStyles.tableFrame} tabIndex={0} aria-label="Tabla de impacto en pista">
+        <div className={`${playerToolStyles.tableFrame} mobile-name-frame`} tabIndex={0} aria-label="Tabla de impacto en pista">
           <table className="data-table">
             <thead>
-              <tr className="text-xs font-semibold text-acb-600 uppercase border-b border-acb-300 bg-acb-100">
-                <th className="data-table-head data-table-identity data-table-sticky data-table-sticky-head data-col-player bg-acb-100">Jugador</th>
-                <th className="data-table-head text-left">Temp.</th>
-                <th className="data-table-head data-table-number" title={statTitle('Min')}>Min</th>
-                <th className="data-table-head data-table-number">ORtg On</th>
-                <th className="data-table-head data-table-number">ORtg Off</th>
-                <th className="data-table-head data-table-number">Diff ORtg (On−Off)</th>
-                <th className="data-table-head data-table-number">DRtg On</th>
-                <th className="data-table-head data-table-number">DRtg Off</th>
-                <th className="data-table-head data-table-number">Diff DRtg (On−Off)</th>
-                <th className="data-table-head data-table-number">Neto</th>
-                <th className="data-table-head data-table-number">Diff Neto (On−Off)</th>
+              <tr>
+                <th rowSpan={2} className="data-table-head text-left data-table-sticky data-table-sticky-head data-col-player mobile-name-hide">Jugador</th>
+                <th rowSpan={2} className="data-table-head text-left mobile-name-hide">Temp.</th>
+                <th rowSpan={2} className="data-table-head data-table-number" title={statTitle('Min')}>Min</th>
+                <th colSpan={3} className="data-table-group data-table-group-start" title="Rating ofensivo">Ataque</th>
+                <th colSpan={3} className="data-table-group data-table-group-start" title="Rating defensivo">Defensa</th>
+                <th colSpan={2} className="data-table-group data-table-group-start" title="Rating neto">Neto</th>
+              </tr>
+              <tr>
+                <th className="data-table-head data-table-number data-table-group-start">On</th>
+                <th className="data-table-head data-table-number">Off</th>
+                <th className="data-table-head data-table-number" title="On−Off">Diff</th>
+                <th className="data-table-head data-table-number data-table-group-start">On</th>
+                <th className="data-table-head data-table-number">Off</th>
+                <th className="data-table-head data-table-number" title="On−Off">Diff</th>
+                <th className="data-table-head data-table-number data-table-group-start">On</th>
+                <th className="data-table-head data-table-number" title="On−Off">Diff</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-acb-100">
-              {rows.filter(r => r.row?.found).map(({ id, record, row, color }) => {
-                const ortgD = row.onORtg != null && row.offORtg != null ? row.onORtg - row.offORtg : null
-                const drtgD = row.onDRtg != null && row.offDRtg != null ? row.onDRtg - row.offDRtg : null
-                return (
-                  <tr key={id} className="data-table-row border-b border-acb-100">
-                    <td className={`data-table-cell data-table-identity data-table-sticky data-col-player ${color}`}>{getPlayerDisplayName(record)}</td>
-                    <td className="data-table-cell text-acb-600">{seasonLabel(record.season)}</td>
+            {rows.filter(r => r.row?.found).map(({ id, record, row, color }) => {
+              const ortgD = row.onORtg != null && row.offORtg != null ? row.onORtg - row.offORtg : null
+              const drtgD = row.onDRtg != null && row.offDRtg != null ? row.onDRtg - row.offDRtg : null
+              return (
+                <tbody key={id} className="mobile-name-group">
+                  <MobileNameRow
+                    name={<span className={color}>{getPlayerDisplayName(record)}</span>}
+                    meta={seasonLabel(record.season)}
+                  />
+                  <tr className="data-table-row">
+                    <td className={`data-table-cell data-table-identity data-table-sticky data-col-player ${color} mobile-name-hide`}>{getPlayerDisplayName(record)}</td>
+                    <td className="data-table-cell text-acb-600 mobile-name-hide">{seasonLabel(record.season)}</td>
                     <td className="data-table-cell data-table-number text-acb-600">{row.onMin?.toFixed(0) ?? '-'}</td>
-                    <td className="data-table-cell data-table-number">{row.onORtg?.toFixed(1) ?? '-'}</td>
+                    <td className="data-table-cell data-table-number data-table-group-start">{row.onORtg?.toFixed(1) ?? '-'}</td>
                     <td className="data-table-cell data-table-number text-acb-500">{row.offORtg?.toFixed(1) ?? '-'}</td>
                     <td className={`data-table-cell data-table-number ${onOffDiff(ortgD)}`}>
                       {ortgD != null ? `${ortgD > 0 ? '+' : ''}${ortgD.toFixed(1)}` : '-'}
                     </td>
-                    <td className="data-table-cell data-table-number">{row.onDRtg?.toFixed(1) ?? '-'}</td>
+                    <td className="data-table-cell data-table-number data-table-group-start">{row.onDRtg?.toFixed(1) ?? '-'}</td>
                     <td className="data-table-cell data-table-number text-acb-500">{row.offDRtg?.toFixed(1) ?? '-'}</td>
                     <td className={`data-table-cell data-table-number ${onOffDiff(drtgD, true)}`}>
                       {drtgD != null ? `${drtgD > 0 ? '+' : ''}${drtgD.toFixed(1)}` : '-'}
                     </td>
-                    <td className="data-table-cell data-table-number">
+                    <td className="data-table-cell data-table-number data-table-group-start">
                       {row.onNetRtg != null ? `${row.onNetRtg > 0 ? '+' : ''}${row.onNetRtg.toFixed(1)}` : '-'}
                     </td>
                     <td className={`data-table-cell data-table-number ${onOffDiff(row.netDiff)}`}>
                       {row.netDiff != null ? `${row.netDiff > 0 ? '+' : ''}${row.netDiff.toFixed(1)}` : '—'}
                     </td>
                   </tr>
-                )
-              })}
-            </tbody>
+                </tbody>
+              )
+            })}
           </table>
         </div>
       )}

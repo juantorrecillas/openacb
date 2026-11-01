@@ -1,9 +1,11 @@
 import { useState, useMemo, useEffect } from 'react'
-import { ArrowUp, ArrowDown, Search, Filter } from 'lucide-react'
+import { Search, Filter } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { statTitle } from '../utils/statLabels'
 import { getPlayerDisplayName, getPlayerSearchText } from '../utils/playerNames'
 import PlayerToolShell, { playerToolStyles } from '../components/PlayerToolShell'
+import MobileNameRow from '../components/MobileNameRow'
+import SortLabel from '../components/SortLabel'
 import { getPercentileBadgeClass } from '../utils/percentileColors'
 import { buildPlayerProfilePath } from '../routing/paths'
 import { parseRouteQuery, serializeRouteQuery, withQuery } from '../routing/query'
@@ -310,6 +312,8 @@ export default function ClutchStats({ teams, players = [], playerBio = {}, loadC
   }
 
   const nonSortable = new Set(['playerDisplay', 'team', 'position'])
+  // On mobile these columns move into the name line above each player's stats
+  const mobileNameKeys = nonSortable
 
   return (
     <PlayerToolShell
@@ -415,11 +419,11 @@ export default function ClutchStats({ teams, players = [], playerBio = {}, loadC
 
       {/* Table */}
       <section className={playerToolStyles.dataSection} aria-label="Resultados clutch">
-        <div className={playerToolStyles.tableFrame} tabIndex={0} aria-label="Tabla de estadísticas clutch">
-          <table className="data-table min-w-full">
+        <div className={`${playerToolStyles.tableFrame} mobile-name-frame`} tabIndex={0} aria-label="Tabla de estadísticas clutch">
+          <table className="data-table">
             <thead>
-              <tr className="bg-acb-50 border-b border-acb-200">
-                <th className="data-table-head data-table-number data-table-sticky data-table-sticky-head data-col-rank bg-acb-50">#</th>
+              <tr>
+                <th className="data-table-head data-table-number data-table-sticky data-table-sticky-head data-col-rank mobile-name-hide">#</th>
                 {cols.map(col => (
                   <th
                     key={col.key}
@@ -430,30 +434,27 @@ export default function ClutchStats({ teams, players = [], playerBio = {}, loadC
                     title={col.title || statTitle(col.label)}
                     className={`data-table-head
                       ${col.left ? 'text-left' : 'data-table-number'}
-                      ${col.key === 'playerDisplay' ? 'data-table-sticky-after-rank data-table-sticky-head data-col-player bg-acb-50' : col.key === 'team' ? 'data-col-team' : col.key === 'position' ? 'data-col-position' : col.key === 'games' ? 'data-col-games' : 'data-col-number'}
-                      ${!nonSortable.has(col.key) ? 'cursor-pointer hover:bg-acb-100' : ''}
-                      ${sortKey === col.key ? 'bg-acb-100' : ''}`}
+                      ${col.key === 'playerDisplay' ? 'data-table-sticky-after-rank data-table-sticky-head data-col-player' : col.key === 'team' ? 'data-col-team' : ''}
+                      ${mobileNameKeys.has(col.key) ? 'mobile-name-hide' : ''}`}
                   >
-                    <span className="inline-flex items-center gap-1">
-                      {col.label}
-                      {sortKey === col.key && (
-                        sortDir === 'desc'
-                          ? <ArrowDown className="w-3 h-3" />
-                          : <ArrowUp className="w-3 h-3" />
-                      )}
-                    </span>
+                    <SortLabel direction={sortKey === col.key && sortDir}>{col.label}</SortLabel>
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody>
-              {isLoading ? (
-                <tr><td colSpan={cols.length + 1} className="py-12 text-center text-acb-400">Cargando datos...</td></tr>
-              ) : sorted.length === 0 ? (
-                <tr><td colSpan={cols.length + 1} className="py-12 text-center text-acb-400">No hay jugadores con {minGames}+ partidos clutch.</td></tr>
-              ) : displayed.map((p, i) => (
+            {isLoading ? (
+              <tbody><tr><td colSpan={cols.length + 1} className="py-12 text-center text-acb-400">Cargando datos...</td></tr></tbody>
+            ) : sorted.length === 0 ? (
+              <tbody><tr><td colSpan={cols.length + 1} className="py-12 text-center text-acb-400">No hay jugadores con {minGames}+ partidos clutch.</td></tr></tbody>
+            ) : displayed.map((p, i) => (
+              <tbody key={`${p.licenseId}-${selectedSeason}-${p.team}`} className="mobile-name-group">
+                <MobileNameRow
+                  rank={i + 1}
+                  name={p.playerDisplay}
+                  meta={[p.team, p.position].filter(Boolean).join(' · ')}
+                  onClick={p.licenseId ? () => navigate(playerProfileUrl(p, selectedSeason)) : undefined}
+                />
                 <tr
-                  key={`${p.licenseId}-${selectedSeason}-${p.team}`}
                   onClick={() => p.licenseId && navigate(playerProfileUrl(p, selectedSeason))}
                   onKeyDown={(e) => {
                     if (p.licenseId && (e.key === 'Enter' || e.key === ' ')) {
@@ -464,9 +465,9 @@ export default function ClutchStats({ teams, players = [], playerBio = {}, loadC
                   tabIndex={p.licenseId ? 0 : undefined}
                   role={p.licenseId ? 'link' : undefined}
                   aria-label={p.licenseId ? `Abrir perfil de ${getPlayerDisplayName(p)}` : undefined}
-                  className="data-table-row border-b border-acb-100 cursor-pointer"
+                  className="data-table-row cursor-pointer"
                 >
-                  <td className="data-table-cell data-table-number data-table-sticky data-col-rank text-acb-400">{i + 1}</td>
+                  <td className="data-table-cell data-table-number data-table-sticky data-col-rank text-acb-400 mobile-name-hide">{i + 1}</td>
                   {cols.map(col => {
                     const v = p[col.key]
                     const rankKey = col.rank ? `${col.key}Rank` : null
@@ -478,9 +479,9 @@ export default function ClutchStats({ teams, players = [], playerBio = {}, loadC
                         key={col.key}
                         className={`data-table-cell
                           ${col.left ? '' : 'data-table-number'}
-                          ${col.key === 'playerDisplay' ? 'data-table-identity data-table-sticky-after-rank data-col-player' : col.key === 'team' ? 'data-col-team' : col.key === 'position' ? 'data-col-position' : col.key === 'games' ? 'data-col-games' : 'data-col-number'}
-                          ${col.key === 'team' ? 'text-acb-600' : ''}
-                          ${col.key === 'position' ? 'text-acb-500 text-xs' : ''}`}
+                          ${col.key === 'playerDisplay' ? 'data-table-identity data-table-sticky-after-rank data-col-player' : col.key === 'team' ? 'data-col-team' : ''}
+                          ${mobileNameKeys.has(col.key) ? 'mobile-name-hide' : ''}
+                          ${col.key === 'team' || col.key === 'position' ? 'text-acb-600' : ''}`}
                       >
                         {percentile != null ? (
                           <div className="data-table-value">
@@ -498,8 +499,8 @@ export default function ClutchStats({ teams, players = [], playerBio = {}, loadC
                     )
                   })}
                 </tr>
-              ))}
-            </tbody>
+              </tbody>
+            ))}
           </table>
         </div>
 

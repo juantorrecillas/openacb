@@ -3,6 +3,8 @@ import { useSearchParams } from 'react-router-dom'
 import { Download } from 'lucide-react'
 import { downloadTableAsCsv } from '../utils/csvDownload'
 import TeamToolShell, { teamToolStyles as styles } from '../components/TeamToolShell'
+import MobileNameRow from '../components/MobileNameRow'
+import SortLabel from '../components/SortLabel'
 import { getPercentileBadgeClass } from '../utils/percentileColors'
 import { readRouteQuery, serializeRouteQuery } from '../routing/query'
 
@@ -181,8 +183,21 @@ export default function FourFactors({ teams }) {
     return getPercentileBadgeClass(percentile)
   }
 
+  const sortableHeader = ({ key, label, title, className = '', rowSpan }) => (
+    <th
+      key={key}
+      rowSpan={rowSpan}
+      className={`data-table-head data-table-number ${className}`}
+      onClick={() => handleSort(key)}
+      aria-sort={sortKey === key ? (sortDir === 'desc' ? 'descending' : 'ascending') : 'none'}
+      title={title}
+    >
+      <SortLabel direction={sortKey === key && sortDir}>{label}</SortLabel>
+    </th>
+  )
+
   const rankedCell = (value, rank, totalTeams, className = '') => (
-    <td className={`data-table-cell data-table-number data-col-number ${className}`}>
+    <td className={`data-table-cell data-table-number ${className}`}>
       <div className="data-table-value">
         <span>{formatValue(value, 1)}</span>
         <span className={`data-table-badge ${getRankColor(rank, totalTeams)}`}>#{rank}</span>
@@ -232,86 +247,69 @@ export default function FourFactors({ teams }) {
           </div>
           <span className={styles.panelMeta}>{sortedTeams.length} equipos</span>
         </div>
-        <div className={styles.tableFrame} tabIndex={0} aria-label="Four Factors por equipo">
+        <div className={`${styles.tableFrame} mobile-name-frame`} tabIndex={0} aria-label="Four Factors por equipo">
           <table className="data-table">
             <thead>
               {/* header row 1: column groups */}
-              <tr className="bg-acb-100 border-b border-acb-300">
-                <th className="data-table-head data-table-number data-table-sticky data-table-sticky-head data-col-rank bg-acb-100" rowSpan="2">#</th>
-                <th className="data-table-head data-table-identity data-table-sticky-after-rank data-table-sticky-head data-col-team bg-acb-100" rowSpan="2">Equipo</th>
+              <tr>
+                <th className="data-table-head data-table-number data-table-sticky data-table-sticky-head data-col-rank mobile-name-hide" rowSpan="2">#</th>
+                <th className="data-table-head text-left data-table-sticky-after-rank data-table-sticky-head data-col-team mobile-name-hide" rowSpan="2">Equipo</th>
                 {selectedSeason === 'all' && (
-                  <th className="data-table-head text-left" rowSpan="2">Temporada</th>
+                  <th className="data-table-head text-left mobile-name-hide" rowSpan="2">Temp.</th>
                 )}
-                <th className="data-table-group border-r border-acb-300" colSpan="5">Ataque</th>
-                <th className="data-table-group border-r border-acb-300" colSpan="5">Defensa</th>
-                <th className="data-table-group" rowSpan="2">Neto</th>
+                <th className="data-table-group data-table-group-start" colSpan="5">Ataque</th>
+                <th className="data-table-group data-table-group-start" colSpan="5">Defensa</th>
+                {sortableHeader({ key: 'netRating', label: 'Neto', title: 'Net Rating', className: 'data-table-group-start', rowSpan: 2 })}
               </tr>
               {/* header row 2: individual columns */}
-              <tr className="bg-acb-50 border-b border-acb-200">
-                <th className={`data-table-head data-table-number data-col-number cursor-pointer hover:bg-acb-100 ${
-                  sortKey === 'offensiveShooting' ? 'bg-acb-100' : ''}`}
-                    onClick={() => handleSort('offensiveShooting')} title="Effective Field Goal %">eFG%</th>
-                <th className={`data-table-head data-table-number data-col-number cursor-pointer hover:bg-acb-100 ${
-                  sortKey === 'offensiveTurnovers' ? 'bg-acb-100' : ''}`}
-                    onClick={() => handleSort('offensiveTurnovers')} title="Pérdidas %">PER%</th>
-                <th className={`data-table-head data-table-number data-col-number cursor-pointer hover:bg-acb-100 ${
-                  sortKey === 'offensiveRebounding' ? 'bg-acb-100' : ''}`}
-                    onClick={() => handleSort('offensiveRebounding')} title="Rebote Ofensivo %">RO%</th>
-                <th className={`data-table-head data-table-number data-col-number cursor-pointer hover:bg-acb-100 ${
-                  sortKey === 'offensiveFreeThrows' ? 'bg-acb-100' : ''}`}
-                    onClick={() => handleSort('offensiveFreeThrows')} title="Tasa de Tiros Libres">TLr</th>
-                <th className={`data-table-head data-table-number data-col-number cursor-pointer hover:bg-acb-100 border-r border-acb-300 ${
-                  sortKey === 'offensiveRating' ? 'bg-acb-100' : ''}`}
-                    onClick={() => handleSort('offensiveRating')} title="Offensive Rating">ORtg</th>
-                <th className={`data-table-head data-table-number data-col-number cursor-pointer hover:bg-acb-100 ${
-                  sortKey === 'defensiveShooting' ? 'bg-acb-100' : ''}`}
-                    onClick={() => handleSort('defensiveShooting')} title="eFG% Rival">eFG%</th>
-                <th className={`data-table-head data-table-number data-col-number cursor-pointer hover:bg-acb-100 ${
-                  sortKey === 'defensiveTurnovers' ? 'bg-acb-100' : ''}`}
-                    onClick={() => handleSort('defensiveTurnovers')} title="PER% Rival">PER%</th>
-                <th className={`data-table-head data-table-number data-col-number cursor-pointer hover:bg-acb-100 ${
-                  sortKey === 'defensiveRebounding' ? 'bg-acb-100' : ''}`}
-                    onClick={() => handleSort('defensiveRebounding')} title="Rebote Defensivo %">RD%</th>
-                <th className={`data-table-head data-table-number data-col-number cursor-pointer hover:bg-acb-100 ${
-                  sortKey === 'defensiveFreeThrows' ? 'bg-acb-100' : ''}`}
-                    onClick={() => handleSort('defensiveFreeThrows')} title="Tasa de Tiros Libres Rival">TLr</th>
-                <th className={`data-table-head data-table-number data-col-number cursor-pointer hover:bg-acb-100 border-r border-acb-300 ${
-                  sortKey === 'defensiveRating' ? 'bg-acb-100' : ''}`}
-                    onClick={() => handleSort('defensiveRating')} title="Defensive Rating">DRtg</th>
+              <tr>
+                {sortableHeader({ key: 'offensiveShooting', label: 'eFG%', title: 'Effective Field Goal %', className: 'data-table-group-start' })}
+                {sortableHeader({ key: 'offensiveTurnovers', label: 'PER%', title: 'Pérdidas %' })}
+                {sortableHeader({ key: 'offensiveRebounding', label: 'RO%', title: 'Rebote Ofensivo %' })}
+                {sortableHeader({ key: 'offensiveFreeThrows', label: 'TLr', title: 'Tasa de Tiros Libres' })}
+                {sortableHeader({ key: 'offensiveRating', label: 'ORtg', title: 'Offensive Rating' })}
+                {sortableHeader({ key: 'defensiveShooting', label: 'eFG%', title: 'eFG% Rival', className: 'data-table-group-start' })}
+                {sortableHeader({ key: 'defensiveTurnovers', label: 'PER%', title: 'PER% Rival' })}
+                {sortableHeader({ key: 'defensiveRebounding', label: 'RD%', title: 'Rebote Defensivo %' })}
+                {sortableHeader({ key: 'defensiveFreeThrows', label: 'TLr', title: 'Tasa de Tiros Libres Rival' })}
+                {sortableHeader({ key: 'defensiveRating', label: 'DRtg', title: 'Defensive Rating' })}
               </tr>
             </thead>
-            <tbody>
-              {sortedTeams.map((team, i) => {
-                const totalTeams = sortedTeams.length
-                return (
+            {sortedTeams.map((team, i) => {
+              const totalTeams = sortedTeams.length
+              const seasonText = `${team.season - 1}-${String(team.season).slice(-2)}`
+              return (
+                <tbody key={`${team.team}-${team.season}-${team.competitionStage || 'all'}`} className="mobile-name-group">
+                  <MobileNameRow
+                    rank={i + 1}
+                    name={team.team}
+                    meta={selectedSeason === 'all' ? seasonText : null}
+                  />
                   <tr
-                    key={`${team.team}-${team.season}-${team.competitionStage || 'all'}`}
-                    className={`data-table-row border-b border-acb-100 ${
-                      highlightTeam === team.team ? 'bg-accent-50' : ''
-                    }`}
+                    className={`data-table-row ${highlightTeam === team.team ? 'bg-accent-50' : ''}`}
                     onMouseEnter={() => setHighlightTeam(team.team)}
                     onMouseLeave={() => setHighlightTeam(null)}
                   >
-                    <td className="data-table-cell data-table-number data-table-sticky data-col-rank text-acb-400">{i + 1}</td>
-                    <td className="data-table-cell data-table-identity data-table-sticky-after-rank data-col-team">{team.team}</td>
+                    <td className="data-table-cell data-table-number data-table-sticky data-col-rank text-acb-400 mobile-name-hide">{i + 1}</td>
+                    <td className="data-table-cell data-table-identity data-table-sticky-after-rank data-col-team mobile-name-hide">{team.team}</td>
                     {selectedSeason === 'all' && (
-                      <td className="data-table-cell text-left">{team.season - 1}-{String(team.season).slice(-2)}</td>
+                      <td className="data-table-cell text-left text-acb-600 mobile-name-hide">{seasonText}</td>
                     )}
-                    {rankedCell(team.offensiveShooting, team.offensiveShootingRank, totalTeams)}
+                    {rankedCell(team.offensiveShooting, team.offensiveShootingRank, totalTeams, 'data-table-group-start')}
                     {rankedCell(team.offensiveTurnovers, team.offensiveTurnoversRank, totalTeams)}
                     {rankedCell(team.offensiveRebounding, team.offensiveReboundingRank, totalTeams)}
                     {rankedCell(team.offensiveFreeThrows, team.offensiveFreeThrowsRank, totalTeams)}
-                    {rankedCell(team.offensiveRating, team.offensiveRatingRank, totalTeams, 'border-r border-acb-300 font-semibold')}
-                    {rankedCell(team.defensiveShooting, team.defensiveShootingRank, totalTeams)}
+                    {rankedCell(team.offensiveRating, team.offensiveRatingRank, totalTeams, 'font-semibold')}
+                    {rankedCell(team.defensiveShooting, team.defensiveShootingRank, totalTeams, 'data-table-group-start')}
                     {rankedCell(team.defensiveTurnovers, team.defensiveTurnoversRank, totalTeams)}
                     {rankedCell(team.defensiveRebounding, team.defensiveReboundingRank, totalTeams)}
                     {rankedCell(team.defensiveFreeThrows, team.defensiveFreeThrowsRank, totalTeams)}
-                    {rankedCell(team.defensiveRating, team.defensiveRatingRank, totalTeams, 'border-r border-acb-300 font-semibold')}
-                    {rankedCell(team.netRating, team.netRatingRank, totalTeams, 'font-semibold')}
+                    {rankedCell(team.defensiveRating, team.defensiveRatingRank, totalTeams, 'font-semibold')}
+                    {rankedCell(team.netRating, team.netRatingRank, totalTeams, 'data-table-group-start font-semibold')}
                   </tr>
-                )
-              })}
-            </tbody>
+                </tbody>
+              )
+            })}
           </table>
         </div>
       </section>

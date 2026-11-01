@@ -325,22 +325,22 @@ function MetricTable({ title, axes, team, leagueStats, zScores }) {
   return (
     <section className={profileStyles.metricPane}>
       <h3 className={profileStyles.metricTitle}>{title}</h3>
-      <table className={profileStyles.metricTable}>
+      <table className="data-table data-table-fill">
         <thead>
           <tr>
-            <th scope="col">Métrica</th>
-            <th scope="col">Equipo</th>
-            <th scope="col">Liga</th>
-            <th scope="col">Δ</th>
+            <th scope="col" className="data-table-head text-left">Métrica</th>
+            <th scope="col" className="data-table-head data-table-number">Equipo</th>
+            <th scope="col" className="data-table-head data-table-number">Liga</th>
+            <th scope="col" className="data-table-head data-table-number">Δ</th>
           </tr>
         </thead>
         <tbody>
           {axes.map(axis => (
-            <tr key={axis.key}>
-              <th scope="row">{axis.label}</th>
-              <td>{axis.format(team[axis.key])}</td>
-              <td>{axis.format(leagueStats[axis.key].mean)}</td>
-              <td><ZBadge z={zScores[axis.key]} /></td>
+            <tr key={axis.key} className="data-table-row">
+              <th scope="row" className="data-table-cell text-left font-normal">{axis.label}</th>
+              <td className="data-table-cell data-table-number">{axis.format(team[axis.key])}</td>
+              <td className="data-table-cell data-table-number text-acb-500">{axis.format(leagueStats[axis.key].mean)}</td>
+              <td className="data-table-cell data-table-number"><ZBadge z={zScores[axis.key]} /></td>
             </tr>
           ))}
         </tbody>
@@ -434,6 +434,7 @@ function TrendTooltip({ active, payload, stat }) {
 }
 
 function TeamTrendChart({ teams, selectedTeam, selectedSeason, trendStat, onTrendStatChange }) {
+  const [chartWidth, setChartWidth] = useState(0)
   const selectedStat = useMemo(
     () => trendStatOptions.find(stat => stat.key === trendStat) || trendStatOptions[0],
     [trendStat],
@@ -455,6 +456,8 @@ function TeamTrendChart({ teams, selectedTeam, selectedSeason, trendStat, onTren
         value: Number(row[selectedStat.key]),
       }))
   }, [teams, selectedTeam, selectedStat])
+
+  const rotateSeasonLabels = chartWidth < history.length * 56 + 24
 
   const yAxis = useMemo(() => {
     return buildNiceTrendAxis(history.map(row => row.value), selectedStat)
@@ -486,7 +489,7 @@ function TeamTrendChart({ teams, selectedTeam, selectedSeason, trendStat, onTren
         </div>
       ) : (
         <div className={profileStyles.trendChart}>
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" onResize={(width) => setChartWidth(width)}>
             <LineChart data={history} margin={{ top: 8, right: 24, bottom: 2, left: 0 }}>
               <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" vertical={false} />
               <XAxis
@@ -494,7 +497,10 @@ function TeamTrendChart({ teams, selectedTeam, selectedSeason, trendStat, onTren
                 axisLine={false}
                 tickLine={false}
                 tick={{ fontSize: 11, fill: '#627d98' }}
-                minTickGap={8}
+                interval={0}
+                angle={rotateSeasonLabels ? -65 : 0}
+                textAnchor={rotateSeasonLabels ? 'end' : 'middle'}
+                height={rotateSeasonLabels ? 60 : 30}
               />
               <YAxis
                 width={48}

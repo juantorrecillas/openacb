@@ -1,10 +1,12 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, LabelList } from 'recharts'
-import { ArrowUp, ArrowDown, Download } from 'lucide-react'
+import { Download } from 'lucide-react'
 import { downloadTableAsCsv } from '../utils/csvDownload'
 import { statTitle } from '../utils/statLabels'
 import TeamToolShell, { teamToolStyles as styles } from '../components/TeamToolShell'
+import MobileNameRow from '../components/MobileNameRow'
+import SortLabel from '../components/SortLabel'
 import { getPercentileBadgeClass } from '../utils/percentileColors'
 import { readRouteQuery, serializeRouteQuery } from '../routing/query'
 
@@ -748,11 +750,11 @@ export default function TeamStats({ teams, teamLogos = {} }) {
         </div>
 
       {/* Table */}
-        <div className={styles.tableFrame} tabIndex={0} aria-label="Estadísticas de equipos">
-          <table className="data-table min-w-full">
+        <div className={`${styles.tableFrame} mobile-name-frame`} tabIndex={0} aria-label="Estadísticas de equipos">
+          <table className="data-table">
             <thead>
-              <tr className="bg-acb-100 border-b border-acb-300">
-                <th rowSpan={2} className="data-table-head data-table-identity data-table-sticky data-table-sticky-head data-col-team bg-acb-100">Equipo</th>
+              <tr>
+                <th rowSpan={2} className="data-table-head text-left data-table-sticky data-table-sticky-head data-col-team mobile-name-hide">Equipo</th>
                 {selectedSeason === 'all' && (
                   <th
                     rowSpan={2}
@@ -760,19 +762,19 @@ export default function TeamStats({ teams, teamLogos = {} }) {
                     onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleSort('season')}
                     tabIndex={0}
                     aria-sort={sortKey === 'season' ? (sortDir === 'desc' ? 'descending' : 'ascending') : 'none'}
-                    className="data-table-head text-left cursor-pointer hover:bg-acb-100"
+                    className="data-table-head text-left mobile-name-hide"
                   >
-                    Temp.
+                    <SortLabel direction={sortKey === 'season' && sortDir}>Temp.</SortLabel>
                   </th>
                 )}
-                <th rowSpan={2} onClick={() => handleSort('games')} onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleSort('games')} tabIndex={0} aria-sort={sortKey === 'games' ? (sortDir === 'desc' ? 'descending' : 'ascending') : 'none'} title={statTitle('PJ')} className="data-table-head data-table-number data-col-games cursor-pointer hover:bg-acb-100">
-                  <span className="inline-flex items-center gap-1">PJ {sortKey === 'games' && (sortDir === 'desc' ? <ArrowDown className="w-3 h-3"/> : <ArrowUp className="w-3 h-3"/>)}</span>
+                <th rowSpan={2} onClick={() => handleSort('games')} onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleSort('games')} tabIndex={0} aria-sort={sortKey === 'games' ? (sortDir === 'desc' ? 'descending' : 'ascending') : 'none'} title={statTitle('PJ')} className="data-table-head data-table-number">
+                  <SortLabel direction={sortKey === 'games' && sortDir}>PJ</SortLabel>
                 </th>
                 {columnGroups.map(g => (
-                  <th key={g.label} colSpan={g.span} className="data-table-group border-l border-acb-300">{g.label}</th>
+                  <th key={g.label} colSpan={g.span} className="data-table-group data-table-group-start">{g.label}</th>
                 ))}
               </tr>
-              <tr className="bg-acb-50 border-b border-acb-200">
+              <tr>
                 {tableColumns.slice(2).map(col => (
                   <th
                     key={col.key}
@@ -781,31 +783,29 @@ export default function TeamStats({ teams, teamLogos = {} }) {
                     tabIndex={0}
                     aria-sort={sortKey === col.key ? (sortDir === 'desc' ? 'descending' : 'ascending') : 'none'}
                     title={statTitle(col.label)}
-                    className={`data-table-head data-table-number data-col-number cursor-pointer hover:bg-acb-100
-                      ${groupBorderKeys.has(col.key) ? 'border-l border-acb-200' : ''}`}
+                    className={`data-table-head data-table-number ${groupBorderKeys.has(col.key) ? 'data-table-group-start' : ''}`}
                   >
-                    <span className="inline-flex items-center gap-1">
-                      {col.label}
-                      {sortKey === col.key && (sortDir === 'desc' ? <ArrowDown className="w-3 h-3"/> : <ArrowUp className="w-3 h-3"/>)}
-                    </span>
+                    <SortLabel direction={sortKey === col.key && sortDir}>{col.label}</SortLabel>
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody>
-              {sortedTeams.map((team) => (
+            {sortedTeams.map((team) => (
+              <tbody key={teamRecordKey(team)} className="mobile-name-group">
+                <MobileNameRow
+                  name={team.team}
+                  meta={selectedSeason === 'all' ? `${team.season - 1}-${String(team.season).slice(-2)}` : null}
+                />
                 <tr
-                  key={teamRecordKey(team)}
-                  className={`data-table-row border-b border-acb-100
-                    ${highlightTeam === teamRecordKey(team) ? 'bg-accent-50' : ''}`}
+                  className={`data-table-row ${highlightTeam === teamRecordKey(team) ? 'bg-accent-50' : ''}`}
                   onMouseEnter={() => setHighlightTeam(teamRecordKey(team))}
                   onMouseLeave={() => setHighlightTeam(null)}
                 >
-                  <td className="data-table-cell data-table-identity data-table-sticky data-col-team">
+                  <td className="data-table-cell data-table-identity data-table-sticky data-col-team mobile-name-hide">
                     {team.team}
                   </td>
                   {selectedSeason === 'all' && (
-                    <td className="data-table-cell whitespace-nowrap text-acb-600">
+                    <td className="data-table-cell text-acb-600 mobile-name-hide">
                       {team.season - 1}-{String(team.season).slice(-2)}
                     </td>
                   )}
@@ -819,7 +819,7 @@ export default function TeamStats({ teams, teamLogos = {} }) {
                         key={col.key}
                         className={`data-table-cell
                           ${col.align === 'right' ? 'data-table-number' : ''}
-                          ${col.key === 'games' ? 'data-col-games' : 'data-col-number'}`}
+                          ${groupBorderKeys.has(col.key) ? 'data-table-group-start' : ''}`}
                       >
                         {showRank ? (
                           <div className="data-table-value">
@@ -839,8 +839,8 @@ export default function TeamStats({ teams, teamLogos = {} }) {
                     )
                   })}
                 </tr>
-              ))}
-            </tbody>
+              </tbody>
+            ))}
           </table>
         </div>
       </section>

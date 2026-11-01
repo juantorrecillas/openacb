@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import MobileNameRow from './MobileNameRow'
 import { buildPlayerProfilePath } from '../routing/paths'
 import { serializeRouteQuery, withQuery } from '../routing/query'
 import { classifyArchetype } from '../utils/playerArchetypes'
@@ -40,6 +41,7 @@ function archetypeTextClass(colorClasses) {
 }
 
 export default function TeamRosterTable({ players = [], playerBio = {}, className = '' }) {
+  const navigate = useNavigate()
   const [tab, setTab] = useState('basic')
   const columns = tab === 'basic'
     ? playerProfileBasicStatColumns
@@ -99,45 +101,54 @@ export default function TeamRosterTable({ players = [], playerBio = {}, classNam
           No hay jugadores disponibles para este equipo y temporada.
         </p>
       ) : (
-        <div className="overflow-x-auto" tabIndex={0} aria-label="Estadísticas de la plantilla">
-          <table className="data-table min-w-full">
+        <div className="overflow-x-auto mobile-name-frame" tabIndex={0} aria-label="Estadísticas de la plantilla">
+          <table className="data-table">
             <thead>
-              <tr className="border-b border-acb-200 bg-acb-50">
-                <th className="data-table-head data-table-identity data-table-sticky-head team-roster-sticky-player team-roster-col-player bg-acb-50">
+              <tr>
+                <th className="data-table-head text-left data-table-sticky-head team-roster-sticky-player team-roster-col-player mobile-name-hide">
                   Jugador
                 </th>
-                <th className="data-table-head text-left data-table-sticky-head team-roster-sticky-position team-roster-col-position bg-acb-50">
+                <th className="data-table-head text-left data-table-sticky-head team-roster-sticky-position team-roster-col-position mobile-name-hide">
                   Posición
                 </th>
-                <th className="data-table-head text-left data-table-sticky-head team-roster-sticky-archetype team-roster-col-archetype bg-acb-50">
+                <th className="data-table-head text-left data-table-sticky-head team-roster-sticky-archetype team-roster-col-archetype mobile-name-hide">
                   Rol
                 </th>
                 {columns.map(column => (
                   <th
                     key={column.key}
-                    className={`data-table-head data-table-number ${column.integer ? 'data-col-games' : 'data-col-number'}`}
+                    className="data-table-head data-table-number"
                   >
                     {column.label}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-acb-100">
-              {roster.map(player => (
-                <tr key={`${player.licenseId}-${player.teamId}`} className="data-table-row">
-                  <td className="data-table-cell data-table-identity team-roster-sticky-player team-roster-col-player">
+            {roster.map(player => (
+              <tbody key={`${player.licenseId}-${player.teamId}`} className="mobile-name-group">
+                <MobileNameRow
+                  name={player.rosterName}
+                  meta={(
+                    <>
+                      {player.rosterPosition} · <span className={archetypeTextClass(player.rosterArchetype.color)}>{player.rosterArchetype.name}</span>
+                    </>
+                  )}
+                  onClick={() => navigate(player.rosterProfileUrl)}
+                />
+                <tr className="data-table-row">
+                  <td className="data-table-cell data-table-identity team-roster-sticky-player team-roster-col-player mobile-name-hide">
                     <Link
                       to={player.rosterProfileUrl}
-                      className="block truncate hover:text-accent-700 hover:underline"
+                      className="data-table-link block truncate"
                       title={player.rosterName}
                     >
                       {player.rosterName}
                     </Link>
                   </td>
-                  <td className="data-table-cell text-left team-roster-sticky-position team-roster-col-position">
+                  <td className="data-table-cell text-left text-acb-600 team-roster-sticky-position team-roster-col-position mobile-name-hide">
                     <span className="block truncate" title={player.rosterPosition}>{player.rosterPosition}</span>
                   </td>
-                  <td className="data-table-cell text-left team-roster-sticky-archetype team-roster-col-archetype">
+                  <td className="data-table-cell text-left team-roster-sticky-archetype team-roster-col-archetype mobile-name-hide">
                     <span
                       className={`team-roster-role ${archetypeTextClass(player.rosterArchetype.color)}`}
                       title={`${player.rosterArchetype.name}: ${player.rosterArchetype.desc}`}
@@ -148,14 +159,14 @@ export default function TeamRosterTable({ players = [], playerBio = {}, classNam
                   {columns.map(column => (
                     <td
                       key={column.key}
-                      className={`data-table-cell data-table-number ${column.integer ? 'data-col-games' : 'data-col-number'}`}
+                      className="data-table-cell data-table-number"
                     >
                       {formatPlayerProfileTableValue(player, column)}
                     </td>
                   ))}
                 </tr>
-              ))}
-            </tbody>
+              </tbody>
+            ))}
           </table>
         </div>
       )}

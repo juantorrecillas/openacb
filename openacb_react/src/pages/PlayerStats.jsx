@@ -1,16 +1,20 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Search, ArrowUp, ArrowDown, Filter, Download } from 'lucide-react'
+import { Search, Filter, Download } from 'lucide-react'
 import { downloadTableAsCsv } from '../utils/csvDownload'
 import { statTitle } from '../utils/statLabels'
 import { getPlayerDisplayName, getPlayerSearchText } from '../utils/playerNames'
 import PlayerToolShell, { playerToolStyles } from '../components/PlayerToolShell'
+import MobileNameRow from '../components/MobileNameRow'
+import SortLabel from '../components/SortLabel'
 import { getPercentileBadgeClass } from '../utils/percentileColors'
 import { buildPlayerProfilePath } from '../routing/paths'
 import { parseRouteQuery, serializeRouteQuery, withQuery } from '../routing/query'
 
 const positionCol = { key: 'position', label: 'Pos', align: 'left', sortable: true }
 const POSITION_ORDER = ['Base', 'Escolta', 'Alero', 'Ala-pívot', 'Pívot']
+// On mobile these columns move into the name line above each player's stats
+const MOBILE_NAME_KEYS = new Set(['playerFull', 'team', 'position', 'season'])
 
 function playerProfileUrl(player) {
   const pathname = buildPlayerProfilePath(player, getPlayerDisplayName(player))
@@ -720,11 +724,11 @@ export default function PlayerStats({ players, playerBio = {} }) {
 
       {/* Table */}
       <section className={playerToolStyles.dataSection} aria-label="Resultados de jugadores">
-        <div className={playerToolStyles.tableFrame} tabIndex={0} aria-label="Tabla de estadísticas de jugadores">
-          <table className="data-table min-w-full">
+        <div className={`${playerToolStyles.tableFrame} mobile-name-frame`} tabIndex={0} aria-label="Tabla de estadísticas de jugadores">
+          <table className="data-table">
             <thead>
-              <tr className="bg-acb-100 border-b border-acb-300">
-                <th className="data-table-head data-table-number data-table-sticky data-table-sticky-head data-col-rank bg-acb-100">
+              <tr>
+                <th className="data-table-head data-table-number data-table-sticky data-table-sticky-head data-col-rank mobile-name-hide">
                   #
                 </th>
                 {displayColumns.map(col => (
@@ -737,23 +741,27 @@ export default function PlayerStats({ players, playerBio = {} }) {
                     title={col.title || statTitle(col.label)}
                     className={`data-table-head
                       ${col.align === 'right' ? 'data-table-number' : 'text-left'}
-                      ${col.key === 'playerFull' ? 'data-table-sticky-after-rank data-table-sticky-head data-col-player bg-acb-100' : col.key === 'team' ? 'data-col-team' : col.key === 'position' ? 'data-col-position' : col.key === 'games' ? 'data-col-games' : 'data-col-number'}
-                      ${col.sortable ? 'cursor-pointer hover:bg-acb-200' : ''}`}
+                      ${col.key === 'playerFull' ? 'data-table-sticky-after-rank data-table-sticky-head data-col-player' : col.key === 'team' ? 'data-col-team' : ''}
+                      ${MOBILE_NAME_KEYS.has(col.key) ? 'mobile-name-hide' : ''}`}
                   >
-                    <span className="inline-flex items-center gap-1">
-                      {col.label}
-                      {sortKey === col.key && (
-                        sortDir === 'desc' ? <ArrowDown className="w-3 h-3" /> : <ArrowUp className="w-3 h-3" />
-                      )}
-                    </span>
+                    <SortLabel direction={sortKey === col.key && sortDir}>{col.label}</SortLabel>
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody>
-              {displayedPlayers.map((player, i) => (
+            {displayedPlayers.map((player, i) => (
+              // One tbody per player so the mobile name line and the stats row hover together
+              <tbody
+                key={`${player.licenseId}-${player.season}-${player.competitionStage || selectedStage}-${player.team}`}
+                className="mobile-name-group"
+              >
+                <MobileNameRow
+                  rank={i + 1}
+                  name={getPlayerDisplayName(player)}
+                  meta={[player.team, player.position, selectedSeason === 'all' ? formatValue(player.season, 'season') : null].filter(Boolean).join(' · ')}
+                  onClick={() => navigate(playerProfileUrl(player))}
+                />
                 <tr
-                  key={`${player.licenseId}-${player.season}-${player.competitionStage || selectedStage}-${player.team}`}
                   onClick={() => navigate(playerProfileUrl(player))}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
@@ -764,9 +772,9 @@ export default function PlayerStats({ players, playerBio = {} }) {
                   tabIndex={0}
                   role="link"
                   aria-label={`Abrir perfil de ${getPlayerDisplayName(player)}`}
-                  className="data-table-row border-b border-acb-100 cursor-pointer"
+                  className="data-table-row cursor-pointer"
                 >
-                  <td className="data-table-cell data-table-number data-table-sticky data-col-rank text-acb-400">
+                  <td className="data-table-cell data-table-number data-table-sticky data-col-rank text-acb-400 mobile-name-hide">
                     {i + 1}
                   </td>
                   {displayColumns.map(col => {
@@ -785,8 +793,9 @@ export default function PlayerStats({ players, playerBio = {} }) {
                         key={col.key}
                         className={`data-table-cell
                           ${col.align === 'right' ? 'data-table-number' : ''}
-                          ${col.key === 'playerFull' ? 'data-table-identity data-table-sticky-after-rank data-col-player' : col.key === 'team' ? 'data-col-team' : col.key === 'position' ? 'data-col-position' : col.key === 'games' ? 'data-col-games' : 'data-col-number'}
-                          ${col.key === 'team' ? 'text-acb-600' : ''}`}
+                          ${col.key === 'playerFull' ? 'data-table-identity data-table-sticky-after-rank data-col-player' : col.key === 'team' ? 'data-col-team' : ''}
+                          ${MOBILE_NAME_KEYS.has(col.key) ? 'mobile-name-hide' : ''}
+                          ${col.key === 'team' || col.key === 'position' ? 'text-acb-600' : ''}`}
                       >
                         {hasDefense ? (
                           <div className="data-table-value">
@@ -824,8 +833,8 @@ export default function PlayerStats({ players, playerBio = {} }) {
                     )
                   })}
                 </tr>
-              ))}
-            </tbody>
+              </tbody>
+            ))}
           </table>
         </div>
 
