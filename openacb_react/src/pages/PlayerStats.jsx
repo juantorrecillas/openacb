@@ -10,6 +10,7 @@ import SortLabel from '../components/SortLabel'
 import { getPercentileBadgeClass } from '../utils/percentileColors'
 import { buildPlayerProfilePath } from '../routing/paths'
 import { parseRouteQuery, serializeRouteQuery, withQuery } from '../routing/query'
+import { uniqueRowKeys } from '../utils/uniqueRowKeys'
 
 const positionCol = { key: 'position', label: 'Pos', align: 'left', sortable: true }
 const POSITION_ORDER = ['Base', 'Escolta', 'Alero', 'Ala-pívot', 'Pívot']
@@ -497,6 +498,10 @@ export default function PlayerStats({ players, playerBio = {} }) {
 
   const displayedPlayers = showAll ? filteredPlayers : filteredPlayers.slice(0, 100)
 
+  const rowKeys = uniqueRowKeys(
+    displayedPlayers,
+    p => `${p.licenseId}-${p.season}-${p.competitionStage || selectedStage}-${p.team}`
+  )
   return (
     <PlayerToolShell
       activeTool="stats"
@@ -752,7 +757,7 @@ export default function PlayerStats({ players, playerBio = {} }) {
             {displayedPlayers.map((player, i) => (
               // One tbody per player so the mobile name line and the stats row hover together
               <tbody
-                key={`${player.licenseId}-${player.season}-${player.competitionStage || selectedStage}-${player.team}`}
+                key={rowKeys[i]}
                 className="mobile-name-group"
               >
                 <MobileNameRow

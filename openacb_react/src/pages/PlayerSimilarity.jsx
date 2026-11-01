@@ -9,6 +9,7 @@ import { getPlayerDisplayName, getPlayerSearchText } from '../utils/playerNames'
 import { buildPlayerProfilePath, buildPlayerSimilarityPath } from '../routing/paths'
 import { normalizeNumericId, parsePlayerSegment } from '../routing/identifiers'
 import { readRouteQuery, serializeRouteQuery, withQuery } from '../routing/query'
+import { uniqueRowKeys } from '../utils/uniqueRowKeys'
 
 
 function seasonLabel(s) {
@@ -294,6 +295,7 @@ export default function PlayerSimilarity({ players, similarity }) {
       }
     })
   }, [similarityEntry, playerLookup])
+  const similarRowKeys = uniqueRowKeys(similarPlayers, p => `${p.licenseId}_${p.season}_${p.teamId}`)
 
   const handlePlayerSelect = (licenseId, requestedSeason) => {
     const records = players
@@ -414,8 +416,8 @@ export default function PlayerSimilarity({ players, similarity }) {
                   <th className="data-table-head w-8"><span className="sr-only">Abrir perfil</span></th>
                 </tr>
               </thead>
-              {similarPlayers.map(p => (
-                <tbody key={`${p.licenseId}_${p.season}_${p.teamId}`} className="mobile-name-group">
+              {similarPlayers.map((p, i) => (
+                <tbody key={similarRowKeys[i]} className="mobile-name-group">
                   <MobileNameRow
                     rank={p.rank}
                     name={p.name}

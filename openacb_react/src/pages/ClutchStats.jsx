@@ -9,6 +9,7 @@ import SortLabel from '../components/SortLabel'
 import { getPercentileBadgeClass, rankToPercentile } from '../utils/percentileColors'
 import { buildPlayerProfilePath } from '../routing/paths'
 import { parseRouteQuery, serializeRouteQuery, withQuery } from '../routing/query'
+import { uniqueRowKeys } from '../utils/uniqueRowKeys'
 
 function seasonLabel(s) {
   return `${s - 1}-${String(s).slice(-2)}`
@@ -299,6 +300,7 @@ export default function ClutchStats({ teams, players = [], playerBio = {}, loadC
   const cols = viewMode === 'basic' ? basicCols : viewMode === 'advanced' ? advancedCols : absolutesCols
   const n = sorted.length
   const displayed = showAll ? sorted : sorted.slice(0, DEFAULT_SHOW)
+  const rowKeys = uniqueRowKeys(displayed, p => `${p.licenseId}-${selectedSeason}-${p.team}`)
 
   const handleSort = (key) => {
     if (sortKey === key) setSortDir(d => d === 'desc' ? 'asc' : 'desc')
@@ -441,7 +443,7 @@ export default function ClutchStats({ teams, players = [], playerBio = {}, loadC
             ) : sorted.length === 0 ? (
               <tbody><tr><td colSpan={cols.length + 1} className="py-12 text-center text-acb-400">No hay jugadores con {minGames}+ partidos clutch.</td></tr></tbody>
             ) : displayed.map((p, i) => (
-              <tbody key={`${p.licenseId}-${selectedSeason}-${p.team}`} className="mobile-name-group">
+              <tbody key={rowKeys[i]} className="mobile-name-group">
                 <MobileNameRow
                   rank={i + 1}
                   name={p.playerDisplay}

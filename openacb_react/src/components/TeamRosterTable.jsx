@@ -5,6 +5,7 @@ import { buildPlayerProfilePath } from '../routing/paths'
 import { serializeRouteQuery, withQuery } from '../routing/query'
 import { classifyArchetype } from '../utils/playerArchetypes'
 import { getPlayerDisplayName } from '../utils/playerNames'
+import { uniqueRowKeys } from '../utils/uniqueRowKeys'
 import {
   formatPlayerProfileTableValue,
   playerProfileAdvancedStatColumns,
@@ -65,6 +66,7 @@ export default function TeamRosterTable({ players = [], playerBio = {}, classNam
         || a.rosterName.localeCompare(b.rosterName, 'es')
       ))
   }, [playerBio, players])
+  const rosterRowKeys = uniqueRowKeys(roster, p => `${p.licenseId}-${p.teamId}`)
 
   return (
     <section className={`overflow-hidden rounded-lg border border-acb-200 bg-white ${className}`} aria-labelledby="team-roster-title">
@@ -124,8 +126,8 @@ export default function TeamRosterTable({ players = [], playerBio = {}, classNam
                 ))}
               </tr>
             </thead>
-            {roster.map(player => (
-              <tbody key={`${player.licenseId}-${player.teamId}`} className="mobile-name-group">
+            {roster.map((player, i) => (
+              <tbody key={rosterRowKeys[i]} className="mobile-name-group">
                 <MobileNameRow
                   name={player.rosterName}
                   meta={(
