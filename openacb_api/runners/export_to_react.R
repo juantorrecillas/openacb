@@ -521,6 +521,7 @@ export_player_data <- function(all_players, output_name = "players.json") {
         assistedFgm = pct_val(p$S_assisted_fgm, 3),
         assistedFgm2 = pct_val(p$S_assisted_fgm2, 3),
         assistedFgm3 = pct_val(p$S_assisted_fgm3, 3),
+        ftApg = safe_val(p$ft_apg, 1),
 
         # Percentiles — league-wide (NULL for unqualified players)
         ppgPct = pct_val(p$ppg_pct, 1),

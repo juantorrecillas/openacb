@@ -105,6 +105,7 @@ const miscColumns = [
   { key: 'assistedFgm', label: '% asistidos', align: 'right', sortable: true },
   { key: 'assistedFgm2', label: 'Ast 2P%', align: 'right', sortable: true },
   { key: 'assistedFgm3', label: 'Ast 3P%', align: 'right', sortable: true },
+  { key: 'ftApg', label: 'As TL', align: 'right', sortable: true },
 ]
 
 // Zone shooting frequency columns (% of shots from each zone)
@@ -497,11 +498,11 @@ export default function PlayerStats({ players, playerBio = {} }) {
   }
 
   const displayedPlayers = showAll ? filteredPlayers : filteredPlayers.slice(0, 100)
-
   const rowKeys = uniqueRowKeys(
     displayedPlayers,
     p => `${p.licenseId}-${p.season}-${p.competitionStage || selectedStage}-${p.team}`
   )
+
   return (
     <PlayerToolShell
       activeTool="stats"

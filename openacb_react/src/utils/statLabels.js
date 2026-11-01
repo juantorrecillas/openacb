@@ -57,6 +57,7 @@ const STAT_TITLES = {
   '2da Op%': 'Porcentaje de puntos de segunda oportunidad',
   'Vol. 3P': 'Volumen de tiro de tres',
   '% asistidos': 'Porcentaje de tiros anotados asistidos',
+  'As TL': 'Asistencias a tiro libre por partido: pases que acaban en falta y tiros libres (no cuentan en APP)',
   'Dif. aro': 'Diferencia defensiva en el aro',
   'Dif. 3P': 'Diferencia defensiva en triples',
   'PER-H': 'PER de Hollinger: eficiencia por minuto ajustada al ritmo (media de la liga = 15)',

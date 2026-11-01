@@ -143,6 +143,9 @@ add_boxscore_columns <- function(df) {
     group_by(id_match) %>%
     arrange(order, .by_group = TRUE) %>%
     mutate(
+      # assists on free throws do not count: from 2021 they come as "Asistencia
+      # Falta Recibida", in 2017-2020 as "Asistencia tiro de 2" right after the free throw
+      asistencias = asistencias * (lag(T1I, default = 0) == 0),
       # Check if next event was an assist
       prev_was_assist = lead(asistencias, default = 0) > 0,
       # Mark assisted made FGs (2pt or 3pt makes that follow an assist)

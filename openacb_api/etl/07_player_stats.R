@@ -384,10 +384,12 @@ calculate_player_stats <- function(season_id,
   cat("  Rows:", format(nrow(df), big.mark = ","), "\n")
 
   # an assist takes the type of the made shot it follows (same link as assisted_fgm
-  # in 02_clean): 2017-2020 label almost every assist as a 2, plus assists on free throws
+  # in 02_clean): 2017-2020 label almost every assist as a 2
   df <- df %>%
     group_by(id_match) %>%
     mutate(
+      # assists on free throws, shown apart (02_clean leaves them out of asistencias)
+      asis_tl = as.integer(asis_falta > 0 | (asis_t2 + asis_t3 > 0 & lag(T1I, default = 0) > 0)),
       asis_t2 = as.integer(asistencias > 0 & lag(T2A, default = 0) > 0),
       asis_t3 = as.integer(asistencias > 0 & lag(T3A, default = 0) > 0)
     ) %>%
@@ -509,6 +511,7 @@ calculate_player_stats <- function(season_id,
       assists = sum(asistencias, na.rm = TRUE),
       assists_2fg = sum(asis_t2, na.rm = TRUE),
       assists_3fg = sum(asis_t3, na.rm = TRUE),
+      ft_assists = sum(asis_tl, na.rm = TRUE),
       turnovers = sum(perdida, na.rm = TRUE),
 
       # Defense
@@ -1204,6 +1207,7 @@ calculate_player_stats <- function(season_id,
       ppg = points / games,
       rpg = rebounds / games,
       apg = assists / games,
+      ft_apg = ft_assists / games,
       spg = steals / games,
       bpg = blocks / games,
       topg = turnovers / games,
@@ -1426,6 +1430,7 @@ calculate_player_stats <- function(season_id,
       per, gmsc, ows, dws, ws, ws40, drtg,
       # Context Stats
       off_to, second_chance, S_assisted_fgm, S_assisted_fgm2, S_assisted_fgm3,
+      ft_assists, ft_apg,
       # Zone Shooting Stats
       any_of(zone_cols),
       # Percentiles (explicitly named to avoid conflicts)
