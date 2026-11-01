@@ -4,14 +4,16 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "predev": "npm run refresh:light-data",
     "dev": "vite",
-    "prebuild": "npm run refresh:home-team",
+    "prebuild": "npm run refresh:home-team && npm run refresh:light-data",
     "build": "vite build",
     "postbuild": "node scripts/build-seo.mjs",
     "lint": "eslint .",
     "test": "node --test src/routing/routing.test.js && vitest run src/routing/navigation.integration.test.jsx src/seo/metadata.test.js src/utils/playerArchetypes.test.js src/components/TeamRosterTable.test.jsx src/utils/teamRadar.test.js",
     "preview": "vite preview",
-    "refresh:home-team": "node scripts/build-home-example.mjs"
+    "refresh:home-team": "node scripts/build-home-example.mjs",
+    "refresh:light-data": "node scripts/build-light-data.mjs"
   },
   "dependencies": {
     "@vercel/analytics": "^1.6.1",

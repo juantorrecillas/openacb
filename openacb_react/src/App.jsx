@@ -31,30 +31,54 @@ import {
   resolveCanonicalEntityLocation,
   resolveLegacyLocation,
 } from './routing'
-const Home = lazy(() => import('./pages/Home'))
-const ShotCharts = lazy(() => import('./pages/ShotCharts'))
-const TeamStats = lazy(() => import('./pages/TeamStats'))
-const PlayerStats = lazy(() => import('./pages/PlayerStats'))
-const LineupAnalysis = lazy(() => import('./pages/LineupAnalysis'))
-const LineupRankings = lazy(() => import('./pages/LineupRankings'))
-const FourFactors = lazy(() => import('./pages/FourFactors'))
-const PlayerProfile = lazy(() => import('./pages/PlayerProfile'))
-const About = lazy(() => import('./pages/About'))
-const PlayerSimilarity = lazy(() => import('./pages/PlayerSimilarity'))
-const PlayerComparison = lazy(() => import('./pages/PlayerComparison'))
-const TeamFingerprint = lazy(() => import('./pages/TeamFingerprint'))
-const TeamMatchup = lazy(() => import('./pages/TeamMatchup'))
-const GameFlow = lazy(() => import('./pages/GameFlow'))
-const TeamClutchPage = lazy(() => import('./pages/GameFlow').then(module => ({ default: module.TeamClutchPage })))
-const TeamPace = lazy(() => import('./pages/TeamPace'))
-const ZoneLeaders = lazy(() => import('./pages/ZoneLeaders'))
-const ClutchStats = lazy(() => import('./pages/ClutchStats'))
+// Each tool's code is fetched by tab id, so it can start downloading while the tool's data loads.
+const PAGE_LOADERS = {
+  home: () => import('./pages/Home'),
+  about: () => import('./pages/About'),
+  teams: () => import('./pages/TeamStats'),
+  fingerprint: () => import('./pages/TeamFingerprint'),
+  matchup: () => import('./pages/TeamMatchup'),
+  gameflow: () => import('./pages/GameFlow'),
+  teamClutch: () => import('./pages/GameFlow'),
+  quarters: () => import('./pages/TeamPace'),
+  factors: () => import('./pages/FourFactors'),
+  players: () => import('./pages/PlayerStats'),
+  profile: () => import('./pages/PlayerProfile'),
+  similarity: () => import('./pages/PlayerSimilarity'),
+  comparison: () => import('./pages/PlayerComparison'),
+  clutch: () => import('./pages/ClutchStats'),
+  lineups: () => import('./pages/LineupAnalysis'),
+  rankings: () => import('./pages/LineupRankings'),
+  shots: () => import('./pages/ShotCharts'),
+  zoneleaders: () => import('./pages/ZoneLeaders'),
+}
+
+const Home = lazy(PAGE_LOADERS.home)
+const ShotCharts = lazy(PAGE_LOADERS.shots)
+const TeamStats = lazy(PAGE_LOADERS.teams)
+const PlayerStats = lazy(PAGE_LOADERS.players)
+const LineupAnalysis = lazy(PAGE_LOADERS.lineups)
+const LineupRankings = lazy(PAGE_LOADERS.rankings)
+const FourFactors = lazy(PAGE_LOADERS.factors)
+const PlayerProfile = lazy(PAGE_LOADERS.profile)
+const About = lazy(PAGE_LOADERS.about)
+const PlayerSimilarity = lazy(PAGE_LOADERS.similarity)
+const PlayerComparison = lazy(PAGE_LOADERS.comparison)
+const TeamFingerprint = lazy(PAGE_LOADERS.fingerprint)
+const TeamMatchup = lazy(PAGE_LOADERS.matchup)
+const GameFlow = lazy(PAGE_LOADERS.gameflow)
+const TeamClutchPage = lazy(() => PAGE_LOADERS.teamClutch().then(module => ({ default: module.TeamClutchPage })))
+const TeamPace = lazy(PAGE_LOADERS.quarters)
+const ZoneLeaders = lazy(PAGE_LOADERS.zoneleaders)
+const ClutchStats = lazy(PAGE_LOADERS.clutch)
 
 const DATA_RESOURCES = {
   teams: { url: '/data/teams.json' },
   teamsByStage: { url: '/data/teams-by-stage.json' },
   players: { url: '/data/players.json' },
   playersByStage: { url: '/data/players-by-stage.json' },
+  // ids, names, team and position only (built by scripts/build-light-data.mjs)
+  playerIndex: { url: '/data/player-index.json' },
   playerNames: { url: '/data/player-names.json', fallback: {} },
   similarity: { url: '/data/similarity.json' },
   teamLogos: { url: '/data/team-logos.json', fallback: {} },
@@ -67,21 +91,57 @@ const DATA_REQUIREMENTS = {
   home: [],
   about: [],
   teams: ['teamsByStage', 'teamLogos'],
-  fingerprint: ['teams', 'players', 'playerNames', 'playerBio', 'teamLogos'],
+  fingerprint: ['teams', 'players', 'playerIndex', 'playerNames', 'playerBio', 'teamLogos'],
   matchup: ['teams', 'teamLogos'],
-  gameflow: ['teams', 'players', 'playerNames'],
+  gameflow: ['teams', 'playerIndex', 'playerNames'],
   quarters: ['teams'],
   teamClutch: ['teams'],
   factors: ['teams'],
-  players: ['playersByStage', 'playerNames', 'playerBio'],
-  profile: ['players', 'playersByStage', 'playerNames', 'playerPhotos', 'playerBio'],
-  similarity: ['players', 'playerNames', 'similarity'],
-  comparison: ['players', 'playerNames', 'playerPhotos', 'playerBio'],
-  clutch: ['teams', 'players', 'playerNames', 'playerBio'],
-  lineups: ['teams', 'players', 'playerNames', 'playerPhotos'],
-  rankings: ['teams', 'players', 'playerNames'],
-  shots: ['teams', 'players', 'playerNames', 'playerPhotos'],
-  zoneleaders: ['teams', 'players', 'playerNames', 'playerPhotos'],
+  players: ['playersByStage', 'playerIndex', 'playerNames', 'playerBio'],
+  profile: ['players', 'playersByStage', 'playerIndex', 'playerNames', 'playerPhotos', 'playerBio'],
+  similarity: ['players', 'playerIndex', 'playerNames', 'similarity'],
+  comparison: ['players', 'playerIndex', 'playerNames', 'playerPhotos', 'playerBio'],
+  clutch: ['teams', 'playerIndex', 'playerNames', 'playerBio'],
+  lineups: ['teams', 'playerIndex', 'playerNames', 'playerPhotos'],
+  rankings: ['teams', 'playerIndex', 'playerNames'],
+  shots: ['teams', 'playerIndex', 'playerNames', 'playerPhotos'],
+  zoneleaders: ['teams', 'playerIndex', 'playerNames', 'playerPhotos'],
+}
+
+// Profile URL slug per licenseId. A slug shared by several players gets the id appended.
+function buildProfileSlugs(rows, names) {
+  const idsBySlug = new Map()
+  const slugById = new Map()
+  const playerById = new Map()
+
+  rows.forEach(player => {
+    const id = String(player.licenseId)
+    const slug = getPlayerProfileSlug(player, names[id])
+    if (!idsBySlug.has(slug)) idsBySlug.set(slug, new Set())
+    idsBySlug.get(slug).add(id)
+    slugById.set(id, slug)
+    if (!playerById.has(id)) playerById.set(id, player)
+  })
+
+  return Object.fromEntries([...slugById].map(([id, slug]) => [
+    id,
+    idsBySlug.get(slug).size > 1
+      ? buildPlayerSegment(playerById.get(id), names[id])
+      : slug,
+  ]))
+}
+
+// Adds playerDisplay and profileSlug to each row in place. Copying the rows
+// instead ({ ...player }) took ~0.5 s on desktop for the 179-column player files.
+// The returned array is new so components that memoize on it recompute.
+function addPlayerNames(rows, names, slugs) {
+  if (!rows) return []
+  rows.forEach(player => {
+    const id = String(player.licenseId)
+    player.playerDisplay = names[id] || undefined
+    player.profileSlug = slugs[id]
+  })
+  return rows.slice()
 }
 
 const INITIAL_DATA = Object.fromEntries(Object.keys(DATA_RESOURCES).map(key => [key, null]))
@@ -207,6 +267,11 @@ function App() {
     window.scrollTo({ top: 0, left: 0 })
   }, [location.pathname])
 
+  // Fetch the tool's code now instead of after its data; lazy() reuses the same module.
+  useEffect(() => {
+    PAGE_LOADERS[activeTab]?.().catch(() => {})
+  }, [activeTab])
+
   const [shotsCache, setShotsCache] = useState({})
   const [loadingShots, setLoadingShots] = useState({})
   const [lineupsCache, setLineupsCache] = useState({})
@@ -217,6 +282,9 @@ function App() {
   const [loadingTeamPace, setLoadingTeamPace] = useState({})
   const [clutchCache, setClutchCache] = useState({})
   const [loadingClutch, setLoadingClutch] = useState({})
+  const [onOffCache, setOnOffCache] = useState({})
+  const [loadingOnOff, setLoadingOnOff] = useState({})
+  const onOffRequestsRef = useRef({})
 
   const legacyNeedsTeamIdentities = Boolean(
     legacyMatch
@@ -265,47 +333,24 @@ function App() {
     })
   }, [missingKey, retryToken])
 
-  const playerProfileSlugs = useMemo(() => {
-    const names = data.playerNames || {}
-    const rows = [...(data.players || []), ...(data.playersByStage || [])]
-    const idsBySlug = new Map()
-    const slugById = new Map()
-    const playerById = new Map()
-
-    rows.forEach(player => {
-      const id = String(player.licenseId)
-      const slug = getPlayerProfileSlug(player, names[id])
-      if (!idsBySlug.has(slug)) idsBySlug.set(slug, new Set())
-      idsBySlug.get(slug).add(id)
-      slugById.set(id, slug)
-      if (!playerById.has(id)) playerById.set(id, player)
-    })
-
-    return Object.fromEntries([...slugById].map(([id, slug]) => [
-      id,
-      idsBySlug.get(slug).size > 1
-        ? buildPlayerSegment(playerById.get(id), names[id])
-        : slug,
-    ]))
-  }, [data.playerNames, data.players, data.playersByStage])
-
-  const namedPlayers = useMemo(() => {
-    const names = data.playerNames || {}
-    return (data.players || []).map(player => ({
-      ...player,
-      playerDisplay: names[String(player.licenseId)] || undefined,
-      profileSlug: playerProfileSlugs[String(player.licenseId)],
-    }))
-  }, [data.players, data.playerNames, playerProfileSlugs])
-
-  const namedPlayersByStage = useMemo(() => {
-    const names = data.playerNames || {}
-    return (data.playersByStage || []).map(player => ({
-      ...player,
-      playerDisplay: names[String(player.licenseId)] || undefined,
-      profileSlug: playerProfileSlugs[String(player.licenseId)],
-    }))
-  }, [data.playersByStage, data.playerNames, playerProfileSlugs])
+  // The index has one row per player, season and team (same rows as players.json),
+  // so every tool gets the same profile slugs whichever big file it loaded.
+  const playerProfileSlugs = useMemo(
+    () => buildProfileSlugs(data.playerIndex || [], data.playerNames || {}),
+    [data.playerIndex, data.playerNames],
+  )
+  const namedPlayerIndex = useMemo(
+    () => addPlayerNames(data.playerIndex, data.playerNames || {}, playerProfileSlugs),
+    [data.playerIndex, data.playerNames, playerProfileSlugs],
+  )
+  const namedPlayers = useMemo(
+    () => addPlayerNames(data.players, data.playerNames || {}, playerProfileSlugs),
+    [data.players, data.playerNames, playerProfileSlugs],
+  )
+  const namedPlayersByStage = useMemo(
+    () => addPlayerNames(data.playersByStage, data.playerNames || {}, playerProfileSlugs),
+    [data.playersByStage, data.playerNames, playerProfileSlugs],
+  )
 
   const requestedGameSeason = canonicalMatch?.routeId === 'games'
     ? Number(new URLSearchParams(location.search).get('temporada'))
@@ -315,14 +360,17 @@ function App() {
     ? gameFlowCache[requestedGameSeason]
     : undefined
   const routingContext = useMemo(() => ({
-    players: namedPlayersByStage.length > 0 ? namedPlayersByStage : namedPlayers,
+    players: namedPlayerIndex,
     teamIdentities: data.teamIdentities,
     teamRows: data.teams,
     ...(routeGames !== undefined ? { games: routeGames } : {}),
-  }), [data.teamIdentities, data.teams, namedPlayers, namedPlayersByStage, routeGames])
-  const canonicalResolution = canonicalMatch
-    ? resolveCanonicalEntityLocation(location, routingContext)
-    : null
+  }), [data.teamIdentities, data.teams, namedPlayerIndex, routeGames])
+  // Memoized: it scans every player row, and App re-renders each time a season file arrives.
+  const hasCanonicalMatch = Boolean(canonicalMatch)
+  const canonicalResolution = useMemo(
+    () => (hasCanonicalMatch ? resolveCanonicalEntityLocation(location, routingContext) : null),
+    [hasCanonicalMatch, location, routingContext],
+  )
 
   const entityNotFound = ['not-found', 'ambiguous'].includes(canonicalResolution?.status)
   useEffect(() => {
@@ -424,6 +472,29 @@ function App() {
     }
   }, [clutchCache, loadingClutch])
 
+  // Per-player on/off ratings for one season (~150 KB instead of the 5-7 MB lineup file).
+  // The ref dedupes calls made in the same render, e.g. two teams in one season.
+  const loadOnOffForSeason = useCallback((season) => {
+    if (onOffRequestsRef.current[season]) return onOffRequestsRef.current[season]
+    setLoadingOnOff(prev => ({ ...prev, [season]: true }))
+    const request = fetch(`/data/onoff-${season}.json`)
+      .then(response => {
+        if (!response.ok) throw new Error('On/off data not found')
+        return response.json()
+      })
+      .catch(error => {
+        console.error(`Error loading on/off data for season ${season}:`, error)
+        return {}
+      })
+      .then(onOffData => {
+        setOnOffCache(prev => ({ ...prev, [season]: onOffData }))
+        setLoadingOnOff(prev => ({ ...prev, [season]: false }))
+        return onOffData
+      })
+    onOffRequestsRef.current[season] = request
+    return request
+  }, [])
+
   const activeGroupId = routeMatch?.route.navGroupId || getActiveGroup(activeTab)
 
   return (
@@ -513,7 +584,7 @@ function App() {
                   <Route key={path} path={path} element={
                     <GameFlow
                       teams={data.teams}
-                      playerRecords={namedPlayers}
+                      playerRecords={namedPlayerIndex}
                       loadGameFlowForSeason={loadGameFlowForSeason}
                       gameFlowCache={gameFlowCache}
                       loadingGameFlow={loadingGameFlow}
@@ -528,9 +599,9 @@ function App() {
                       allPlayers={namedPlayers}
                       playerPhotos={data.playerPhotos}
                       playerBio={data.playerBio}
-                      loadLineupsForSeason={loadLineupsForSeason}
-                      lineupsCache={lineupsCache}
-                      loadingLineups={loadingLineups}
+                      loadOnOffForSeason={loadOnOffForSeason}
+                      onOffCache={onOffCache}
+                      loadingOnOff={loadingOnOff}
                       loadClutchForSeason={loadClutchForSeason}
                       clutchCache={clutchCache}
                       loadingClutch={loadingClutch}
@@ -546,16 +617,16 @@ function App() {
                       players={namedPlayers}
                       playerPhotos={data.playerPhotos}
                       playerBio={data.playerBio}
-                      loadLineupsForSeason={loadLineupsForSeason}
-                      lineupsCache={lineupsCache}
-                      loadingLineups={loadingLineups}
+                      loadOnOffForSeason={loadOnOffForSeason}
+                      onOffCache={onOffCache}
+                      loadingOnOff={loadingOnOff}
                     />
                   } />
                 ))}
                 <Route path={buildPlayerClutchPath()} element={
                   <ClutchStats
                     teams={data.teams}
-                    players={namedPlayers}
+                    players={namedPlayerIndex}
                     playerBio={data.playerBio}
                     loadClutchForSeason={loadClutchForSeason}
                     clutchCache={clutchCache}
@@ -570,7 +641,7 @@ function App() {
                       lineupsCache={lineupsCache}
                       loadingLineups={loadingLineups}
                       playerPhotos={data.playerPhotos}
-                      playerRecords={namedPlayers}
+                      playerRecords={namedPlayerIndex}
                     />
                   } />
                 ))}
@@ -580,7 +651,7 @@ function App() {
                     loadLineupsForSeason={loadLineupsForSeason}
                     lineupsCache={lineupsCache}
                     loadingLineups={loadingLineups}
-                    playerRecords={namedPlayers}
+                    playerRecords={namedPlayerIndex}
                   />
                 } />
                 {[buildShotChartsPath(), `${buildShotChartsPath()}/equipo/:teamId`, `${buildShotChartsPath()}/jugador/:player`].map(path => (
@@ -590,7 +661,7 @@ function App() {
                       shotsCache={shotsCache}
                       loadingShots={loadingShots}
                       teams={data.teams}
-                      players={namedPlayers}
+                      players={namedPlayerIndex}
                       playerPhotos={data.playerPhotos}
                     />
                   } />
@@ -601,7 +672,7 @@ function App() {
                     shotsCache={shotsCache}
                     loadingShots={loadingShots}
                     teams={data.teams}
-                    players={namedPlayers}
+                    players={namedPlayerIndex}
                     playerPhotos={data.playerPhotos}
                   />
                 } />

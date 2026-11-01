@@ -443,11 +443,11 @@ function MetricComparison({ playerA, playerB }) {
   )
 }
 
-function resolveOnOff(record, lineupsCache, loadingLineups) {
+function resolveOnOff(record, onOffCache, loadingOnOff) {
   if (!record) return null
-  const lineupData = lineupsCache[record.season]
+  const lineupData = onOffCache[record.season]
   if (!lineupData?.data?.[record.team]?.players) {
-    return { loading: loadingLineups[record.season] || false, found: false }
+    return { loading: loadingOnOff[record.season] || false, found: false }
   }
   const playersObj = lineupData.data[record.team].players
   let playerData = null
@@ -472,15 +472,15 @@ function onOffDiff(value, inverse = false) {
   return value > 0 ? 'text-positive font-semibold' : value < 0 ? 'text-negative font-semibold' : 'text-acb-600'
 }
 
-function OnOffComparison({ playerA, playerB, loadLineupsForSeason, lineupsCache, loadingLineups }) {
+function OnOffComparison({ playerA, playerB, loadOnOffForSeason, onOffCache, loadingOnOff }) {
   useEffect(() => {
     ;[playerA, playerB].filter(Boolean).forEach(p => {
-      if (!lineupsCache[p.season] && !loadingLineups[p.season]) loadLineupsForSeason(p.season)
+      if (!onOffCache[p.season] && !loadingOnOff[p.season]) loadOnOffForSeason(p.season)
     })
-  }, [playerA, playerB, lineupsCache, loadingLineups, loadLineupsForSeason])
+  }, [playerA, playerB, onOffCache, loadingOnOff, loadOnOffForSeason])
 
-  const rowA = useMemo(() => resolveOnOff(playerA, lineupsCache, loadingLineups), [playerA, lineupsCache, loadingLineups])
-  const rowB = useMemo(() => resolveOnOff(playerB, lineupsCache, loadingLineups), [playerB, lineupsCache, loadingLineups])
+  const rowA = useMemo(() => resolveOnOff(playerA, onOffCache, loadingOnOff), [playerA, onOffCache, loadingOnOff])
+  const rowB = useMemo(() => resolveOnOff(playerB, onOffCache, loadingOnOff), [playerB, onOffCache, loadingOnOff])
   const rows = [
     { id: 'a', record: playerA, row: rowA, color: 'text-accent-600' },
     { id: 'b', record: playerB, row: rowB, color: 'text-info-600' },
@@ -611,9 +611,9 @@ export default function PlayerComparison({
   players,
   playerPhotos = {},
   playerBio = {},
-  loadLineupsForSeason,
-  lineupsCache,
-  loadingLineups,
+  loadOnOffForSeason,
+  onOffCache,
+  loadingOnOff,
 }) {
   const params = useParams()
   const location = useLocation()
@@ -833,9 +833,9 @@ export default function PlayerComparison({
           <OnOffComparison
             playerA={playerA}
             playerB={playerB}
-            loadLineupsForSeason={loadLineupsForSeason}
-            lineupsCache={lineupsCache}
-            loadingLineups={loadingLineups}
+            loadOnOffForSeason={loadOnOffForSeason}
+            onOffCache={onOffCache}
+            loadingOnOff={loadingOnOff}
           />
         </>
       ) : (

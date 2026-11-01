@@ -204,7 +204,7 @@ describe('latest-season defaults', () => {
         <Routes>
           <Route path={`${path}/:player?`} element={
             <>
-              <Page players={seasonPlayers} similarity={[]} loadLineupsForSeason={vi.fn()} lineupsCache={{}} loadingLineups={{}} />
+              <Page players={seasonPlayers} similarity={[]} loadOnOffForSeason={vi.fn()} onOffCache={{}} loadingOnOff={{}} />
               <LocationProbe label="selector" />
             </>
           } />

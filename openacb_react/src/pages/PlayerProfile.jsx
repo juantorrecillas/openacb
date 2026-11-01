@@ -867,7 +867,7 @@ function ShootingStatsCard({ player, shotTab = 'own', onShotTabChange }) {
 }
 
 // ─── On/Off Impact Card ────────────────────────────────────────
-function OnOffCard({ records, loadLineupsForSeason, lineupsCache, loadingLineups }) {
+function OnOffCard({ records, loadOnOffForSeason, onOffCache, loadingOnOff }) {
   const seasonTeams = useMemo(() => {
     return records.map(r => ({ season: r.season, team: r.team, player: r.player, licenseId: r.licenseId }))
       .sort((a, b) => b.season - a.season)
@@ -875,17 +875,17 @@ function OnOffCard({ records, loadLineupsForSeason, lineupsCache, loadingLineups
 
   useEffect(() => {
     seasonTeams.forEach(st => {
-      if (!lineupsCache[st.season] && !loadingLineups[st.season]) {
-        loadLineupsForSeason(st.season)
+      if (!onOffCache[st.season] && !loadingOnOff[st.season]) {
+        loadOnOffForSeason(st.season)
       }
     })
-  }, [seasonTeams, lineupsCache, loadingLineups, loadLineupsForSeason])
+  }, [seasonTeams, onOffCache, loadingOnOff, loadOnOffForSeason])
 
   const rows = useMemo(() => {
     return seasonTeams.map(st => {
-      const lineupData = lineupsCache[st.season]
+      const lineupData = onOffCache[st.season]
       if (!lineupData?.data?.[st.team]?.players) {
-        return { ...st, loading: loadingLineups[st.season] || false, found: false }
+        return { ...st, loading: loadingOnOff[st.season] || false, found: false }
       }
       const playersObj = lineupData.data[st.team].players
       let playerData = null
@@ -898,7 +898,7 @@ function OnOffCard({ records, loadLineupsForSeason, lineupsCache, loadingLineups
       if (!playerData) return { ...st, loading: false, found: false }
       return { ...st, loading: false, found: true, ...playerData }
     })
-  }, [seasonTeams, lineupsCache, loadingLineups])
+  }, [seasonTeams, onOffCache, loadingOnOff])
 
   const diffColor = (v) => {
     if (v == null) return 'text-acb-400'
@@ -1183,7 +1183,7 @@ function ClutchCard({ records, loadClutchForSeason, clutchCache, loadingClutch }
 }
 
 // ─── Main Page ─────────────────────────────────────────────────
-export default function PlayerProfile({ players, allPlayers = players, playerPhotos = {}, playerBio = {}, loadLineupsForSeason, lineupsCache, loadingLineups, loadClutchForSeason, clutchCache, loadingClutch }) {
+export default function PlayerProfile({ players, allPlayers = players, playerPhotos = {}, playerBio = {}, loadOnOffForSeason, onOffCache, loadingOnOff, loadClutchForSeason, clutchCache, loadingClutch }) {
   const { player: urlPlayer } = useParams()
   const location = useLocation()
   const navigate = useNavigate()
@@ -1456,9 +1456,9 @@ export default function PlayerProfile({ players, allPlayers = players, playerPho
           {/* On/Off Impact */}
           <OnOffCard
             records={allPlayerRecords}
-            loadLineupsForSeason={loadLineupsForSeason}
-            lineupsCache={lineupsCache}
-            loadingLineups={loadingLineups}
+            loadOnOffForSeason={loadOnOffForSeason}
+            onOffCache={onOffCache}
+            loadingOnOff={loadingOnOff}
           />
 
           {/* Clutch Stats */}
