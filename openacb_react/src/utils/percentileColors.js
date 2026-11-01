@@ -10,6 +10,17 @@ export function getPercentileBadgeClass(percentile) {
   return 'bg-info-200 text-info-900'
 }
 
+// Rank 1 of `total` is the 100th percentile and the last rank the 0th
+export function rankToPercentile(rank, total) {
+  if (!rank || !Number.isFinite(Number(rank)) || !(total > 1)) return null
+  return ((total - rank) / (total - 1)) * 100
+}
+
+// Every rank badge (#1, #2...) uses the same colours as percentile badges
+export function getRankBadgeClass(rank, total) {
+  return getPercentileBadgeClass(rankToPercentile(rank, total))
+}
+
 export function getPercentileBarClass(percentile) {
   if (percentile == null || !Number.isFinite(Number(percentile))) return 'bg-acb-200'
 

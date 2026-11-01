@@ -6,7 +6,7 @@ import { getPlayerDisplayName, getPlayerSearchText } from '../utils/playerNames'
 import PlayerToolShell, { playerToolStyles } from '../components/PlayerToolShell'
 import MobileNameRow from '../components/MobileNameRow'
 import SortLabel from '../components/SortLabel'
-import { getPercentileBadgeClass } from '../utils/percentileColors'
+import { getPercentileBadgeClass, rankToPercentile } from '../utils/percentileColors'
 import { buildPlayerProfilePath } from '../routing/paths'
 import { parseRouteQuery, serializeRouteQuery, withQuery } from '../routing/query'
 
@@ -33,12 +33,6 @@ function fmtVal(v, key) {
   if (['fgPct','fg2Pct','fg3Pct','ftPct','efgPct','tsPct','fg3Rate'].includes(key))
     return `${Number(v).toFixed(1)}%`
   return Number(v).toFixed(1)
-}
-
-// rank → percentile (rank 1 → 100, rank n → 0). undefined for n <= 1.
-function rankToPercentile(rank, n) {
-  if (rank == null || n == null || n <= 1) return null
-  return Math.round(((n - rank) / (n - 1)) * 100)
 }
 
 const POSITION_ORDER = ['Base', 'Escolta', 'Alero', 'Ala-pívot', 'Pívot']
@@ -472,7 +466,8 @@ export default function ClutchStats({ teams, players = [], playerBio = {}, loadC
                     const v = p[col.key]
                     const rankKey = col.rank ? `${col.key}Rank` : null
                     const rank = rankKey ? p[rankKey] : null
-                    const percentile = rankToPercentile(rank, n)
+                    const rankPercentile = rankToPercentile(rank, n)
+                    const percentile = rankPercentile == null ? null : Math.round(rankPercentile)
 
                     return (
                       <td

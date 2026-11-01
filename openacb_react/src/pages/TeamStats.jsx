@@ -7,7 +7,7 @@ import { statTitle } from '../utils/statLabels'
 import TeamToolShell, { teamToolStyles as styles } from '../components/TeamToolShell'
 import MobileNameRow from '../components/MobileNameRow'
 import SortLabel from '../components/SortLabel'
-import { getPercentileBadgeClass } from '../utils/percentileColors'
+import { getRankBadgeClass } from '../utils/percentileColors'
 import { readRouteQuery, serializeRouteQuery } from '../routing/query'
 
 
@@ -498,12 +498,6 @@ export default function TeamStats({ teams, teamLogos = {} }) {
     return rankMap
   }, [enrichedTeams, tableColumns])
 
-  const getRankBadgeColor = (rank, total) => {
-    if (rank == null || isNaN(rank) || total <= 1) return getPercentileBadgeClass(null)
-    const pct = ((total - rank) / (total - 1)) * 100
-    return getPercentileBadgeClass(pct)
-  }
-
   const getValueColor = () => 'text-acb-700'
 
   // Create helper function for axis formatting
@@ -754,7 +748,8 @@ export default function TeamStats({ teams, teamLogos = {} }) {
           <table className="data-table">
             <thead>
               <tr>
-                <th rowSpan={2} className="data-table-head text-left data-table-sticky data-table-sticky-head data-col-team mobile-name-hide">Equipo</th>
+                <th rowSpan={2} className="data-table-head data-table-number data-table-sticky data-table-sticky-head data-col-rank mobile-name-hide">#</th>
+                <th rowSpan={2} className="data-table-head text-left data-table-sticky-after-rank data-table-sticky-head data-col-team mobile-name-hide">Equipo</th>
                 {selectedSeason === 'all' && (
                   <th
                     rowSpan={2}
@@ -790,9 +785,10 @@ export default function TeamStats({ teams, teamLogos = {} }) {
                 ))}
               </tr>
             </thead>
-            {sortedTeams.map((team) => (
+            {sortedTeams.map((team, i) => (
               <tbody key={teamRecordKey(team)} className="mobile-name-group">
                 <MobileNameRow
+                  rank={i + 1}
                   name={team.team}
                   meta={selectedSeason === 'all' ? `${team.season - 1}-${String(team.season).slice(-2)}` : null}
                 />
@@ -801,7 +797,8 @@ export default function TeamStats({ teams, teamLogos = {} }) {
                   onMouseEnter={() => setHighlightTeam(teamRecordKey(team))}
                   onMouseLeave={() => setHighlightTeam(null)}
                 >
-                  <td className="data-table-cell data-table-identity data-table-sticky data-col-team mobile-name-hide">
+                  <td className="data-table-cell data-table-number data-table-sticky data-col-rank text-acb-400 mobile-name-hide">{i + 1}</td>
+                  <td className="data-table-cell data-table-identity data-table-sticky-after-rank data-col-team mobile-name-hide">
                     {team.team}
                   </td>
                   {selectedSeason === 'all' && (
@@ -826,7 +823,7 @@ export default function TeamStats({ teams, teamLogos = {} }) {
                             <span className={col.highlight ? getValueColor(team[col.key], col.key, col.inverse) : 'text-acb-700'}>
                               {formatValue(team[col.key], col.key)}
                             </span>
-                            <span className={`data-table-badge ${getRankBadgeColor(rank, totalTeams)}`}>
+                            <span className={`data-table-badge ${getRankBadgeClass(rank, totalTeams)}`}>
                               #{rank}
                             </span>
                           </div>

@@ -315,9 +315,28 @@
     min-width: 4.5rem;
   }
 
+  /* Phones: each row's name sits on its own line (MobileNameRow), so the
+     stats line reads like a scoreboard. Numbers are centred under their
+     labels, no number column is narrower than 3rem, and a table that fits
+     the screen spreads across it instead of leaving space at the end. */
   @media (max-width: 639px) {
     :where(.data-table) :where(th, td) {
+      width: auto;
       padding-inline: 0.5rem;
+    }
+
+    .data-table .data-table-number {
+      min-width: 3rem;
+      text-align: center;
+    }
+
+    .data-table > :is(thead, tbody) > tr::after {
+      content: none;
+    }
+
+    /* A group line can't cross the name lines, so it stays in the header */
+    .data-table > tbody .data-table-group-start {
+      border-left: 0;
     }
   }
 }
@@ -492,7 +511,8 @@ body {
     gap: 6px;
     width: max-content;
     max-width: 100cqw;
-    padding-inline: 10px;
+    /* Same inset as the cells */
+    padding-inline: 0.5rem;
     white-space: nowrap;
   }
   .mobile-name-rank {

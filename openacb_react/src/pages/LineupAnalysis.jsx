@@ -976,7 +976,7 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
               <thead>
                 <tr>
                   <th className="data-table-head text-left data-table-sticky data-table-sticky-head data-col-player mobile-name-hide" rowSpan={2}>Jugador</th>
-                  <th colSpan={2} className="data-table-group data-table-group-start">Rating</th>
+                  <th colSpan={2} className="data-table-group">Rating</th>
                   <th colSpan={2} className="data-table-group data-table-group-start">Neto</th>
                   <SortableHeader label="Impacto" title="Diff Neto On−Off" sortKey="netDiff" current={sortConfig} onSort={handleSort} rowSpan={2} className="data-table-group-start" />
                   <th colSpan={4} className="data-table-group data-table-group-start">Ataque</th>
@@ -984,7 +984,7 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
                   <th className="data-table-head data-table-number data-table-group-start" rowSpan={2}>Min</th>
                 </tr>
                 <tr>
-                  <SortableHeader label="ORtg" title="Diff ORtg On−Off" sortKey="deltaORtg" current={sortConfig} onSort={handleSort} className="data-table-group-start" />
+                  <SortableHeader label="ORtg" title="Diff ORtg On−Off" sortKey="deltaORtg" current={sortConfig} onSort={handleSort} />
                   <SortableHeader label="DRtg" title="Diff DRtg On−Off" sortKey="deltaDRtg" current={sortConfig} onSort={handleSort} />
                   <SortableHeader label="On" sortKey="onNetRtg" current={sortConfig} onSort={handleSort} className="data-table-group-start" />
                   <SortableHeader label="Off" sortKey="offNetRtg" current={sortConfig} onSort={handleSort} />
@@ -1028,7 +1028,7 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
                     {(() => {
                       const ortgD = (player.onORtg ?? 0) - (player.offORtg ?? 0)
                       return (
-                        <td className={`data-table-cell data-table-number data-table-group-start ${ortgD > 0 ? 'text-positive' : ortgD < 0 ? 'text-negative' : 'text-acb-500'}`}>
+                        <td className={`data-table-cell data-table-number ${ortgD > 0 ? 'text-positive' : ortgD < 0 ? 'text-negative' : 'text-acb-500'}`}>
                           {ortgD > 0 ? '+' : ''}{ortgD.toFixed(1)}
                         </td>
                       )

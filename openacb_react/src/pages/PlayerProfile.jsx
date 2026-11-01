@@ -981,14 +981,14 @@ function OnOffCard({ records, loadLineupsForSeason, lineupsCache, loadingLineups
               <tr>
                 <th className="data-table-head text-left data-table-sticky data-table-sticky-head data-col-season mobile-name-hide" rowSpan={2}>Temp.</th>
                 <th className="data-table-head text-left data-table-sticky-after-season data-table-sticky-head data-col-team mobile-name-hide" rowSpan={2}>Equipo</th>
-                <th colSpan={3} className="data-table-group data-table-group-start">Ataque</th>
+                <th colSpan={3} className="data-table-group">Ataque</th>
                 <th colSpan={3} className="data-table-group data-table-group-start">Defensa</th>
                 <th colSpan={2} className="data-table-group data-table-group-start">Neto</th>
                 <th className="data-table-head data-table-number data-table-group-start" rowSpan={2}>Impacto</th>
                 <th className="data-table-head data-table-number data-table-group-start" rowSpan={2}>Min</th>
               </tr>
               <tr>
-                <th className="data-table-head data-table-number data-table-group-start">On</th>
+                <th className="data-table-head data-table-number">On</th>
                 <th className="data-table-head data-table-number">Off</th>
                 <th className="data-table-head data-table-number">Diff</th>
                 <th className="data-table-head data-table-number data-table-group-start">On</th>
@@ -1007,7 +1007,7 @@ function OnOffCard({ records, loadLineupsForSeason, lineupsCache, loadingLineups
                   <tr className="data-table-row">
                     <td className="data-table-cell data-table-identity data-table-sticky data-col-season mobile-name-hide">{seasonLabel(r.season)}</td>
                     <td className="data-table-cell text-left text-acb-600 data-table-sticky-after-season data-col-team mobile-name-hide">{r.team}</td>
-                    <td className="data-table-cell data-table-number data-table-group-start">{r.onORtg?.toFixed(1) ?? '-'}</td>
+                    <td className="data-table-cell data-table-number">{r.onORtg?.toFixed(1) ?? '-'}</td>
                     <td className="data-table-cell data-table-number text-acb-500">{r.offORtg?.toFixed(1) ?? '-'}</td>
                     <td className={`data-table-cell data-table-number font-medium ${ortgD == null ? 'text-acb-400' : ortgD > 0 ? 'text-positive' : ortgD < 0 ? 'text-negative' : 'text-acb-500'}`}>
                       {ortgD != null ? `${ortgD > 0 ? '+' : ''}${ortgD.toFixed(1)}` : '-'}

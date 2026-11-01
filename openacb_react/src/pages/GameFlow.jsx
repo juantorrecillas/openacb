@@ -4,6 +4,7 @@ import { getPlayerDisplayName } from '../utils/playerNames'
 import GameAnalysisNav from '../components/GameAnalysisNav'
 import TeamToolShell, { teamToolStyles as styles } from '../components/TeamToolShell'
 import MobileNameRow from '../components/MobileNameRow'
+import { getRankBadgeClass } from '../utils/percentileColors'
 import SortLabel from '../components/SortLabel'
 import {
   buildGamesPath,
@@ -58,15 +59,6 @@ function typeLabel(type) {
 }
 
 // ─── Clutch Teams View ────────────────────────────────────────
-
-function getRankColor(rank, total) {
-  if (!rank || !total) return 'bg-acb-100 text-acb-600'
-  const pct = rank / total
-  if (pct <= 0.25) return 'bg-acb-800 text-white'
-  if (pct <= 0.5)  return 'bg-acb-200 text-acb-800'
-  if (pct <= 0.75) return 'bg-acb-100 text-acb-700'
-  return 'bg-acb-50 text-acb-600'
-}
 
 function ClutchTeamsView({ selectedSeason, onSeasonChange, viewTab, onViewChange, availableSeasons, clutchCache, loadingClutch }) {
   const [sortCol, setSortCol] = useState('plusMinus')
@@ -166,7 +158,7 @@ function ClutchTeamsView({ selectedSeason, onSeasonChange, viewTab, onViewChange
       <td className={`data-table-cell data-table-number ${groupStartClass(k)}`}>
         <div className="data-table-value">
           <span className={colorClass}>{display}</span>
-          {rank != null && <span className={`data-table-badge ${getRankColor(rank, n)}`}>#{rank}</span>}
+          {rank != null && <span className={`data-table-badge ${getRankBadgeClass(rank, n)}`}>#{rank}</span>}
         </div>
       </td>
     )
@@ -224,7 +216,8 @@ function ClutchTeamsView({ selectedSeason, onSeasonChange, viewTab, onViewChange
             <table className="data-table">
               <thead>
                 <tr>
-                  <th className="data-table-head text-left data-table-sticky data-table-sticky-head data-col-team mobile-name-hide" rowSpan="2">Equipo</th>
+                  <th className="data-table-head data-table-number data-table-sticky data-table-sticky-head data-col-rank mobile-name-hide" rowSpan="2">#</th>
+                  <th className="data-table-head text-left data-table-sticky-after-rank data-table-sticky-head data-col-team mobile-name-hide" rowSpan="2">Equipo</th>
                   <th className="data-table-head data-table-number" rowSpan="2">PJ</th>
                   {viewTab === 'basico' && <>
                     <th className="data-table-group data-table-group-start" colSpan="4">Marcador</th>
@@ -317,17 +310,18 @@ function ClutchTeamsView({ selectedSeason, onSeasonChange, viewTab, onViewChange
                   </>}
                 </tr>
               </thead>
-              {sorted.map(t => (
+              {sorted.map((t, i) => (
                 <tbody key={t.team} className="mobile-name-group">
-                  <MobileNameRow name={t.team} />
+                  <MobileNameRow rank={i + 1} name={t.team} />
                   <tr className="data-table-row">
-                    <td className="data-table-cell data-table-identity data-table-sticky data-col-team mobile-name-hide">{t.team}</td>
+                    <td className="data-table-cell data-table-number data-table-sticky data-col-rank text-acb-400 mobile-name-hide">{i + 1}</td>
+                    <td className="data-table-cell data-table-identity data-table-sticky-after-rank data-col-team mobile-name-hide">{t.team}</td>
                     <td className="data-table-cell data-table-number text-acb-600">{t.games}</td>
                     {viewTab === 'basico' && <>
                       <td className={`data-table-cell data-table-number ${groupStartClass('winPct')}`}>
                         <div className="data-table-value">
                           <span className="text-acb-700">{t.wins}-{t.losses}</span>
-                          {t.winPctRank != null && <span className={`data-table-badge ${getRankColor(t.winPctRank, n)}`}>#{t.winPctRank}</span>}
+                          {t.winPctRank != null && <span className={`data-table-badge ${getRankBadgeClass(t.winPctRank, n)}`}>#{t.winPctRank}</span>}
                         </div>
                       </td>
                       <StatCell t={t} k="plusMinus" signed />
@@ -367,7 +361,7 @@ function ClutchTeamsView({ selectedSeason, onSeasonChange, viewTab, onViewChange
                       <td className={`data-table-cell data-table-number ${groupStartClass('astToRatio')}`}>
                         <div className="data-table-value">
                           <span className="text-acb-700">{fmt(t.astToRatio, false)}</span>
-                          {t.astToRatioRank != null && <span className={`data-table-badge ${getRankColor(t.astToRatioRank, n)}`}>#{t.astToRatioRank}</span>}
+                          {t.astToRatioRank != null && <span className={`data-table-badge ${getRankBadgeClass(t.astToRatioRank, n)}`}>#{t.astToRatioRank}</span>}
                         </div>
                       </td>
                     </>}
@@ -389,7 +383,7 @@ function ClutchTeamsView({ selectedSeason, onSeasonChange, viewTab, onViewChange
                       <td className={`data-table-cell data-table-number ${groupStartClass('opp_astToRatio')}`}>
                         <div className="data-table-value">
                           <span className="text-acb-700">{fmt(t.opp_astToRatio, false)}</span>
-                          {t.opp_astToRatioRank != null && <span className={`data-table-badge ${getRankColor(t.opp_astToRatioRank, n)}`}>#{t.opp_astToRatioRank}</span>}
+                          {t.opp_astToRatioRank != null && <span className={`data-table-badge ${getRankBadgeClass(t.opp_astToRatioRank, n)}`}>#{t.opp_astToRatioRank}</span>}
                         </div>
                       </td>
                     </>}

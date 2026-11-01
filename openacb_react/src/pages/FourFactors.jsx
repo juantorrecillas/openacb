@@ -5,7 +5,7 @@ import { downloadTableAsCsv } from '../utils/csvDownload'
 import TeamToolShell, { teamToolStyles as styles } from '../components/TeamToolShell'
 import MobileNameRow from '../components/MobileNameRow'
 import SortLabel from '../components/SortLabel'
-import { getPercentileBadgeClass } from '../utils/percentileColors'
+import { getRankBadgeClass } from '../utils/percentileColors'
 import { readRouteQuery, serializeRouteQuery } from '../routing/query'
 
 function parseSeasonParam(value, availableSeasons) {
@@ -177,12 +177,6 @@ export default function FourFactors({ teams }) {
     downloadTableAsCsv(filename, exportRows, cols)
   }
 
-  const getRankColor = (rank, totalTeams) => {
-    if (!rank || totalTeams <= 1) return getPercentileBadgeClass(null)
-    const percentile = ((totalTeams - rank) / (totalTeams - 1)) * 100
-    return getPercentileBadgeClass(percentile)
-  }
-
   const sortableHeader = ({ key, label, title, className = '', rowSpan }) => (
     <th
       key={key}
@@ -200,7 +194,7 @@ export default function FourFactors({ teams }) {
     <td className={`data-table-cell data-table-number ${className}`}>
       <div className="data-table-value">
         <span>{formatValue(value, 1)}</span>
-        <span className={`data-table-badge ${getRankColor(rank, totalTeams)}`}>#{rank}</span>
+        <span className={`data-table-badge ${getRankBadgeClass(rank, totalTeams)}`}>#{rank}</span>
       </div>
     </td>
   )
@@ -257,13 +251,13 @@ export default function FourFactors({ teams }) {
                 {selectedSeason === 'all' && (
                   <th className="data-table-head text-left mobile-name-hide" rowSpan="2">Temp.</th>
                 )}
-                <th className="data-table-group data-table-group-start" colSpan="5">Ataque</th>
+                <th className="data-table-group" colSpan="5">Ataque</th>
                 <th className="data-table-group data-table-group-start" colSpan="5">Defensa</th>
                 {sortableHeader({ key: 'netRating', label: 'Neto', title: 'Net Rating', className: 'data-table-group-start', rowSpan: 2 })}
               </tr>
               {/* header row 2: individual columns */}
               <tr>
-                {sortableHeader({ key: 'offensiveShooting', label: 'eFG%', title: 'Effective Field Goal %', className: 'data-table-group-start' })}
+                {sortableHeader({ key: 'offensiveShooting', label: 'eFG%', title: 'Effective Field Goal %' })}
                 {sortableHeader({ key: 'offensiveTurnovers', label: 'PER%', title: 'Pérdidas %' })}
                 {sortableHeader({ key: 'offensiveRebounding', label: 'RO%', title: 'Rebote Ofensivo %' })}
                 {sortableHeader({ key: 'offensiveFreeThrows', label: 'TLr', title: 'Tasa de Tiros Libres' })}
@@ -295,7 +289,7 @@ export default function FourFactors({ teams }) {
                     {selectedSeason === 'all' && (
                       <td className="data-table-cell text-left text-acb-600 mobile-name-hide">{seasonText}</td>
                     )}
-                    {rankedCell(team.offensiveShooting, team.offensiveShootingRank, totalTeams, 'data-table-group-start')}
+                    {rankedCell(team.offensiveShooting, team.offensiveShootingRank, totalTeams)}
                     {rankedCell(team.offensiveTurnovers, team.offensiveTurnoversRank, totalTeams)}
                     {rankedCell(team.offensiveRebounding, team.offensiveReboundingRank, totalTeams)}
                     {rankedCell(team.offensiveFreeThrows, team.offensiveFreeThrowsRank, totalTeams)}

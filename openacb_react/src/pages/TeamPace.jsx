@@ -260,10 +260,11 @@ export default function TeamPace({ teams, loadTeamPaceForSeason, teamPaceCache, 
             <table className="data-table">
               <thead>
                 <tr>
+                  <th className="data-table-head data-table-number data-table-sticky data-table-sticky-head data-col-rank mobile-name-hide">#</th>
                   <th
                     onClick={() => handleSort('team')}
                     aria-sort={ariaSort('team')}
-                    className="data-table-head text-left data-table-sticky data-table-sticky-head data-col-team mobile-name-hide"
+                    className="data-table-head text-left data-table-sticky-after-rank data-table-sticky-head data-col-team mobile-name-hide"
                   >
                     <SortLabel direction={sortCol === 'team' && sortDir}>Equipo</SortLabel>
                   </th>
@@ -288,7 +289,7 @@ export default function TeamPace({ teams, loadTeamPaceForSeason, teamPaceCache, 
                   <th className="data-table-head text-center">Peor</th>
                 </tr>
               </thead>
-              {sortedTeams.map(t => {
+              {sortedTeams.map((t, i) => {
                 const arr = viewMode === 'diff' ? t.quarters.diff
                   : viewMode === 'scored' ? t.quarters.scored
                   : t.quarters.allowed
@@ -303,6 +304,7 @@ export default function TeamPace({ teams, loadTeamPaceForSeason, teamPaceCache, 
                 return (
                   <tbody key={t.team} className="mobile-name-group">
                     <MobileNameRow
+                      rank={i + 1}
                       name={t.team}
                       onClick={toggleTeam}
                       className={isSelected ? 'bg-accent-50' : ''}
@@ -311,7 +313,8 @@ export default function TeamPace({ teams, loadTeamPaceForSeason, teamPaceCache, 
                       onClick={toggleTeam}
                       className={`data-table-row cursor-pointer ${isSelected ? 'bg-accent-50' : ''}`}
                     >
-                      <td className="data-table-cell data-table-identity data-table-sticky data-col-team mobile-name-hide">
+                      <td className="data-table-cell data-table-number data-table-sticky data-col-rank text-acb-400 mobile-name-hide">{i + 1}</td>
+                      <td className="data-table-cell data-table-identity data-table-sticky-after-rank data-col-team mobile-name-hide">
                         <button
                           className="data-table-link"
                           aria-expanded={isSelected}

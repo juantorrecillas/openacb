@@ -101,7 +101,7 @@ function PlayerSelector({ players, onSelect, selectedLicenseId, defaultSeason })
 function ScoreBar({ score }) {
   const color = score >= 90 ? 'bg-acb-700' : score >= 80 ? 'bg-acb-600' : score >= 70 ? 'bg-acb-500' : 'bg-acb-300'
   return (
-    <div className="flex w-full items-center justify-end gap-2">
+    <div className="inline-flex items-center gap-2">
       <div className="w-20 h-2 bg-acb-100 rounded-full overflow-hidden">
         <div className={`h-full rounded-full ${color}`} style={{ width: `${score}%` }} />
       </div>
@@ -411,7 +411,7 @@ export default function PlayerSimilarity({ players, similarity }) {
                     <th key={col.key} title={statTitle(col.label)} className="data-table-head data-table-number">{col.label}</th>
                   ))}
                   <th className="data-table-head data-table-number">Similitud</th>
-                  <th className="data-table-head"><span className="sr-only">Abrir perfil</span></th>
+                  <th className="data-table-head w-8"><span className="sr-only">Abrir perfil</span></th>
                 </tr>
               </thead>
               {similarPlayers.map(p => (
@@ -440,8 +440,8 @@ export default function PlayerSimilarity({ players, similarity }) {
                         {col.fmt(p._record?.[col.key])}
                       </td>
                     ))}
-                    <td className="data-table-cell text-right"><ScoreBar score={p.score} /></td>
-                    <td className="data-table-cell text-acb-400"><ArrowRight className="w-4 h-4" /></td>
+                    <td className="data-table-cell data-table-number"><ScoreBar score={p.score} /></td>
+                    <td className="data-table-cell w-8 text-acb-400"><ArrowRight className="w-4 h-4" /></td>
                   </tr>
                 </tbody>
               ))}
