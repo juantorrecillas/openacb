@@ -61,3 +61,6 @@ AGENTS.md
 .aider.input.history
 .aider.tags.cache.v4/
 
+
+# local tests and notes
+openacb_api/tests/
