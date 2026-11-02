@@ -28,6 +28,7 @@ OpenACB2.0/
 │   │   ├── run_pipeline.R            # Pipeline completo para una o todas las temporadas
 │   │   ├── update.R                  # Actualización semanal rápida (temporada actual)
 │   │   ├── export_to_react.R         # Exportar todos los datos a JSON para React
+│   │   ├── player_similarity.R       # Preparar perfiles para el nuevo análisis de similitud
 │   │   ├── export_lineup_data.R      # Exportar datos de quintetos a JSON para React
 │   │   ├── regen_team_stats.R        # Regenerar estadísticas de equipo
 │   │   ├── regen_photos.R            # Regenerar fotos de jugadores
@@ -120,6 +121,13 @@ Analiza todas las combinaciones de jugadores: individuales, parejas, tríos y qu
 
 Minutos jugados con tracking del paso 3, estadísticas por partido y totales, percentiles vs liga y métricas de eficiencia individuales.
 
+`usg_simple` mide el porcentaje de acciones de finalización del equipo que corresponden
+al jugador mientras está en pista:
+`100 × (FGA + FT_trips + TOV) / (FGA_equipo_en_pista + FT_trips_equipo_en_pista + TOV_equipo_en_pista)`.
+Usa las visitas a la línea registradas en el play-by-play, en lugar de aproximarlas
+con `0,44 × FTA`. No reparte crédito por asistencias; el `usg` anterior sí lo hace
+y sigue disponible. El denominador se limita a los partidos del jugador con ese equipo.
+
 Incluye también métricas de impacto adaptadas de la NBA:
 
 - **PER** (Hollinger): ajustado al ritmo de cada equipo y reescalado para que la media de la liga, ponderada por minutos, sea 15.
@@ -163,6 +171,86 @@ Paso entre temporadas, posterior al 07. Estima el impacto de cada jugador en pun
 - Regresión ridge que agrupa todas las temporadas. La penalización se elige por validación cruzada por partidos.
 
 También guarda el RAPM sin prior (`rapm`) y el componente de boxscore (`box`) para comparar. En temporadas en curso el índice se apoya casi por completo en el prior.
+
+### Preparar el análisis de similitud
+
+Desde la raíz del repositorio, ejecutar en R:
+
+```r
+source("openacb_api/runners/player_similarity.R")
+```
+
+Requiere `dplyr` (>= 1.1), `readr`, `here`, `cluster`, `ggplot2`, `mclust` y los archivos procesados
+`PlayerStats{temporada}.Rds` y `PlayerImpact{temporada}.Rds`. Si las estadísticas
+todavía no incluyen `usg_simple`, regenerarlas desde `openacb_api`:
+
+```r
+source("etl/07_player_stats.R")
+source("config/seasons.R")
+for (sid in SEASONS$season_id[SEASONS$season_id >= 2021]) calculate_player_stats(sid)
+```
+
+El bloque `cfg` del script permite elegir temporadas y mínimos de participación.
+Por defecto toma temporadas desde 2020–21, con cobertura de zonas de tiro,
+y exige 10 partidos y 10 minutos por partido, contando todas las fases.
+Produce `output/player-similarity/player_profiles.csv`, con una fila por
+jugador, equipo y temporada. Tanto los datos procesados como esta salida están
+excluidos de Git; el script queda versionado.
+
+`similarity_df` contiene los perfiles y `feature_cols` identifica 21 variables
+candidatas: cinco frecuencias de zonas de tiro, porcentajes de canastas de dos
+y tres asistidas, FTA/FGA, TS%, 3P%, FT%, usage simple, AST%, TOV%, ORB%, DRB%,
+STL%, BLK%, altura e impacto ofensivo y defensivo ajustados. Las tasas se expresan
+en puntos porcentuales; la altura, en metros; el impacto, en puntos por 100 posesiones.
+El impacto es de jugador–temporada y se comparte entre sus equipos si hubo un traspaso.
+
+También conserva identificadores, contexto y recuentos de tiro y posesiones para
+valorar la fiabilidad de las métricas. La tabla observada mantiene `NA` cuando no
+existe denominador. Para modelizar, suaviza 3P%, FT% y porcentajes de canastas
+asistidas mediante un modelo beta-binomial: media agrupada de los jugadores
+seleccionados en cada temporada y fuerza
+del prior estimada con los datos. Sin intentos, usa ese prior, que representa falta
+de información. Aplica `log1p` a BLK% por su asimetría y estandariza las 21 variables.
+
+Compara K-means sobre las variables con K-means sobre los componentes que retienen
+el 80% y el 90% de la varianza. Conserva las cinco frecuencias de zonas para mantener
+una distancia simétrica; al sumar 100, aportan cuatro dimensiones independientes.
+Los componentes no se reescalan a varianza uno. `cfg` fija la semilla, el número de
+clusters de referencia (11) y los valores explorados (6, 8, 9, 10 y 11).
+El gráfico clásico de codo (`elbow.png`, con datos en `elbow.csv`) calcula la suma
+de cuadrados intracluster para 1–15 clusters en los tres espacios. En esta muestra,
+el cambio de pendiente más claro está en 3; los 8 clusters anteriores siguen siendo
+la especificación exploratoria usada en la revisión manual.
+
+Añade una mezcla gaussiana de 11 componentes. Usa los 20 componentes de rango no
+nulo del PCA, conservando toda la información y eliminando solo la dependencia
+exacta de las zonas. Compara cinco estructuras de covarianza elipsoidal
+(`EEE`, `VEE`, `EEV`, `VEV`, `VVV`), con el prior conjugado por defecto de `mclust`,
+y selecciona la estructura por BIC. La búsqueda adicional de 6–12 componentes se
+guarda en `gmm_bic.csv` y `gmm_bic.png`; no cambia la elección de 11 para el ejercicio.
+`gmm_posteriors.csv` conserva las probabilidades de los componentes y `1 - max(p)` como
+incertidumbre de asignación. Estas probabilidades no son proporciones de acciones
+tácticas ni confianza calibrada en un rol verdadero. `gmm_model.Rds` guarda el ajuste.
+`gmm_transitions.csv` sigue a los jugadores desde el ajuste de 9 componentes hasta
+el actual, sin asumir que las etiquetas de los grupos sean equivalentes.
+`gmm_component_comparison.csv` resume tamaños, BIC e incertidumbre de ambos ajustes.
+
+En esta máquina, `mclust` 6.1.2 está instalado en `output/r-library`, que el script
+añade a la búsqueda de paquetes. También puede instalarse normalmente en la
+biblioteca de R. No se instalan paquetes al ejecutar el análisis.
+
+Guarda distribuciones, correlaciones, priors, varianza y cargas del PCA, métricas,
+perfiles y representantes de clusters y vecinos de 12 casos de revisión en la misma
+carpeta de salida. Para comparar particiones usa también silhouette sobre el espacio
+original común. Los vecinos se buscan dentro de la misma temporada, excluyendo al
+propio jugador, con y sin restricción de cluster. GMM modifica la pertenencia a
+grupos; las distancias euclídeas sin restricción siguen siendo las del modelo completo.
+Para GMM, las tablas de vecinos también muestran el producto escalar de las
+probabilidades de los dos jugadores como probabilidad de compartir componente
+condicional al ajuste. El informe actual está en `output/player-similarity/gmm11_review.md`;
+el ajuste anterior y sus tablas están en `gmm9/`. La revisión histórica de 8 clusters
+está en `review.md` y sus tablas en `kmeans8/`.
+El cálculo publicado sigue en `export_to_react.R`.
 
 ## Frontend
 

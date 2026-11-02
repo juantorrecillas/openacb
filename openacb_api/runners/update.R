@@ -47,30 +47,37 @@ CURRENT_SEASON <- get_current_season()
 
 # Scrape current season
 cat("→ Scraping games...\n")
-scrape_season(CURRENT_SEASON, only_missing = TRUE)
+scraped_matches <- scrape_season(CURRENT_SEASON, only_missing = TRUE)
 
-cat("\n→ Processing data...\n")
-clean_pbp(CURRENT_SEASON)
-create_pbp_variables(CURRENT_SEASON)
-# refresh positions for debuting players before calculating their percentiles
-generate_player_bio(seasons = CURRENT_SEASON)
-calculate_team_stats(CURRENT_SEASON)
-calculate_team_stats(CURRENT_SEASON, competition_stage = "regular")
-calculate_team_stats(CURRENT_SEASON, competition_stage = "playoffs")
-process_shot_charts(CURRENT_SEASON)
-calculate_player_stats(CURRENT_SEASON)
-calculate_player_stats(CURRENT_SEASON, competition_stage = "regular")
-calculate_player_stats(CURRENT_SEASON, competition_stage = "playoffs")
-generate_game_flow(CURRENT_SEASON)
-generate_team_pace(CURRENT_SEASON)
-generate_clutch_stats(CURRENT_SEASON)
+if (attr(scraped_matches, "new_matches") > 0L) {
+  cat("\n→ Processing data...\n")
+  clean_pbp(CURRENT_SEASON)
+  create_pbp_variables(CURRENT_SEASON)
+  # refresh positions for debuting players before calculating their percentiles
+  generate_player_bio(seasons = CURRENT_SEASON)
+  calculate_team_stats(CURRENT_SEASON)
+  calculate_team_stats(CURRENT_SEASON, competition_stage = "regular")
+  calculate_team_stats(CURRENT_SEASON, competition_stage = "playoffs")
+  process_shot_charts(CURRENT_SEASON)
+  calculate_player_stats(CURRENT_SEASON)
+  calculate_player_stats(CURRENT_SEASON, competition_stage = "regular")
+  calculate_player_stats(CURRENT_SEASON, competition_stage = "playoffs")
+  generate_game_flow(CURRENT_SEASON)
+  generate_team_pace(CURRENT_SEASON)
+  generate_clutch_stats(CURRENT_SEASON)
+
+  # this export also recalculates lineups
+  old_lineup_auto <- getOption("openacb.skip_auto_lineup_export")
+  options(openacb.skip_auto_lineup_export = TRUE)
+  source("./runners/export_lineup_data.R")
+  options(openacb.skip_auto_lineup_export = old_lineup_auto)
+  export_single_season(CURRENT_SEASON)
+} else {
+  cat("\n→ No new matches. Skipping processing and re-exporting existing data.\n")
+}
+
 # Export to React
 cat("\n→ Exporting to React app...\n")
-old_lineup_auto <- getOption("openacb.skip_auto_lineup_export")
-options(openacb.skip_auto_lineup_export = TRUE)
-source("./runners/export_lineup_data.R")
-options(openacb.skip_auto_lineup_export = old_lineup_auto)
-export_single_season(CURRENT_SEASON)
 # leave historical season files untouched during weekly updates
 old_react_options <- options(openacb.react_export_seasons = CURRENT_SEASON)
 tryCatch(

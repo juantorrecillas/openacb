@@ -30,6 +30,10 @@ weekly_steps <- c(
   "export_single_season"
 )
 for (step in weekly_steps) weekly[[step]] <- record_step(step, weekly)
+weekly$scrape_season <- function(...) {
+  record_step("scrape_season", weekly)(...)
+  structure(data.frame(), new_matches = 1L)
+}
 weekly$source <- function(file, ...) {
   weekly$loaded_files <- c(weekly$loaded_files, file)
   if (grepl("config/seasons[.]R$", file)) {

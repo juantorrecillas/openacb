@@ -382,6 +382,7 @@ scrape_season <- function(season_id,
   )
   cat("\n✓ Scraping complete!\n")
   
+  attr(all_matches, "new_matches") <- saved
   invisible(all_matches)
 }
 

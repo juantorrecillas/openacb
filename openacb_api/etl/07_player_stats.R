@@ -29,6 +29,12 @@ sum_known <- function(x) {
   sum(x, na.rm = TRUE)
 }
 
+# share of team finishing plays while on court; actual ft trips, no assist credit
+calculate_simple_usage <- function(fga, ft_trips, turnovers, team_plays) {
+  usage <- 100 * (fga + ft_trips + turnovers) / team_plays
+  ifelse(is.finite(usage) & team_plays > 0, usage, NA_real_)
+}
+
 # use the midpoint of ties instead of the upper ecdf endpoint
 midrank_percentile <- function(x, reference, lower_is_better = FALSE) {
   reference <- reference[is.finite(reference)]
@@ -758,6 +764,8 @@ calculate_player_stats <- function(season_id,
                    player_poss_adj / team_poss_adj * 100,
                    NA),
 
+      usg_simple = calculate_simple_usage(fga, ft_trips, turnovers, team_poss_adj),
+
       # =======================================================================
       # REBOUND PERCENTAGES
       # =======================================================================
@@ -1423,7 +1431,7 @@ calculate_player_stats <- function(season_id,
       # Percentages
       fg_pct, fg2_pct, fg3_pct, ft_pct, efg, ts, three_rate,
       # Possessions & Usage
-      possessions, poss_pg, ortg, usg,
+      possessions, poss_pg, ortg, usg, usg_simple,
       # Advanced Rate Stats
       orb_pct, drb_pct, trb_pct, ast_pct, stl_pct, blk_pct, tov_pct, ast_to_ratio,
       # impact metrics
