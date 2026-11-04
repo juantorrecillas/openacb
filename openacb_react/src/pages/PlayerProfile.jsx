@@ -484,7 +484,7 @@ const profileSections = [
   {
     title: 'Impacto',
     stats: [
-      { label: 'PER-H', value: 'per', pctKey: 'perPct', posPctKey: 'perPosPct' },
+      { label: 'PER', value: 'per', pctKey: 'perPct', posPctKey: 'perPosPct' },
       { label: 'GmSc', value: 'gmsc', pctKey: 'gmscPct', posPctKey: 'gmscPosPct' },
       { label: 'WS', value: 'ws', pctKey: 'wsPct', posPctKey: 'wsPosPct' },
       { label: 'WS/40', value: 'ws40', pctKey: 'ws40Pct', posPctKey: 'ws40PosPct' },
