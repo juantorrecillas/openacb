@@ -2,15 +2,25 @@ const NUMERIC_ID_PATTERN = /^[1-9]\d*$/
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
 export function safeDecodePathSegment(value) {
+  const text = String(value ?? '')
+  if (!text.includes('%')) return text
   try {
-    return decodeURIComponent(String(value ?? ''))
+    return decodeURIComponent(text)
   } catch {
-    return String(value ?? '')
+    return text
   }
 }
 
+// Player URL resolution slugifies every player row on each lookup, so results
+// are cached (there are a few thousand distinct names).
+const slugCache = new Map()
+
 export function slugify(value, fallback = '') {
-  const slug = safeDecodePathSegment(value)
+  const source = safeDecodePathSegment(value)
+  const cached = slugCache.get(source)
+  if (cached !== undefined) return cached || fallback
+
+  const slug = source
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLocaleLowerCase('es')
@@ -19,6 +29,8 @@ export function slugify(value, fallback = '') {
     .replace(/^-+|-+$/g, '')
     .replace(/-{2,}/g, '-')
 
+  if (slugCache.size >= 20000) slugCache.clear()
+  slugCache.set(source, slug)
   return slug || fallback
 }
 

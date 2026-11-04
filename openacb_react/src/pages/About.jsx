@@ -159,6 +159,7 @@ export default function About() {
             <div className={styles.prose}>
               <p>openACB es una plataforma que recoge herramientas de análisis de estadísticas avanzadas para la Liga Endesa. Este proyecto compila datos de Play-by-Play de acb.com para presentar una serie de estadísticas y herramientas analíticas que pueden resultar útiles para aficionados o cuerpos técnicos</p>
               <p>En mi opinión, la herramienta tiene una serie de ventajas que la hacen interesante para este público. En primer lugar, reúne en un mismo sitio una gran cantidad de estadísticas. Segundo, proporciona herramientas de analítica avanzada, como el análisis On/Off o las cartas de tiro, que pueden ser de gran interés tanto para analistas como para aficionados. En tercer lugar, es una app de código abierto. La mayoría de herramientas de analítica avanzada están escondidas bajo servicios de suscripción o muros de pago. Aquí tienes varios de esos servicios disponibles gratuitamente, sin anuncios y en código abierto.</p>
+              <p>La web no usa cookies. Para saber qué herramientas resultan útiles, cuenta las visitas, las herramientas abiertas y las imágenes descargadas de forma agregada, sin datos personales.</p>
             </div>
           </section>
 

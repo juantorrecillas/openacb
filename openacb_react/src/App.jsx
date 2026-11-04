@@ -3,13 +3,14 @@ import { Routes, Route, useLocation, Link, Navigate } from 'react-router-dom'
 import { Analytics } from '@vercel/analytics/react'
 import SiteHeader from './components/SiteHeader'
 import { getPageMetadata, updatePageMetadata } from './seo/metadata.js'
+import { getPrerenderedPage } from './seo/prerender.js'
+import { trackEvent, trackPageview } from './utils/analytics.js'
 import { BarChart3, Target, Users, TrendingUp, Percent, Trophy, Info, UserCircle, GitCompareArrows, Fingerprint, Activity, Crown, Flame, Scale, Sparkles } from 'lucide-react'
 import {
   ROUTE_MANIFEST,
   buildAboutPath,
   buildFourFactorsPath,
   buildGamesPath,
-  buildPlayerSegment,
   buildLineupAnalysisPath,
   buildLineupRankingsPath,
   buildPlayerClutchPath,
@@ -25,12 +26,12 @@ import {
   buildTeamStatsPath,
   buildZoneLeadersPath,
   canonicalizePathname,
-  getPlayerProfileSlug,
   matchCanonicalRoute,
   matchLegacyRoute,
   resolveCanonicalEntityLocation,
   resolveLegacyLocation,
 } from './routing'
+import { addPlayerNames, buildProfileSlugs } from './utils/profileSlugs.js'
 // Each tool's code is fetched by tab id, so it can start downloading while the tool's data loads.
 const PAGE_LOADERS = {
   home: () => import('./pages/Home'),
@@ -108,42 +109,6 @@ const DATA_REQUIREMENTS = {
   zoneleaders: ['teams', 'playerIndex', 'playerNames', 'playerPhotos'],
 }
 
-// Profile URL slug per licenseId. A slug shared by several players gets the id appended.
-function buildProfileSlugs(rows, names) {
-  const idsBySlug = new Map()
-  const slugById = new Map()
-  const playerById = new Map()
-
-  rows.forEach(player => {
-    const id = String(player.licenseId)
-    const slug = getPlayerProfileSlug(player, names[id])
-    if (!idsBySlug.has(slug)) idsBySlug.set(slug, new Set())
-    idsBySlug.get(slug).add(id)
-    slugById.set(id, slug)
-    if (!playerById.has(id)) playerById.set(id, player)
-  })
-
-  return Object.fromEntries([...slugById].map(([id, slug]) => [
-    id,
-    idsBySlug.get(slug).size > 1
-      ? buildPlayerSegment(playerById.get(id), names[id])
-      : slug,
-  ]))
-}
-
-// Adds playerDisplay and profileSlug to each row in place. Copying the rows
-// instead ({ ...player }) took ~0.5 s on desktop for the 179-column player files.
-// The returned array is new so components that memoize on it recompute.
-function addPlayerNames(rows, names, slugs) {
-  if (!rows) return []
-  rows.forEach(player => {
-    const id = String(player.licenseId)
-    player.playerDisplay = names[id] || undefined
-    player.profileSlug = slugs[id]
-  })
-  return rows.slice()
-}
-
 const INITIAL_DATA = Object.fromEntries(Object.keys(DATA_RESOURCES).map(key => [key, null]))
 
 const TAB_PATHS = {
@@ -218,6 +183,16 @@ function getActiveGroup(tabId) {
   return null
 }
 
+// The prerendered summary of an entity page, shown until the tool can render.
+function PrerenderedContent({ html, status }) {
+  return (
+    <div className="prerender-live">
+      <p className="prerender-loading" role="status" aria-live="polite">{status}</p>
+      <div className="prerender-content" dangerouslySetInnerHTML={{ __html: html }} />
+    </div>
+  )
+}
+
 function RouteProblem({ title, message }) {
   return (
     <div className="mx-auto my-16 max-w-lg rounded-lg border border-acb-200 bg-white p-6 text-center shadow-sm" role="alert">
@@ -266,6 +241,18 @@ function App() {
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0 })
   }, [location.pathname])
+
+  // One page view per path (filter changes only touch the query string), and
+  // one "herramienta" event each time the visitor opens a different tool.
+  // Old URLs redirect straight away, so only their destination is counted.
+  const routeId = routeMatch?.route.id || null
+  const isLegacyPath = Boolean(legacyMatch)
+  useEffect(() => {
+    if (!isLegacyPath) trackPageview()
+  }, [normalizedPathname, isLegacyPath])
+  useEffect(() => {
+    if (routeId) trackEvent('herramienta', { id: routeId })
+  }, [routeId])
 
   // Fetch the tool's code now instead of after its data; lazy() reuses the same module.
   useEffect(() => {
@@ -373,9 +360,15 @@ function App() {
   )
 
   const entityNotFound = ['not-found', 'ambiguous'].includes(canonicalResolution?.status)
+  // On the prerendered page the server's entity title, description and image
+  // stay in place (crawlers that run JS read them after the app starts).
+  const prerenderedPage = getPrerenderedPage()
+  const onPrerenderedPage = Boolean(prerenderedPage && prerenderedPage.path === normalizedPathname)
   useEffect(() => {
-    updatePageMetadata(getPageMetadata(location.pathname, { notFound: entityNotFound }))
-  }, [location.pathname, entityNotFound])
+    updatePageMetadata(onPrerenderedPage && !entityNotFound
+      ? prerenderedPage.metadata
+      : getPageMetadata(location.pathname, { notFound: entityNotFound }))
+  }, [location.pathname, entityNotFound, onPrerenderedPage, prerenderedPage])
 
   const loadShotsForSeason = useCallback(async (season) => {
     if (shotsCache[season]) return shotsCache[season]
@@ -507,9 +500,13 @@ function App() {
           {pathNeedsNormalization ? (
             <Navigate to={`${normalizedPathname}${location.search}`} replace />
           ) : missingResources.length > 0 && !loadError ? (
-            <div className="flex min-h-[40vh] items-center justify-center text-acb-500" role="status" aria-live="polite">
-              Cargando datos...
-            </div>
+            onPrerenderedPage ? (
+              <PrerenderedContent html={prerenderedPage.html} status="Cargando datos…" />
+            ) : (
+              <div className="flex min-h-[40vh] items-center justify-center text-acb-500" role="status" aria-live="polite">
+                Cargando datos...
+              </div>
+            )
           ) : loadError ? (
             <div className="mx-auto my-16 max-w-md rounded-lg border border-negative-200 bg-white p-6 text-center shadow-sm" role="alert">
               <h1 className="text-xl font-semibold text-acb-900">No se pueden mostrar los datos</h1>
@@ -529,7 +526,9 @@ function App() {
           ) : canonicalResolution?.status === 'ambiguous' ? (
             <RouteProblem title="El enlace necesita más información" message="Hay más de un jugador con ese nombre. Abre la herramienta y selecciona el jugador correcto." />
           ) : (
-            <Suspense fallback={<div className="py-16 text-center text-acb-500" role="status">Cargando herramienta...</div>}>
+            <Suspense fallback={onPrerenderedPage
+              ? <PrerenderedContent html={prerenderedPage.html} status="Cargando herramienta…" />
+              : <div className="py-16 text-center text-acb-500" role="status">Cargando herramienta...</div>}>
               <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path={buildTeamStatsPath()} element={<TeamStats teams={data.teamsByStage} teamLogos={data.teamLogos} />} />

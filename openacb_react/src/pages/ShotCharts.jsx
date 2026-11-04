@@ -1,11 +1,14 @@
-import { useMemo, useEffect } from 'react'
+import { useMemo, useEffect, useRef } from 'react'
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { getPlayerPhoto } from '../utils/playerPhotos'
 import { getPlayerDisplayName } from '../utils/playerNames'
+import { relativeTurboColor } from '../utils/shotZones'
 import Court, { ShotMarker } from '../components/Court'
 import ZoneHeatmap from '../components/ZoneHeatmap'
 import DensityHeatmap from '../components/DensityHeatmap'
+import { getDensityLegendColors } from '../utils/densityColors'
 import PlayerCombobox from '../components/PlayerCombobox'
+import ChartImageButton from '../components/ChartImageButton'
 import ShotToolShell, { shotToolStyles } from '../components/ShotToolShell'
 import { Circle, X } from 'lucide-react'
 import {
@@ -302,6 +305,49 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
     { label: '3P%', value: `${stats.threePct}%` },
   ]
 
+  const courtStageRef = useRef(null)
+  const seasonText = `${selectedSeason - 1}-${String(selectedSeason).slice(-2)}`
+  // The court and its overlay (heat map or zones) as they are on screen.
+  const getShotChartImage = () => {
+    const legend = displayMode === 'shots'
+      ? [
+        ...(effectiveShotFilter !== 'missed' ? [{ type: 'dot', color: '#2aa867', label: 'Anotado' }] : []),
+        ...(effectiveShotFilter !== 'made' ? [{ type: 'cross', color: '#dd415d', label: 'Fallado' }] : []),
+      ]
+      : displayMode === 'heatmap'
+        ? [heatmapMode === 'frequency'
+          ? { type: 'scale', colors: getDensityLegendColors('frequency'), from: 'Menos que la liga', to: 'Más que la liga' }
+          : { type: 'scale', colors: getDensityLegendColors('density'), from: 'Densidad baja', to: 'Alta' }]
+        : zoneMode === 'efficiency'
+          ? [
+            { type: 'swatch', color: '#2aa867', opacity: 0.6, label: 'Mejor que la media' },
+            { type: 'swatch', color: '#dd415d', opacity: 0.6, label: 'Peor que la media' },
+            { type: 'swatch', color: '#94a3b8', opacity: 0.3, label: 'Menos de 10 intentos' },
+          ]
+          : [
+            { type: 'swatch', color: relativeTurboColor(1, 0.9), label: 'Más frecuente que la liga' },
+            { type: 'swatch', color: relativeTurboColor(-1, 0.9), label: 'Menos frecuente' },
+          ]
+    const resultText = effectiveShotFilter === 'made' ? 'Solo anotados' : effectiveShotFilter === 'missed' ? 'Solo fallados' : null
+    const team = filterType === 'player' ? (selectedTeam || playerRecord?.team) : null
+    return {
+      chart: 'carta-tiro',
+      kicker: `Carta de tiro · Liga Endesa ${seasonText}`,
+      title: subjectName,
+      subtitle: [team, viewDescription, resultText].filter(Boolean).join(' · '),
+      stats: [
+        { label: 'Tiros', value: `${stats.made}/${stats.total}` },
+        { label: 'TC%', value: `${stats.fgPct}%` },
+        { label: 'eFG%', value: `${stats.efg}%` },
+        { label: '3P%', value: `${stats.threePct}%` },
+        { label: 'PPT', value: stats.pps },
+      ],
+      panels: [{ layers: [...(courtStageRef.current?.querySelectorAll('svg[role="img"]') || [])] }],
+      legend,
+      note: displayMode === 'shots' ? null : 'Comparado con la media de la liga',
+    }
+  }
+
   return (
     <ShotToolShell
       activeTool="charts"
@@ -488,18 +534,21 @@ export default function ShotCharts({ loadShotsForSeason, shotsCache, loadingShot
                   <p className={shotToolStyles.panelContext}>{viewDescription}</p>
                 </div>
               </div>
-              <div className={shotToolStyles.markerLegend}>
-                {displayMode === 'shots' && (
-                  <>
-                    <span><Circle className="h-3 w-3 fill-positive text-positive" aria-hidden="true" /> Anotado</span>
-                    <span><X className="h-3 w-3 text-negative" aria-hidden="true" /> Fallado</span>
-                  </>
-                )}
-                {displayMode !== 'shots' && <span>{filteredShots.length} tiros representados</span>}
+              <div className={shotToolStyles.panelTools}>
+                <div className={shotToolStyles.markerLegend}>
+                  {displayMode === 'shots' && (
+                    <>
+                      <span><Circle className="h-3 w-3 fill-positive text-positive" aria-hidden="true" /> Anotado</span>
+                      <span><X className="h-3 w-3 text-negative" aria-hidden="true" /> Fallado</span>
+                    </>
+                  )}
+                  {displayMode !== 'shots' && <span>{filteredShots.length} tiros representados</span>}
+                </div>
+                {filteredShots.length > 0 && <ChartImageButton getImage={getShotChartImage} />}
               </div>
             </header>
 
-            <div className={shotToolStyles.courtStage}>
+            <div ref={courtStageRef} className={shotToolStyles.courtStage}>
               {displayMode === 'shots' && (
                 <div className={shotToolStyles.courtScroller} tabIndex="0" aria-label="Carta de tiro; desplázate horizontalmente para ver toda la cancha">
                   <div className={shotToolStyles.courtFrame}>

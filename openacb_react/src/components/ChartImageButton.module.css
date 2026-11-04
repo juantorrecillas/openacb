@@ -1,0 +1,59 @@
+/* Same look as the tool shells' secondary buttons. */
+.button {
+  display: inline-flex;
+  min-height: 36px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 7px 11px;
+  border: 1px solid #bcccdc;
+  border-radius: 4px;
+  background: #ffffff;
+  color: #486581;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  transition: color 150ms ease-out, border-color 150ms ease-out, background 150ms ease-out;
+}
+
+.button:hover {
+  border-color: #829ab1;
+  background: #f0f4f8;
+  color: #102a43;
+}
+
+.button:focus-visible {
+  outline: 2px solid #d04313;
+  outline-offset: 2px;
+}
+
+.button[aria-busy='true'] {
+  cursor: progress;
+}
+
+/* The image is ready and needs one more tap to open the share sheet. */
+.ready,
+.ready:hover {
+  border-color: #243b53;
+  background: #243b53;
+  color: #ffffff;
+}
+
+.spin {
+  animation: spin 900ms linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 767px) {
+  .button { min-height: 44px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button { transition: none; }
+  .spin { animation: none; }
+}

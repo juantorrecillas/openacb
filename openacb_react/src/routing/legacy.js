@@ -75,13 +75,21 @@ function resolveLegacyTeam(context, nameOrId, season, routeId) {
   return resolution.teamId
 }
 
+// Cached per input array: the app passes the same player index on every
+// navigation, and the build checks every profile URL against it.
+const distinctRecordsCache = new WeakMap()
+
 function distinctPlayerRecords(rows) {
+  const cached = distinctRecordsCache.get(rows)
+  if (cached) return cached
   const records = new Map()
   for (const row of rows) {
     const key = `${row.licenseId}|${row.season}|${row.teamId || row.team || ''}`
     if (!records.has(key)) records.set(key, row)
   }
-  return [...records.values()]
+  const distinct = [...records.values()]
+  if (rows && typeof rows === 'object') distinctRecordsCache.set(rows, distinct)
+  return distinct
 }
 
 function matchingPlayers(context, licenseId, season, teamHint) {

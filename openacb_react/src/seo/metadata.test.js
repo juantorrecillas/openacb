@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, expect, test } from 'vitest'
 import { ROUTE_MANIFEST } from '../routing/manifest.js'
-import { getPageMetadata, SITE_SCHEMA, updatePageMetadata } from './metadata.js'
+import { getPageMetadata, readDocumentMetadata, SITE_IMAGE, SITE_SCHEMA, updatePageMetadata } from './metadata.js'
 
 afterEach(() => { document.head.innerHTML = '' })
 
@@ -34,6 +34,19 @@ test('navigation keeps one description and canonical, including when returning h
     expect(document.head.querySelector('meta[name="twitter:description"]').content).toBe(metadata.description)
   }
   expect(JSON.parse(document.getElementById('site-schema').textContent)).toEqual(SITE_SCHEMA)
+})
+
+test('link previews use the large card with its size', () => {
+  updatePageMetadata(getPageMetadata('/tiro/cartas'))
+  const meta = (attribute, key) => document.head.querySelector(`meta[${attribute}="${key}"]`)?.content
+  expect(meta('name', 'twitter:card')).toBe('summary_large_image')
+  expect(meta('property', 'og:image')).toBe(SITE_IMAGE)
+  expect(meta('property', 'og:image:width')).toBe('1200')
+  expect(meta('property', 'og:image:height')).toBe('630')
+
+  // A prerendered page's own image survives a round trip through the document.
+  updatePageMetadata({ ...getPageMetadata('/jugadores/perfil/facu-campazzo'), image: 'https://openacb.com/og/jugadores/facu-campazzo.png?v=1' })
+  expect(readDocumentMetadata().image).toBe('https://openacb.com/og/jugadores/facu-campazzo.png?v=1')
 })
 
 test('entity URLs keep their path while tool filters share the primary tool URL', () => {

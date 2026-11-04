@@ -6,6 +6,8 @@ import { AlertTriangle, Info, X, Search, ChevronDown, ChevronUp } from 'lucide-r
 import LineupToolShell, { lineupToolStyles as styles } from '../components/LineupToolShell'
 import MobileNameRow from '../components/MobileNameRow'
 import SortLabel from '../components/SortLabel'
+import ChartImageButton from '../components/ChartImageButton'
+import { buildOnOffPanel } from '../utils/onOffImage'
 import { normalizeNumericId } from '../routing/identifiers'
 import { buildLineupAnalysisPath } from '../routing/paths'
 import { parseRouteQuery, serializeRouteQuery, withQuery } from '../routing/query'
@@ -260,6 +262,25 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
     () => sortedPlayersData.filter(player => (player.onMin ?? 0) >= minOnOffMinutes),
     [sortedPlayersData, minOnOffMinutes]
   )
+
+  // Image export of the team summary: the same players as the table.
+  const getOnOffImage = () => ({
+    chart: 'on-off',
+    kicker: `Análisis On/Off · Liga Endesa ${selectedSeason - 1}-${String(selectedSeason).slice(-2)}`,
+    title: selectedTeam,
+    subtitle: 'Rating neto del equipo con cada jugador en pista menos el rating sin él',
+    panels: [buildOnOffPanel(rankedPlayersData)],
+    legend: [
+      { type: 'swatch', color: '#2aa867', label: 'El equipo rinde mejor con él' },
+      { type: 'swatch', color: '#dd415d', label: 'Rinde peor con él' },
+      { type: 'swatch', color: '#9fb3c8', label: 'Diferencia de ±2 o menos' },
+    ],
+    note: [
+      'Puntos por 100 posesiones',
+      minOnOffMinutes > 0 ? `mínimo ${minOnOffMinutes} minutos en pista` : null,
+      rankedPlayersData.length > 16 ? 'los 16 jugadores con más impacto' : null,
+    ].filter(Boolean).join(' · '),
+  })
 
   // Filter players by search query (search by display name, not key)
   const filteredPlayers = useMemo(() => {
@@ -960,15 +981,18 @@ export default function LineupAnalysis({ teams, loadLineupsForSeason, lineupsCac
               <h2 id="team-on-off-title">Resumen On/Off del equipo</h2>
               {minOnOffMinutes > 0 && <p>Ranking con un mínimo de {minOnOffMinutes} minutos en pista.</p>}
             </div>
-            {minOnOffMinutes > 0 && (
-              <button
-                onClick={() => setShowAllPlayers(!showAllPlayers)}
-                className={styles.secondaryButton}
-              >
-                {showAllPlayers ? 'Mostrar menos' : 'Mostrar todos'}
-                {showAllPlayers ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-              </button>
-            )}
+            <div className="flex flex-wrap items-center gap-2">
+              {rankedPlayersData.length > 0 && <ChartImageButton getImage={getOnOffImage} />}
+              {minOnOffMinutes > 0 && (
+                <button
+                  onClick={() => setShowAllPlayers(!showAllPlayers)}
+                  className={styles.secondaryButton}
+                >
+                  {showAllPlayers ? 'Mostrar menos' : 'Mostrar todos'}
+                  {showAllPlayers ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </button>
+              )}
+            </div>
           </div>
 
           <div className={`${styles.tableFrame} mobile-name-frame`} tabIndex={0} aria-label="Impacto On/Off de la plantilla">

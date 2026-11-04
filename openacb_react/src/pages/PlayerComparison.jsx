@@ -7,6 +7,7 @@ import { getPlayerDisplayName, getPlayerSearchText } from '../utils/playerNames'
 import PlayerToolShell, { playerToolStyles } from '../components/PlayerToolShell'
 import MobileNameRow from '../components/MobileNameRow'
 import PlayerCombobox from '../components/PlayerCombobox'
+import ChartImageButton from '../components/ChartImageButton'
 import { buildPlayerComparisonPath, buildPlayerProfilePath } from '../routing/paths'
 import { normalizeNumericId, parsePlayerSegment } from '../routing/identifiers'
 import { readRouteQuery, serializeRouteQuery, withQuery } from '../routing/query'
@@ -219,13 +220,33 @@ function RadarOverlay({ playerA, playerB, reference, onReferenceChange }) {
     return 'middle'
   }
 
+  const radarRef = useRef(null)
+  const nameA = getPlayerDisplayName(playerA)
+  const nameB = getPlayerDisplayName(playerB)
+  const getComparisonImage = () => ({
+    chart: 'comparacion',
+    kicker: 'Comparación de jugadores · Radar de percentiles',
+    title: `${nameA} vs ${nameB}`,
+    subtitle: `Percentiles frente a ${usePos ? 'su posición' : 'la liga'}`,
+    panels: [{ layers: [radarRef.current], maxHeight: 760 }],
+    legend: [playerA, playerB].map((player, index) => ({
+      type: 'dot',
+      color: index === 0 ? '#f0845e' : '#3b82f6',
+      opacity: 1,
+      label: `${getPlayerDisplayName(player)} (${player.team}, ${seasonLabel(player.season)}): ${fmt(player.ppg, 'ppg')} PPP, ${fmt(player.ts, 'ts')} TS`,
+    })),
+    note: 'Percentiles de 0 a 100',
+  })
+
   return (
     <div className={`${playerToolStyles.evidenceCard} ${playerToolStyles.evidenceCardPadded}`}>
-      <div className="flex items-start justify-between gap-3 mb-2">
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-2">
         <div>
           <h3 className="font-semibold text-acb-900">Radar de percentiles</h3>
           <p className="text-xs text-acb-500">Comparación visual del perfil estadístico</p>
         </div>
+        <div className="flex flex-wrap items-center gap-2">
+        <ChartImageButton getImage={getComparisonImage} />
         {canUsePos && (
           <div className="segmented-control text-xs shrink-0" role="group" aria-label="Referencia del radar">
             <button
@@ -246,8 +267,9 @@ function RadarOverlay({ playerA, playerB, reference, onReferenceChange }) {
             </button>
           </div>
         )}
+        </div>
       </div>
-      <svg viewBox={`0 0 ${size} ${size}`} className="w-full max-w-[360px] mx-auto" overflow="visible">
+      <svg ref={radarRef} viewBox={`0 0 ${size} ${size}`} className="w-full max-w-[360px] mx-auto" overflow="visible">
         {levels.map(level => (
           <path
             key={level}

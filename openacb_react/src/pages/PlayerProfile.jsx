@@ -1,8 +1,9 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { useLocation, useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { Loader2, GitCompareArrows, Flame, Download, ArrowRight } from 'lucide-react'
 import PlayerToolShell, { playerToolStyles } from '../components/PlayerToolShell'
 import PlayerCombobox from '../components/PlayerCombobox'
+import ChartImageButton from '../components/ChartImageButton'
 import MobileNameRow from '../components/MobileNameRow'
 import { getPlayerPhoto } from '../utils/playerPhotos'
 import { downloadTableAsCsv } from '../utils/csvDownload'
@@ -671,29 +672,56 @@ function RadarChart({ player, usePos }) {
 function RadarArchetypeCard({ player, bio, reference = 'league', onReferenceChange }) {
   const archetype = classifyArchetype(getScopedArchetypePlayer(player), bio)
   const usePos = reference === 'position'
+  const radarRef = useRef(null)
+  const hasRadar = getRadarValues(player, usePos).every(value => value != null)
+  const getRadarImage = () => {
+    const value = (number, suffix = '') => (Number.isFinite(number) ? `${number.toFixed(1)}${suffix}` : '-')
+    const referenceGroup = !usePos ? 'la liga' : player.position ? `los ${player.position.toLowerCase()}s` : 'su posición'
+    return {
+      chart: 'radar-jugador',
+      kicker: `Radar de rendimiento · Liga Endesa ${seasonLabel(player.season)}`,
+      title: getPlayerDisplayName(player),
+      subtitle: `${player.team} · Percentiles frente a ${referenceGroup} · ${archetype.name}`,
+      stats: [
+        { label: 'PJ', value: String(player.games ?? '-') },
+        { label: 'PTS', value: value(player.ppg) },
+        { label: 'REB', value: value(player.rpg) },
+        { label: 'AST', value: value(player.apg) },
+        { label: 'TS%', value: value(player.ts, '%') },
+        { label: 'PER', value: value(player.per) },
+      ],
+      panels: [{ layers: [radarRef.current?.querySelector('svg')], maxHeight: 760 }],
+      note: 'Percentiles de 0 a 100',
+    }
+  }
 
   return (
     <div className={`${playerToolStyles.evidenceCard} ${playerToolStyles.evidenceCardPadded}`}>
       <div className="flex flex-col md:flex-row md:items-start gap-6">
         {/* Radar */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-1">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
             <h3 className="font-semibold text-acb-900">Radar de Rendimiento</h3>
-            <div className="segmented-control" role="group" aria-label="Referencia del radar">
-              <button
-                onClick={() => onReferenceChange?.('league')}
-                aria-pressed={!usePos}
-                className="segmented-option"
-              >Liga</button>
-              <button
-                onClick={() => onReferenceChange?.('position')}
-                aria-pressed={usePos}
-                className="segmented-option"
-              >Posición</button>
+            <div className="flex flex-wrap items-center gap-2">
+              {hasRadar && <ChartImageButton getImage={getRadarImage} />}
+              <div className="segmented-control" role="group" aria-label="Referencia del radar">
+                <button
+                  onClick={() => onReferenceChange?.('league')}
+                  aria-pressed={!usePos}
+                  className="segmented-option"
+                >Liga</button>
+                <button
+                  onClick={() => onReferenceChange?.('position')}
+                  aria-pressed={usePos}
+                  className="segmented-option"
+                >Posición</button>
+              </div>
             </div>
           </div>
           <p className="text-xs text-acb-500 mb-3">{player.team} - {seasonLabel(player.season)} - Percentiles {usePos ? `(vs. ${player.position || 'posición'})` : '(vs. liga)'}</p>
-          <RadarChart player={player} usePos={usePos} />
+          <div ref={radarRef}>
+            <RadarChart player={player} usePos={usePos} />
+          </div>
         </div>
         {/* Archetype */}
         <div className={playerToolStyles.archetypePane}>

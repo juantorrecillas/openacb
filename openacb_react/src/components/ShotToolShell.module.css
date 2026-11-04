@@ -139,6 +139,14 @@
   line-height: 1.35;
 }
 
+.panelTools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px 18px;
+}
+
 .markerLegend {
   display: flex;
   flex-wrap: wrap;
@@ -379,6 +387,11 @@
 
   .markerLegend {
     width: 100%;
+  }
+
+  .panelTools {
+    width: 100%;
+    justify-content: flex-start;
   }
 
   .zoneList {

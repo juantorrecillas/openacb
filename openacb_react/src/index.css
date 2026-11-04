@@ -355,6 +355,172 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Prerendered player and team pages (scripts/build-seo.mjs). The static copy
+   reserves the header's height and uses the app's content width, so the page
+   does not jump when React mounts; the app keeps .prerender-content visible
+   while the tool's data loads. */
+.prerender {
+  min-height: 100vh;
+  background: #f0f4f8;
+}
+
+.prerender-bar {
+  height: 77px;
+  border-bottom: 1px solid #d9e2ec;
+  background: #fff;
+}
+
+.prerender-bar-inner {
+  display: flex;
+  max-width: 1280px;
+  height: 100%;
+  align-items: center;
+  margin: 0 auto;
+  padding: 0 32px;
+}
+
+.prerender-brand {
+  padding-left: 66px;
+  color: #102a43;
+  font-family: 'Manrope', 'Inter', sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+}
+
+.prerender-brand span { color: #fe5917; }
+
+.prerender-main {
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: 24px 16px;
+}
+
+.prerender-content {
+  max-width: 960px;
+  color: #334e68;
+  font-size: 0.9375rem;
+  line-height: 1.65;
+}
+
+.prerender-loading {
+  margin-bottom: 12px;
+  color: #627d98;
+  font-size: 0.8125rem;
+}
+
+.prerender-crumbs {
+  color: #627d98;
+  font-size: 0.8125rem;
+}
+
+.prerender-crumbs a,
+.prerender-content a {
+  color: #102a43;
+  text-decoration: underline;
+  text-decoration-color: #fe5917;
+  text-underline-offset: 3px;
+}
+
+.prerender-content h1 {
+  margin-top: 10px;
+  color: #102a43;
+  font-family: 'Manrope', 'Inter', sans-serif;
+  font-size: 2.25rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+
+.prerender-facts {
+  margin-top: 6px;
+  color: #486581;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.prerender-summary p {
+  max-width: 72ch;
+  margin-top: 12px;
+}
+
+.prerender-content h2 {
+  margin-top: 28px;
+  color: #102a43;
+  font-family: 'Manrope', 'Inter', sans-serif;
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.prerender-table {
+  margin-top: 10px;
+  overflow-x: auto;
+  border: 1px solid #d9e2ec;
+  background: #fff;
+}
+
+.prerender-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.75rem;
+  line-height: 1.125rem;
+}
+
+.prerender-table th {
+  padding: 8px 10px;
+  border-bottom: 1px solid #9fb3c8;
+  background: #d9e2ec;
+  color: #334e68;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.prerender-table td {
+  padding: 8px 10px;
+  border-top: 1px solid #f0f4f8;
+  color: #102a43;
+  white-space: nowrap;
+}
+
+.prerender-table .num {
+  font-family: 'JetBrains Mono', Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.prerender-list {
+  margin-top: 8px;
+  padding-left: 1.1rem;
+  list-style: disc;
+}
+
+.prerender-list li + li { margin-top: 4px; }
+
+@media (min-width: 640px) {
+  .prerender-main { padding: 24px; }
+}
+
+@media (min-width: 1024px) {
+  .prerender-main { padding: 24px 32px; }
+}
+
+@media (max-width: 1023px) {
+  .prerender-bar { height: 69px; }
+  .prerender-bar-inner { padding: 0 24px; }
+  .prerender-brand { padding-left: 60px; }
+}
+
+@media (max-width: 479px) {
+  .prerender-bar { height: 65px; }
+  .prerender-bar-inner { padding: 0 16px; }
+  .prerender-brand { padding-left: 56px; }
+  .prerender-content h1 { font-size: 1.875rem; }
+}
+
 .pageHeader {
   align-items: flex-start;
   gap: 12px 32px;

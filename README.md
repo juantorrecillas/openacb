@@ -283,20 +283,34 @@ Aplicación web interactiva con 13 páginas organizadas en 5 secciones:
 
 ## SEO y apariencia en buscadores
 
-El frontend define los títulos y descripciones en
+El frontend define los títulos y descripciones de las herramientas en
 `openacb_react/src/routing/manifest.js`. Al ejecutar `npm run build` desde
-`openacb_react`, el paso `postbuild` genera HTML con metadatos específicos para
-las 18 páginas principales, además de `robots.txt` y `sitemap.xml`. Vercel sirve
-esos archivos con URLs sin extensión; los enlaces a jugadores, equipos y URLs
-antiguas siguen entrando por el shell de React (`app.html`), que no lleva una
-canónica de portada. React actualiza los metadatos al navegar y marca las páginas
-inexistentes como `noindex`.
+`openacb_react`, el paso `postbuild` (`scripts/build-seo.mjs`) genera:
+
+- Un HTML con metadatos propios para cada una de las 18 páginas principales.
+- Un HTML por jugador (`/jugadores/perfil/{slug}`, unos 1.400) y, para los equipos
+  de la temporada en curso, su perfil, su análisis On/Off y su carta de tiro. Cada
+  uno lleva título, descripción con sus números clave, canónica, migas de pan en
+  JSON-LD y un resumen legible (texto y tablas) que la app mantiene en pantalla
+  mientras cargan los datos. Los textos salen de `src/seo/entities.js`.
+- Imágenes de vista previa de 1200×630 (`/og/...`, con `summary_large_image`):
+  una por equipo actual, una por jugador de las tres últimas temporadas
+  (`OG_IMAGE_SEASONS`) y una genérica para el resto. Se dibujan con `satori` y
+  `@resvg/resvg-js` (`scripts/og-image.mjs`); si el renderizador falla, el build
+  sigue y las páginas usan el logo.
+- `robots.txt` y `sitemap.xml` con todas esas URLs.
+
+Los slugs de jugador salen de la misma función que usa la app
+(`src/utils/profileSlugs.js`), y el script comprueba cada ruta con el resolvedor de
+URLs de la app: una ruta que la app redirigiría no se genera. Los equipos que ya no
+están en la liga no tienen página propia, porque sin `?temporada=` la herramienta
+abre la temporada actual. El resto de enlaces y las URLs antiguas siguen entrando
+por el shell de React (`app.html`), que no lleva una canónica de portada.
 
 Las URLs canónicas omiten los filtros de la interfaz (incluida la temporada) para
-concentrar la indexación en cada herramienta. Los perfiles de entidades conservan
-su ruta propia. El sitemap incluye las páginas principales; no enumera perfiles
-individuales ni combinaciones de filtros. Los gráficos y tablas siguen necesitando
-JavaScript: este paso genera metadatos estáticos, no prerenderiza el contenido.
+concentrar la indexación en cada herramienta. En una página pre-generada, React
+conserva los metadatos del servidor; al navegar a otras páginas los actualiza y
+marca las inexistentes como `noindex`.
 
 Después de desplegar, comprobar que `/robots.txt` devuelve texto y `/sitemap.xml`
 devuelve XML. En [Google Search Console](https://search.google.com/search-console),
@@ -305,6 +319,48 @@ inspeccionar la portada y las páginas principales con la prueba de URL publicad
 Comprobar el HTML renderizado y solicitar su indexación. Google decide el texto
 del resultado y necesita volver a rastrear las páginas para reflejar cambios;
 las descripciones no garantizan un snippet concreto ni una posición determinada.
+Para revisar cómo se ve un enlace al compartirlo, usar el
+[Sharing Debugger de Facebook](https://developers.facebook.com/tools/debug/)
+(también refresca la caché de WhatsApp) o pegar el enlace en un mensaje privado.
+
+## Imágenes para compartir
+
+La carta de tiro, el radar de equipo, el radar del perfil de jugador, la
+comparación de jugadores y el resumen On/Off del equipo tienen un botón de imagen
+(`src/components/ChartImageButton.jsx`). Genera un PNG de 1200 px de ancho (a
+doble resolución) con el título, las cifras clave, la leyenda y un pie con
+`openacb.com`, igual desde el móvil que desde el escritorio
+(`src/utils/chartImage.js`). En móviles que permiten compartir archivos abre el
+menú de compartir del sistema; en el resto, lo descarga. El On/Off se exporta como
+un gráfico de barras con la columna Impacto de la tabla
+(`src/utils/onOffImage.js`). Las fotos y escudos de acb.com no se incluyen: su
+servidor no permite usarlos en un canvas.
+
+## Analítica
+
+Vercel Web Analytics (`<Analytics />`) cuenta visitas, páginas, referentes,
+países y dispositivos. Sus eventos personalizados solo existen en el plan Pro, así
+que los eventos se envían a [Umami](https://umami.is) si se configura:
+
+1. Crear una cuenta en Umami Cloud (el plan gratuito permite 100.000 eventos al
+   mes) y añadir el sitio `openacb.com`.
+2. En Vercel, añadir la variable de entorno `VITE_UMAMI_WEBSITE_ID` con el ID del
+   sitio y volver a desplegar.
+
+Sin esa variable no se carga nada. Con ella, `vite.config.js` añade el script de
+Umami, que solo informa desde `openacb.com` (ni local ni previsualizaciones;
+se puede cambiar con `VITE_UMAMI_DOMAINS`). La app registra una visita por ruta
+(los cambios de filtros no cuentan como visitas nuevas) y estos eventos
+(`src/utils/analytics.js`):
+
+| Evento        | Datos                                    | Cuándo                              |
+| ------------- | ---------------------------------------- | ----------------------------------- |
+| `herramienta` | `id` de la ruta (`playerProfile`...)     | Al abrir otra herramienta           |
+| `imagen`      | `grafico` y `accion` (`descarga`, `compartir`) | Al descargar o compartir una imagen |
+
+El origen del tráfico sale del referente y de los parámetros `utm_*` de la
+primera visita. Los enlaces que se abren desde WhatsApp suelen llegar sin
+referente y cuentan como tráfico directo, salvo que lleven `utm_source`.
 
 ## Archivos de Datos Generados
 

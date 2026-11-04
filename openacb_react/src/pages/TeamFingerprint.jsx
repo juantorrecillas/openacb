@@ -10,6 +10,7 @@ import { createTeamIdentityIndexFromRows, resolveTeamId } from '../routing/teamI
 import profileStyles from './TeamFingerprint.module.css'
 import { offensiveAxes, defensiveAxes, getTeamRadarAxes } from '../utils/teamRadar'
 import TeamRadar from '../components/TeamRadar'
+import ChartImageButton from '../components/ChartImageButton'
 
 
 // ─── Axis Definitions ─────────────────────────────────────────
@@ -819,6 +820,34 @@ export default function TeamFingerprint({
     return { team, offZScores, defZScores, offValues, defValues, strengths, weaknesses, narrative }
   }, [selectedTeam, seasonTeams, leagueStats, teams, reference])
 
+  const radarSpreadRef = useRef(null)
+  const referenceText = reference === 'season'
+    ? `Percentiles frente a los ${seasonTeams.length} equipos de la temporada`
+    : `Percentiles frente a ${teams.length} equipos-temporada (${seasonLabel(availableSeasons.at(-1))} a ${seasonLabel(availableSeasons[0])})`
+  const getRadarImage = () => {
+    const [offense, defense] = radarSpreadRef.current?.querySelectorAll('svg[role="img"]') || []
+    const team = teamData.team
+    return {
+      chart: 'radar-equipo',
+      kicker: `Huella estadística · Liga Endesa ${seasonLabel(selectedSeason)}`,
+      title: selectedTeam,
+      subtitle: referenceText,
+      stats: [
+        team.wins != null ? { label: 'Balance', value: `${team.wins}-${team.losses}` } : null,
+        { label: 'Neto', value: formatSignedMetric(team.netRtg) },
+        { label: 'Ataque', value: team.ortg?.toFixed(1) ?? '-' },
+        { label: 'Defensa', value: team.drtg?.toFixed(1) ?? '-' },
+        { label: 'Ritmo', value: team.pace?.toFixed(1) ?? '-' },
+      ].filter(Boolean),
+      panels: [
+        { title: 'Perfil ofensivo', layers: [offense] },
+        { title: 'Perfil defensivo', layers: [defense] },
+      ],
+      legend: [{ type: 'line', color: '#829ab1', dashed: true, label: 'Percentil 50' }],
+      note: '100 = mejor de la referencia; las métricas en las que menos es mejor están invertidas',
+    }
+  }
+
   useEffect(() => {
     const header = teamHeaderRef.current
     if (!header || !selectedTeam) {
@@ -1024,13 +1053,16 @@ export default function TeamFingerprint({
                 <h2 id="radar-title" className={profileStyles.sectionTitle}>Huella estadística</h2>
                 <p className={profileStyles.sectionSubtitle}>Percentiles · {reference === 'season' ? seasonLabel(selectedSeason) : `${seasonLabel(availableSeasons.at(-1))} a ${seasonLabel(availableSeasons[0])}`} · {reference === 'season' ? `${seasonTeams.length} equipos` : `${teams.length} equipos-temporada`}</p>
               </div>
-              <div className="segmented-control" role="group" aria-label="Referencia de los percentiles de equipo">
-                <button className="segmented-option" aria-pressed={reference === 'season'} onClick={() => updateUrlState({ reference: 'season' })}>Temporada</button>
-                <button className="segmented-option" aria-pressed={reference === 'historical'} onClick={() => updateUrlState({ reference: 'historical' })}>Histórico</button>
+              <div className={profileStyles.headerTools}>
+                <div className="segmented-control" role="group" aria-label="Referencia de los percentiles de equipo">
+                  <button className="segmented-option" aria-pressed={reference === 'season'} onClick={() => updateUrlState({ reference: 'season' })}>Temporada</button>
+                  <button className="segmented-option" aria-pressed={reference === 'historical'} onClick={() => updateUrlState({ reference: 'historical' })}>Histórico</button>
+                </div>
+                <ChartImageButton getImage={getRadarImage} />
               </div>
             </header>
 
-            <div className={profileStyles.radarSpread}>
+            <div ref={radarSpreadRef} className={profileStyles.radarSpread}>
               <RadarChart
                 axes={offensiveAxes}
                 values={teamData.offValues}

@@ -423,6 +423,13 @@
   background: #e7edf3;
 }
 
+.headerTools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
 .sectionSubtitle {
   max-width: 58ch;
   margin-top: 5px;
