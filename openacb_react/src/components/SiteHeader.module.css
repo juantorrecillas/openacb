@@ -4,7 +4,7 @@
 .header ::selection { background: #fde6d5; color: #102a43; }
 .bar { max-width: 1280px; height: 76px; padding: 0 32px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 32px; }
 .brand { display: inline-flex; min-height: 44px; align-items: center; gap: 10px; flex-shrink: 0; }
-.brand img { width: 56px; height: 56px; object-fit: contain; }
+.brand img { width: 50px; height: auto; }
 .wordmark { color: #102a43; font-family: 'Manrope', 'Inter', sans-serif; font-size: 24px; font-weight: 700; line-height: 1; letter-spacing: -.035em; }
 .wordmarkAccent { color: #fe5917; }
 .desktopNav { display: flex; align-self: stretch; align-items: stretch; gap: 4px; }
@@ -31,7 +31,7 @@
 @media (max-width: 1023px) {
   .bar { height: 68px; padding: 0 24px; }
   .desktopNav { display: none; }
-  .brand img { width: 50px; height: 50px; }
+  .brand img { width: 46px; }
   .wordmark { font-size: 23px; }
   .menuToggle { display: inline-flex; min-width: 78px; min-height: 44px; align-items: center; justify-content: center; gap: 10px; padding: 0 11px; border: 1px solid #d9e2ec; border-radius: 4px; background: #fff; color: #334e68; font-size: 14px; font-weight: 500; transition: color 160ms ease-out, background-color 160ms ease-out; }
   .menuToggle:hover, .menuToggle[aria-expanded='true'] { background: #f0f4f8; color: #102a43; }
@@ -52,7 +52,7 @@
 @media (max-width: 479px) {
   .bar { height: 64px; padding: 0 16px; gap: 16px; }
   .brand { gap: 8px; }
-  .brand img { width: 46px; height: 46px; }
+  .brand img { width: 42px; }
   .wordmark { font-size: 22px; }
   .menuToggle { min-width: 74px; }
   .mobileNav { max-height: calc(100dvh - 64px); }

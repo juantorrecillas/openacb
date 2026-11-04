@@ -48,7 +48,7 @@ export default function SiteHeader({ items, paths, activeTab, activeGroupId }) {
     }}>
       <div className={styles.bar}>
         <Link to="/" className={styles.brand} aria-label="openACB, inicio" onClick={() => { setMenuOpen(false); setOpenGroup(null) }}>
-          <img src="/logo-160.png" alt="" width="56" height="56" />
+          <img src="/logo.svg" alt="" width="88" height="64" />
           <span className={styles.wordmark}>open<span className={styles.wordmarkAccent}>ACB</span></span>
         </Link>
         <nav className={styles.desktopNav} aria-label="Navegación principal">

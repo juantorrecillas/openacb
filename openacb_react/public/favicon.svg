@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- The logo's faceted ball alone, for 16-32 px: no speed bars, no tilt, and a
+       bigger ball with wider seams so the facets stay apart at 16 px. -->
+  <defs>
+    <mask id="seams">
+      <circle r="30" fill="#fff"/>
+      <path d="M0-32V32M-32 0H32M-21.23-21.23A30 30 0 0 1-21.23 21.23M21.23-21.23A30 30 0 0 0 21.23 21.23" fill="none" stroke="#000" stroke-width="6"/>
+    </mask>
+  </defs>
+  <g transform="translate(32 32)">
+    <g mask="url(#seams)">
+      <rect x="-32" y="-32" width="32" height="32" fill="#ff9a4d"/>
+      <rect y="-32" width="32" height="32" fill="#fe5917"/>
+      <rect x="-32" width="32" height="32" fill="#fe5917"/>
+      <rect width="32" height="32" fill="#d04313"/>
+    </g>
+  </g>
+</svg>

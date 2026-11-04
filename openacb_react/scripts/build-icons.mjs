@@ -1,58 +1,40 @@
 import { readFileSync, writeFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { Resvg } from '@resvg/resvg-js'
 
-// Builds the header logo and the favicons from public/openacb_nobckg.png
-// (1024x1024, 1.4 MB), which is too heavy to serve. Run it by hand after
-// changing the logo: node scripts/build-icons.mjs
-//
-// Each image is halved step by step (1024 -> 512 -> 256 ...) before the final
-// size: a single big jump leaves jagged edges and broken text.
-// The favicons use only the ball and braces, without the "openACB" text that
-// cannot be read at 16-32 px, so the mark fills the square.
+// Builds the PNG favicons from public/favicon.svg, and the square logo
+// (public/openacb.png) from public/logo.svg. Run it by hand after changing
+// either: node scripts/build-icons.mjs
+// The header uses public/logo.svg directly, so it needs no PNG.
+// The ball has no navy in it, so one set of PNGs works in light and dark tabs.
 
-const SOURCE_SIZE = 1024
-// Ball and braces in the source image (the text starts at y = 626).
-const MARK = { x: 228, y: 209, width: 580, height: 361 }
+const favicon = readFileSync(new URL('../public/favicon.svg', import.meta.url), 'utf8')
+const logo = readFileSync(new URL('../public/logo.svg', import.meta.url), 'utf8')
+const font = { fontFiles: [fileURLToPath(new URL('../public/fonts/manrope/manrope-700.ttf', import.meta.url))], loadSystemFonts: false, defaultFontFamily: 'Manrope' }
+const render = (svg, size) => new Resvg(svg, { fitTo: { mode: 'width', value: size }, font }).render().asPng()
 
-const source = readFileSync(new URL('../public/openacb_nobckg.png', import.meta.url))
-const dataUrl = png => `data:image/png;base64,${png.toString('base64')}`
-const render = (svg, width) => new Resvg(svg, { fitTo: { mode: 'width', value: width }, font: { loadSystemFonts: false } }).render().asPng()
-const svgOf = (size, body) => `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">${body}</svg>`
+// iOS fills transparent pixels with black, so the home-screen icon gets a
+// navy tile, with the ball shrunk to leave a margin around it.
+const homeScreen = favicon.replace(/(<svg[^>]*>)([\s\S]*)<\/svg>/,
+  '$1<rect width="64" height="64" fill="#102a43"/><g transform="translate(9 9) scale(.72)">$2</g></svg>')
 
-function shrink(png, from, to) {
-  let current = from
-  let image = png
-  while (current / 2 >= to) {
-    image = render(svgOf(current, `<image width="${current}" height="${current}" xlink:href="${dataUrl(image)}"/>`), current / 2)
-    current /= 2
-  }
-  return current === to ? image : render(svgOf(current, `<image width="${current}" height="${current}" xlink:href="${dataUrl(image)}"/>`), to)
-}
+// Mark over the wordmark, on the share cards' paper colour. build-seo.mjs
+// uses it as the link-preview image if the preview cards fail to render.
+const square = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <rect width="1024" height="1024" fill="#fffaf5"/>
+  ${logo.replace(/<svg[^>]*>/, '<svg x="232" y="220" width="560" height="407" viewBox="0 0 88 64">')}
+  <text x="512" y="801" text-anchor="middle" font-family="Manrope" font-weight="700" font-size="164" letter-spacing="-5.74" fill="#102a43">open<tspan fill="#fe5917">ACB</tspan></text>
+</svg>`
 
-// The mark centred on a transparent square, with a small margin, at 1024 px.
-function markSquare() {
-  const side = Math.round(MARK.width * 1.08)
-  const scale = SOURCE_SIZE / side
-  const offsetX = side / 2 - (MARK.x + MARK.width / 2)
-  const offsetY = side / 2 - (MARK.y + MARK.height / 2)
-  const clip = `<clipPath id="mark"><rect x="${MARK.x - 4}" y="${MARK.y - 4}" width="${MARK.width + 8}" height="${MARK.height + 8}"/></clipPath>`
-  const body = `<defs>${clip}</defs><g transform="scale(${scale}) translate(${offsetX} ${offsetY})">`
-    + `<image width="${SOURCE_SIZE}" height="${SOURCE_SIZE}" clip-path="url(#mark)" xlink:href="${dataUrl(source)}"/></g>`
-  return render(svgOf(SOURCE_SIZE, body), SOURCE_SIZE)
-}
-
-const mark = markSquare()
 const outputs = [
-  // Header: the full logo, shown at 56 CSS px (up to ~3x screens).
-  ['logo-160.png', source, 160],
-  // iOS home screen: the full logo, as before.
-  ['apple-touch-icon.png', source, 180],
-  ['favicon-96.png', mark, 96],
-  ['favicon-32.png', mark, 32],
-  ['favicon-16.png', mark, 16],
+  ['openacb.png', square, 1024],
+  ['apple-touch-icon.png', homeScreen, 180],
+  ['favicon-96.png', favicon, 96],
+  ['favicon-32.png', favicon, 32],
+  ['favicon-16.png', favicon, 16],
 ]
-for (const [name, image, size] of outputs) {
-  const png = shrink(image, SOURCE_SIZE, size)
+for (const [name, svg, size] of outputs) {
+  const png = render(svg, size)
   writeFileSync(new URL(`../public/${name}`, import.meta.url), png)
   console.log(`${name}: ${size} px, ${(png.length / 1024).toFixed(1)} KB`)
 }

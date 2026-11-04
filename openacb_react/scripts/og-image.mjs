@@ -42,9 +42,14 @@ function titleSize(title) {
   return 52
 }
 
+// The header logo, embedded so the card needs no network fetch.
+const LOGO = `data:image/svg+xml;base64,${readFileSync(new URL('../public/logo.svg', import.meta.url)).toString('base64')}`
+
 function footer() {
   return box({ height: 92, background: INK, alignItems: 'center', justifyContent: 'space-between', padding: '0 72px' },
-    box({ fontFamily: 'Manrope', fontWeight: 700, fontSize: 38, color: '#ffffff', letterSpacing: -1 }, 'open', box({ color: ORANGE }, 'ACB')),
+    box({ alignItems: 'center' },
+      { type: 'img', props: { src: LOGO, width: 77, height: 56, style: { marginRight: 16 } } },
+      box({ fontFamily: 'Manrope', fontWeight: 700, fontSize: 38, color: '#ffffff', letterSpacing: -1 }, 'open', box({ color: ORANGE }, 'ACB'))),
     box({ fontFamily: 'Inter', fontWeight: 500, fontSize: 26, color: '#bcccdc' }, 'openacb.com'))
 }
 

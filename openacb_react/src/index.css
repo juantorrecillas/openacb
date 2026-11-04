@@ -380,7 +380,7 @@ body {
 }
 
 .prerender-brand {
-  padding-left: 66px;
+  padding-left: 60px;
   color: #102a43;
   font-family: 'Manrope', 'Inter', sans-serif;
   font-size: 24px;
@@ -511,13 +511,13 @@ body {
 @media (max-width: 1023px) {
   .prerender-bar { height: 69px; }
   .prerender-bar-inner { padding: 0 24px; }
-  .prerender-brand { padding-left: 60px; }
+  .prerender-brand { padding-left: 56px; }
 }
 
 @media (max-width: 479px) {
   .prerender-bar { height: 65px; }
   .prerender-bar-inner { padding: 0 16px; }
-  .prerender-brand { padding-left: 56px; }
+  .prerender-brand { padding-left: 50px; }
   .prerender-content h1 { font-size: 1.875rem; }
 }
 
