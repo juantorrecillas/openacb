@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Search, Filter, Download } from 'lucide-react'
 import { downloadTableAsCsv } from '../utils/csvDownload'
-import { statTitle } from '../utils/statLabels'
+import { HOLLINGER_PER_TITLE, statTitle } from '../utils/statLabels'
 import { getPlayerDisplayName, getPlayerSearchText } from '../utils/playerNames'
 import PlayerToolShell, { playerToolStyles } from '../components/PlayerToolShell'
 import MobileNameRow from '../components/MobileNameRow'
@@ -81,7 +81,7 @@ const impactColumns = [
   positionCol,
   { key: 'games', label: 'PJ', align: 'right', sortable: true },
   { key: 'mpg', label: 'MPP', align: 'right', sortable: true },
-  { key: 'per', label: 'PER-H', align: 'right', sortable: true, highlight: true, pctKey: 'perPct', posPctKey: 'perPosPct' },
+  { key: 'per', label: 'PER', title: HOLLINGER_PER_TITLE, align: 'right', sortable: true, highlight: true, pctKey: 'perPct', posPctKey: 'perPosPct' },
   { key: 'gmsc', label: 'GmSc', align: 'right', sortable: true, pctKey: 'gmscPct', posPctKey: 'gmscPosPct' },
   { key: 'ows', label: 'OWS', align: 'right', sortable: true },
   { key: 'dws', label: 'DWS', align: 'right', sortable: true },
@@ -711,7 +711,7 @@ export default function PlayerStats({ players, playerBio = {} }) {
 
       {viewMode === 'impact' && (
         <div className="text-sm text-acb-500 bg-acb-50 border border-acb-200 rounded-md px-4 py-2">
-          PER-H, GmSc y Win Shares salen del box score de la fase elegida. El impacto se estima con las alineaciones de toda la temporada, playoffs incluidos, por lo que no aparece en la vista de playoffs.
+          PER, GmSc y Win Shares salen del box score de la fase elegida. El impacto se estima con las alineaciones de toda la temporada, playoffs incluidos, por lo que no aparece en la vista de playoffs.
         </div>
       )}
 

@@ -10,7 +10,14 @@ import {
   formatPlayerProfileTableValue,
   playerProfileAdvancedStatColumns,
   playerProfileBasicStatColumns,
+  playerProfileImpactStatColumns,
 } from '../utils/playerProfileTableColumns'
+
+const ROSTER_TABS = [
+  { key: 'basic', label: 'Básico', columns: playerProfileBasicStatColumns },
+  { key: 'advanced', label: 'Avanzado', columns: playerProfileAdvancedStatColumns },
+  { key: 'impact', label: 'Impacto', columns: playerProfileImpactStatColumns },
+]
 
 const positionOrder = new Map([
   'Base',
@@ -44,9 +51,7 @@ function archetypeTextClass(colorClasses) {
 export default function TeamRosterTable({ players = [], playerBio = {}, className = '' }) {
   const navigate = useNavigate()
   const [tab, setTab] = useState('basic')
-  const columns = tab === 'basic'
-    ? playerProfileBasicStatColumns
-    : playerProfileAdvancedStatColumns
+  const columns = (ROSTER_TABS.find(option => option.key === tab) || ROSTER_TABS[0]).columns
 
   const roster = useMemo(() => {
     return players
@@ -75,26 +80,19 @@ export default function TeamRosterTable({ players = [], playerBio = {}, classNam
           <h3 id="team-roster-title" className="font-semibold text-acb-900">Plantilla</h3>
         </div>
         <div className="ml-auto flex items-center gap-1 rounded-md bg-acb-100 p-0.5" aria-label="Tipo de estadísticas de la plantilla">
-          <button
-            type="button"
-            onClick={() => setTab('basic')}
-            aria-pressed={tab === 'basic'}
-            className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
-              tab === 'basic' ? 'bg-white text-acb-900 shadow-sm' : 'text-acb-600 hover:text-acb-900'
-            }`}
-          >
-            Básico
-          </button>
-          <button
-            type="button"
-            onClick={() => setTab('advanced')}
-            aria-pressed={tab === 'advanced'}
-            className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
-              tab === 'advanced' ? 'bg-white text-acb-900 shadow-sm' : 'text-acb-600 hover:text-acb-900'
-            }`}
-          >
-            Avanzado
-          </button>
+          {ROSTER_TABS.map(option => (
+            <button
+              key={option.key}
+              type="button"
+              onClick={() => setTab(option.key)}
+              aria-pressed={tab === option.key}
+              className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
+                tab === option.key ? 'bg-white text-acb-900 shadow-sm' : 'text-acb-600 hover:text-acb-900'
+              }`}
+            >
+              {option.label}
+            </button>
+          ))}
         </div>
       </div>
 

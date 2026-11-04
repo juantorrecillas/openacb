@@ -60,7 +60,6 @@ const STAT_TITLES = {
   'As TL': 'Asistencias a tiro libre por partido: pases que acaban en falta y tiros libres (no cuentan en APP)',
   'Dif. aro': 'Diferencia defensiva en el aro',
   'Dif. 3P': 'Diferencia defensiva en triples',
-  'PER-H': 'PER de Hollinger: eficiencia por minuto ajustada al ritmo (media de la liga = 15)',
   GmSc: 'Game Score por partido',
   OWS: 'Win Shares ofensivas: victorias aportadas en ataque',
   DWS: 'Win Shares defensivas: victorias aportadas en defensa',
@@ -70,6 +69,9 @@ const STAT_TITLES = {
   'Imp. of.': 'Impacto ofensivo por 100 posesiones',
   'Imp. def.': 'Impacto defensivo por 100 posesiones',
 }
+
+// The "PER" label already means turnovers per game, so Hollinger's PER carries its own title.
+export const HOLLINGER_PER_TITLE = 'PER de Hollinger: eficiencia por minuto ajustada al ritmo (media de la liga = 15)'
 
 export function statTitle(label) {
   return STAT_TITLES[label] || label

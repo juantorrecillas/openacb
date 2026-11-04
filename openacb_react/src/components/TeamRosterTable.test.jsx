@@ -8,6 +8,7 @@ import TeamRosterTable from './TeamRosterTable'
 import {
   playerProfileAdvancedStatColumns,
   playerProfileBasicStatColumns,
+  playerProfileImpactStatColumns,
 } from '../utils/playerProfileTableColumns'
 
 afterEach(cleanup)
@@ -111,5 +112,29 @@ describe('tabla de plantilla', () => {
     const firstPlayerRow = screen.getByRole('link', { name: 'Jugador Principal' }).closest('tr')
     expect(within(firstPlayerRow).getByText('2.50')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Avanzado' })).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  test('cambia a las mismas columnas de impacto que el perfil de jugador', async () => {
+    const user = userEvent.setup()
+    const impactPlayers = players.map((player, index) => (
+      index === 1 ? { ...player, ws40: 0.1234, oImpact: 2.34, dImpact: -0.5, impact: 1.84 } : player
+    ))
+    render(
+      <MemoryRouter>
+        <TeamRosterTable players={impactPlayers} />
+      </MemoryRouter>
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Impacto' }))
+
+    const headers = screen.getAllByRole('columnheader')
+    expect(headers.slice(3).map(header => header.textContent.trim())).toEqual(
+      playerProfileImpactStatColumns.map(column => column.label)
+    )
+    const firstPlayerRow = screen.getByRole('link', { name: 'Jugador Principal' }).closest('tr')
+    expect(within(firstPlayerRow).getByText('0.123')).toBeInTheDocument()
+    expect(within(firstPlayerRow).getByText('+2.3')).toBeInTheDocument()
+    expect(within(firstPlayerRow).getByText('-0.5')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Impacto' })).toHaveAttribute('aria-pressed', 'true')
   })
 })

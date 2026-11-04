@@ -41,7 +41,7 @@ const formatSigned = v => `${v > 0 ? '+' : ''}${v.toFixed(1)}`
 export const playerProfileImpactStatColumns = [
   { key: 'games', label: 'PJ', integer: true },
   { key: 'mpg', label: 'MPP' },
-  { key: 'per', label: 'PER-H' },
+  { key: 'per', label: 'PER' },
   { key: 'gmsc', label: 'GmSc' },
   { key: 'ows', label: 'OWS' },
   { key: 'dws', label: 'DWS' },
