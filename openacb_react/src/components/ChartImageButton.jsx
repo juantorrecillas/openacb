@@ -12,9 +12,11 @@ const PENDING_MS = 30000
 
 /**
  * Exports a chart as a branded PNG. getImage() returns the spec described in
- * utils/chartImage.js, built at click time from the chart currently on screen.
+ * utils/chartImage.js (or a promise of it), built at click time from the chart
+ * currently on screen. onPrepare() runs with the font warm-up, for charts that
+ * need to load something of their own (team logos).
  */
-export default function ChartImageButton({ getImage, className = '' }) {
+export default function ChartImageButton({ getImage, onPrepare, className = '' }) {
   const [state, setState] = useState('idle') // idle | working | ready | error
   const [canShare] = useState(canShareImages)
   const pending = useRef(null)
@@ -24,6 +26,7 @@ export default function ChartImageButton({ getImage, className = '' }) {
 
   const prepare = () => {
     loadExporter().then(module => module.prepareChartImage()).catch(() => {})
+    Promise.resolve().then(onPrepare).catch(() => {})
   }
 
   const settle = (next, resetAfter) => {
@@ -44,7 +47,7 @@ export default function ChartImageButton({ getImage, className = '' }) {
       let image = pending.current
       pending.current = null
       settle('working')
-      if (!image) image = await createChartImage(getImage())
+      if (!image) image = await createChartImage(await getImage())
       const result = await deliverChartImage(image)
       // The share sheet wants a fresh tap when the image took too long: keep it ready.
       if (result === 'blocked') {

@@ -10,6 +10,7 @@
     }
   ],
   "rewrites": [
+    { "source": "/acb-static/:path*", "destination": "https://static.acb.com/:path*" },
     { "source": "/(.*)", "destination": "/app" }
   ]
 }

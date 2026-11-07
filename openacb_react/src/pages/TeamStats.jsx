@@ -5,6 +5,7 @@ import { Download } from 'lucide-react'
 import { downloadTableAsCsv } from '../utils/csvDownload'
 import { statTitle } from '../utils/statLabels'
 import TeamToolShell, { teamToolStyles as styles } from '../components/TeamToolShell'
+import ChartImageButton from '../components/ChartImageButton'
 import MobileNameRow from '../components/MobileNameRow'
 import SortLabel from '../components/SortLabel'
 import { getRankBadgeClass } from '../utils/percentileColors'
@@ -210,6 +211,11 @@ function TeamDot({ cx, cy, payload, teamLogos, color, highlighted }) {
   }
   return <circle cx={cx} cy={cy} r={highlighted ? 10 : 8} fill={color} fillOpacity={highlighted ? 1 : 0.8} />
 }
+
+// The image export (and its logo loader) only loads when someone uses it.
+const loadMapImageTools = () => import('../utils/teamScatterImage.js')
+
+const seasonText = season => `${season - 1}-${String(season).slice(-2)}`
 
 function getAxisStat(statKey) {
   return statOptions.find(s => s.value === statKey)
@@ -516,6 +522,51 @@ export default function TeamStats({ teams, teamLogos = {} }) {
     return Math.round(displayValue).toString()
   }
 
+  const canExportMap = sortedTeams.length > 0 && Boolean(xAxisScale.ticks && yAxisScale.ticks)
+  const mapLogoUrls = () => teamsWithColors.map(team => teamLogos[team.team])
+  const preloadMapLogos = () => loadMapImageTools().then(module => module.loadTeamLogos(mapLogoUrls()))
+
+  const getMapImage = async () => {
+    const { loadTeamLogos, buildTeamScatterPanel } = await loadMapImageTools()
+    const logos = await loadTeamLogos(mapLogoUrls())
+    const xLabel = getAxisStat(xAxis)?.label || xAxis
+    const yLabel = getAxisStat(yAxis)?.label || yAxis
+    const axis = (statKey, scale, title) => ({
+      title,
+      domain: scale.domain,
+      ticks: scale.ticks.map(value => ({ value, label: formatAxisValue(value, statKey) })),
+    })
+    const stageText = selectedStage === 'playoffs' ? 'Playoffs' : 'Temporada regular'
+    const rounds = Math.max(0, ...enrichedTeams.map(team => team.games || 0))
+    const firstSeason = Math.min(...availableSeasons)
+    const subtitle = selectedSeason === 'all'
+      ? `${stageText}, un punto por equipo y temporada`
+      : selectedStage === 'regular' && rounds > 0
+        ? `Temporada regular, tras ${rounds} ${rounds === 1 ? 'jornada' : 'jornadas'}`
+        : stageText
+    return {
+      chart: 'mapa-equipos',
+      kicker: `Estadísticas de equipos · Liga Endesa ${selectedSeason === 'all' ? `desde ${seasonText(firstSeason)}` : seasonText(selectedSeason)}`,
+      title: `${xLabel} vs ${yLabel}`,
+      subtitle,
+      panels: [buildTeamScatterPanel({
+        rows: teamsWithColors.map(team => ({
+          x: team[xAxis],
+          y: team[yAxis],
+          label: team.displayLabel,
+          logo: teamLogos[team.team],
+          color: team.color,
+        })),
+        logos,
+        xAxis: axis(xAxis, xAxisScale, xLabel),
+        yAxis: axis(yAxis, yAxisScale, yLabel),
+        average: { x: avgX, y: avgY },
+        showLabels,
+      })],
+      legend: [{ type: 'line', color: '#94a3b8', dashed: true, label: 'Media de la liga' }],
+    }
+  }
+
   return (
     <TeamToolShell
       activeTool="stats"
@@ -593,7 +644,7 @@ export default function TeamStats({ teams, teamLogos = {} }) {
               ))}
             </select>
           </div>
-          <div className={styles.controlSpacer}>
+          <div className={`${styles.controlSpacer} ${styles.chartActions}`}>
             <button
               onClick={() => setShowLabels(!showLabels)}
               className={`${styles.secondaryButton} ${showLabels ? styles.toggleActive : ''}`}
@@ -601,7 +652,7 @@ export default function TeamStats({ teams, teamLogos = {} }) {
             >
               {showLabels ? 'Ocultar nombres' : 'Mostrar nombres'}
             </button>
-
+            {canExportMap && <ChartImageButton getImage={getMapImage} onPrepare={preloadMapLogos} />}
           </div>
         </div>
         

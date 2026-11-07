@@ -30,6 +30,16 @@ function umamiTracker(env) {
   }
 }
 
+// Team logos for image exports, read through the site because static.acb.com
+// sends no CORS headers (vercel.json does the same in production).
+const acbStaticProxy = {
+  '/acb-static': {
+    target: 'https://static.acb.com',
+    changeOrigin: true,
+    rewrite: path => path.replace(/^\/acb-static/, ''),
+  },
+}
+
 // configuración de vite
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_')
@@ -44,7 +54,11 @@ export default defineConfig(({ mode }) => {
         'Pragma': 'no-cache',
         'Expires': '0',
         'Surrogate-Control': 'no-store'
-      }
-    }
+      },
+      proxy: acbStaticProxy,
+    },
+    preview: {
+      proxy: acbStaticProxy,
+    },
   }
 })
