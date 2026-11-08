@@ -10,6 +10,7 @@
     "build": "vite build",
     "postbuild": "node scripts/build-seo.mjs",
     "lint": "eslint .",
+    "pretest": "npm run refresh:light-data",
     "test": "node --test src/routing/routing.test.js && vitest run src/routing/navigation.integration.test.jsx src/seo/metadata.test.js src/seo/entities.test.js src/utils/playerArchetypes.test.js src/components/TeamRosterTable.test.jsx src/utils/teamRadar.test.js",
     "preview": "vite preview",
     "refresh:home-team": "node scripts/build-home-example.mjs",

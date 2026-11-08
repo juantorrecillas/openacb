@@ -6,6 +6,7 @@ import { readdirSync, readFileSync, writeFileSync } from 'node:fs'
 //   (lineups, games, shots and clutch only need these to name players)
 // - onoff-YYYY.json: the per-player on/off ratings from lineups-YYYY.json
 //   (the On/Off cards in the player profile and comparison)
+// These files are not committed: predev, prebuild and pretest rebuild them.
 const dataDir = new URL('../public/data/', import.meta.url)
 const readJson = file => JSON.parse(readFileSync(new URL(file, dataDir), 'utf8'))
 const writeJson = (file, value) => writeFileSync(new URL(file, dataDir), JSON.stringify(value))

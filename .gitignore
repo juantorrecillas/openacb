@@ -37,6 +37,10 @@ openacb_api/public/data/
 # Generated JSON/CSV exports for React
 # openacb_react/public/data/*.json
 openacb_react/public/data/*.csv
+# Rebuilt from players.json and lineups-*.json by scripts/build-light-data.mjs
+# on every dev, build (Vercel included) and test run
+openacb_react/public/data/player-index.json
+openacb_react/public/data/onoff-*.json
 
 /output/
 
