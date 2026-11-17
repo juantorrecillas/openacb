@@ -566,9 +566,29 @@ body {
   max-width: 1280px;
   min-height: 72px;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  justify-content: space-between;
+  column-gap: 24px;
   margin: 0 auto;
   padding: 14px 28px;
+}
+
+.siteFooterSocial {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 8px;
+  color: #bcccdc;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: color 160ms ease-out;
+}
+
+.siteFooterSocial:hover,
+.siteFooterSocial:focus-visible {
+  color: #ece338;
 }
 
 .siteFooterNote {

@@ -61,6 +61,7 @@ export function getMetaTags(metadata) {
     ['property', 'og:image:width', large && metadata.imageWidth ? String(metadata.imageWidth) : null],
     ['property', 'og:image:height', large && metadata.imageHeight ? String(metadata.imageHeight) : null],
     ['name', 'twitter:card', large ? 'summary_large_image' : 'summary'],
+    ['name', 'twitter:site', '@openacb'],
     ['name', 'twitter:title', metadata.title],
     ['name', 'twitter:description', metadata.description],
     ['name', 'twitter:image', image],

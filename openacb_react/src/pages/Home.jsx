@@ -121,6 +121,7 @@ export default function Home() {
             <div className={styles.projectLinks}>
               <Link to={buildAboutPath()}>Sobre openACB <ArrowRight aria-hidden="true" size={17} /></Link>
               <a href="https://github.com/juantorrecillas/openacb" target="_blank" rel="noopener noreferrer">Código en GitHub <ArrowUpRight aria-hidden="true" size={17} /></a>
+              <a href="https://x.com/openacb" target="_blank" rel="noopener noreferrer">@openacb en X <ArrowUpRight aria-hidden="true" size={17} /></a>
             </div>
           </div>
         </div>
